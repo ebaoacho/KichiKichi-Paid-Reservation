@@ -1,0 +1,31 @@
+/* kkpay-mypage.css – 予約照会・キャンセルページ */
+
+#kkpay-mypage-wrap {
+    max-width: 560px;
+    margin: 0 auto;
+    font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+    color: #1a1a1a;
+}
+
+#kkpay-reservation-detail {
+    margin-top: 24px;
+}
+
+#kkpay-cancel-section {
+    margin-top: 20px;
+}
+
+.kkpay-notice {
+    font-size: 0.88rem;
+    color: #6b7280;
+    margin: 8px 0;
+}
+
+.kkpay-notice.warning {
+    color: #7a5800;
+    background: #fffbeb;
+    border: 1px solid #f5c518;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-weight: 500;
+}

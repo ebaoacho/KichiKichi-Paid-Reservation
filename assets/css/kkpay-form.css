@@ -1,0 +1,371 @@
+/* kkpay-form.css – 予約フォーム・決済ページ共通スタイル */
+
+:root {
+    --kkpay-red:          #c8102e;
+    --kkpay-red-dark:     #a50d25;
+    --kkpay-red-light:    #fff1f2;
+    --kkpay-yellow:       #f5c518;
+    --kkpay-yellow-light: #fffbeb;
+    --kkpay-white:        #ffffff;
+    --kkpay-bg:           #fafafa;
+    --kkpay-border:       #e5e7eb;
+    --kkpay-text:         #1a1a1a;
+    --kkpay-muted:        #6b7280;
+    --kkpay-radius:       8px;
+    --kkpay-shadow:       0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.kkpay-wrap {
+    max-width: 560px;
+    margin: 0 auto;
+    font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+    color: var(--kkpay-text);
+}
+
+.kkpay-field {
+    margin-bottom: 24px;
+}
+
+.kkpay-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+    font-size: 0.88rem;
+    color: var(--kkpay-text);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+/* フォーム部品 */
+.kkpay-input,
+.kkpay-select {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid var(--kkpay-border);
+    border-radius: var(--kkpay-radius);
+    font-size: 1rem;
+    box-sizing: border-box;
+    background: var(--kkpay-white);
+    color: var(--kkpay-text);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.kkpay-input:focus,
+.kkpay-select:focus {
+    border-color: var(--kkpay-red);
+    box-shadow: 0 0 0 3px rgba(200, 16, 46, 0.12);
+    outline: none;
+}
+
+/* 日付グリッド */
+.kkpay-date-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.kkpay-date-btn {
+    padding: 10px 14px;
+    border: 1.5px solid var(--kkpay-border);
+    border-radius: var(--kkpay-radius);
+    background: var(--kkpay-white);
+    cursor: pointer;
+    font-size: 0.88rem;
+    font-weight: 500;
+    transition: all 0.15s;
+    min-width: 80px;
+    text-align: center;
+    color: var(--kkpay-text);
+}
+
+.kkpay-date-btn:hover:not(:disabled) {
+    border-color: var(--kkpay-red);
+    background: var(--kkpay-red-light);
+    color: var(--kkpay-red);
+}
+
+.kkpay-date-btn.selected {
+    border-color: var(--kkpay-red);
+    background: var(--kkpay-red);
+    color: var(--kkpay-white);
+    font-weight: 700;
+}
+
+.kkpay-date-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.kkpay-date-btn.not-open {
+    color: var(--kkpay-muted);
+    border-style: dashed;
+}
+
+/* スロットリスト */
+.kkpay-slot-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border: 1.5px solid var(--kkpay-border);
+    border-radius: var(--kkpay-radius);
+    margin-bottom: 8px;
+    cursor: pointer;
+    background: var(--kkpay-white);
+    transition: all 0.15s;
+    font-weight: 500;
+}
+
+.kkpay-slot-item:hover:not(.disabled) {
+    border-color: var(--kkpay-red);
+    background: var(--kkpay-red-light);
+}
+
+.kkpay-slot-item.selected {
+    border-color: var(--kkpay-red);
+    background: var(--kkpay-red-light);
+    color: var(--kkpay-red);
+    font-weight: 700;
+}
+
+.kkpay-slot-item.disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    background: var(--kkpay-bg);
+}
+
+.kkpay-slot-remaining {
+    margin-left: auto;
+    font-size: 0.8rem;
+    color: var(--kkpay-muted);
+}
+
+.kkpay-slot-remaining.low {
+    color: var(--kkpay-red);
+    font-weight: 700;
+}
+
+/* 予約サマリ */
+.kkpay-summary {
+    background: var(--kkpay-bg);
+    border: 1.5px solid var(--kkpay-border);
+    border-radius: var(--kkpay-radius);
+    padding: 16px 20px;
+    margin-bottom: 16px;
+}
+
+.kkpay-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--kkpay-border);
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.kkpay-summary-row:last-child {
+    border-bottom: none;
+}
+
+.kkpay-summary-label {
+    font-weight: 600;
+    color: var(--kkpay-muted);
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* 価格 */
+.kkpay-price-notice {
+    color: var(--kkpay-muted);
+    font-size: 0.88rem;
+    margin-bottom: 16px;
+}
+
+/* ボタン */
+.kkpay-btn {
+    display: block;
+    width: 100%;
+    padding: 14px 28px;
+    border: none;
+    border-radius: var(--kkpay-radius);
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+    letter-spacing: 0.03em;
+    box-sizing: border-box;
+}
+
+.kkpay-btn:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.kkpay-btn-primary {
+    background: var(--kkpay-red);
+    color: var(--kkpay-white);
+    box-shadow: 0 2px 8px rgba(200, 16, 46, 0.28);
+}
+
+.kkpay-btn-primary:hover:not(:disabled) {
+    background: var(--kkpay-red-dark);
+    box-shadow: 0 4px 14px rgba(200, 16, 46, 0.38);
+}
+
+.kkpay-btn-primary:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.kkpay-btn-danger {
+    background: transparent;
+    color: var(--kkpay-red);
+    border: 1.5px solid var(--kkpay-red);
+}
+
+.kkpay-btn-danger:hover:not(:disabled) {
+    background: var(--kkpay-red);
+    color: var(--kkpay-white);
+}
+
+/* メッセージ */
+.kkpay-message {
+    padding: 12px 16px;
+    border-radius: var(--kkpay-radius);
+    margin-top: 12px;
+    font-size: 0.92rem;
+    font-weight: 500;
+}
+
+.kkpay-message.success {
+    background: var(--kkpay-yellow-light);
+    color: #7a5800;
+    border: 1px solid var(--kkpay-yellow);
+}
+
+.kkpay-message.error {
+    background: var(--kkpay-red-light);
+    color: var(--kkpay-red-dark);
+    border: 1px solid rgba(200, 16, 46, 0.3);
+}
+
+/* カードエレメント (Stripe) */
+.kkpay-card-element {
+    border: 1.5px solid var(--kkpay-border);
+    border-radius: var(--kkpay-radius);
+    padding: 14px;
+    background: var(--kkpay-white);
+    min-height: 44px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.kkpay-card-element.StripeElement--focus {
+    border-color: var(--kkpay-red);
+    box-shadow: 0 0 0 3px rgba(200, 16, 46, 0.12);
+}
+
+.kkpay-error {
+    color: var(--kkpay-red);
+    font-size: 0.85rem;
+    margin-top: 6px;
+    min-height: 20px;
+}
+
+/* カウントダウン */
+.kkpay-countdown {
+    font-size: 2.4rem;
+    font-weight: 800;
+    color: var(--kkpay-red);
+    text-align: center;
+    margin: 8px 0 16px;
+    letter-spacing: 0.06em;
+}
+
+.kkpay-countdown.urgent {
+    animation: kkpay-pulse 1s infinite;
+}
+
+@keyframes kkpay-pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.4; }
+}
+
+/* 成功ボックス */
+.kkpay-success-box {
+    background: var(--kkpay-white);
+    border: 2.5px solid var(--kkpay-yellow);
+    border-radius: 12px;
+    padding: 36px 28px 28px;
+    text-align: center;
+    box-shadow: var(--kkpay-shadow);
+}
+
+.kkpay-success-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--kkpay-red);
+    margin: 0 auto 20px;
+    font-size: 1.8rem;
+    line-height: 1;
+    color: var(--kkpay-white);
+}
+
+.kkpay-success-box h2 {
+    color: var(--kkpay-red);
+    margin: 0 0 20px;
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.kkpay-success-box .kkpay-summary {
+    text-align: left;
+    border-color: var(--kkpay-yellow);
+    background: var(--kkpay-yellow-light);
+}
+
+.kkpay-success-email-notice {
+    margin-top: 16px;
+    color: var(--kkpay-muted);
+    font-size: 0.88rem;
+    border-top: 1px solid var(--kkpay-border);
+    padding-top: 16px;
+}
+
+/* 注意書き */
+.kkpay-notice {
+    font-size: 0.88rem;
+    color: var(--kkpay-muted);
+    margin: 8px 0;
+}
+
+/* 管理画面テーブル */
+.kkpay-group-header td {
+    background: #e5e7eb !important;
+    font-weight: 700;
+}
+
+.kkpay-subtotal td {
+    background: #f3f4f6 !important;
+}
+
+/* レスポンシブ */
+@media (max-width: 480px) {
+    .kkpay-date-btn {
+        min-width: 62px;
+        padding: 8px 10px;
+        font-size: 0.82rem;
+    }
+    .kkpay-btn {
+        padding: 12px 16px;
+    }
+    .kkpay-success-box {
+        padding: 28px 16px 20px;
+    }
+}
