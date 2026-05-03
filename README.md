@@ -1,552 +1,358 @@
-# KichiKichi Paid Reservation
+# キチキチ 決済予約システム（kkpay）
 
-## 目的
+既存の「キチキチ予約システム」が管理する営業カレンダーを参照しながら、
+Stripe 決済を組み込んだ予約受付機能を提供する WordPress プラグインです。
 
-[KichiKichi](https://kichikichi.com/)の既存WordPressサイトに、3日前から予約できる事前決済付きの「プレミアム予約」機能をWordPressプラグインとして追加する。
+---
 
-この機能は、現在稼働中の当日予約システムとは別の予約導線として提供する。お客様は来店前に席料金をStripeでカード決済し、来店当日は通常どおり店内で食事を注文する。席料金は食事代とは別で、キャンセル時の返金は行わない。
+## 目次
 
-## 前提
+1. [動作要件](#動作要件)
+2. [導入手順](#導入手順)
+3. [Stripe 設定](#stripe-設定)
+4. [WordPress ページ設置](#wordpress-ページ設置)
+5. [ショートコード一覧](#ショートコード一覧)
+6. [定数・設定値一覧](#定数設定値一覧)
+7. [管理画面の使い方](#管理画面の使い方)
+8. [予約フロー概要](#予約フロー概要)
+9. [キャンセル・返金ポリシー](#キャンセル返金ポリシー)
+10. [メール送信設定（Xserver SMTP）](#メール送信設定xserver-smtp)
+11. [トラブルシューティング](#トラブルシューティング)
 
-- 対象サイト: WordPressで運用中の `kichikichi.com`
-- 実装形態: WordPressプラグイン
-- バックエンド: PHP / WordPress API / MySQL
-- フロントエンド: HTML / CSS / JavaScript
-- 決済: Stripe
-- メール: WordPressのメール送信機能を利用し、必要に応じてSMTPプラグインと連携
-- タイムゾーン: Asia/Tokyo
-- 既存の当日予約システムは継続利用する
+---
 
-## 現行システムの把握
+## 動作要件
 
-`現行の動作.txt`に記載された現行コードでは、主に以下の機能が稼働している。
+| 項目 | 条件 |
+|---|---|
+| PHP | 7.2 以上 |
+| WordPress | 5.6 以上 |
+| 依存プラグイン | 「キチキチ予約システム」（`{prefix}calendar` テーブルが必要） |
+| 推奨プラグイン | WP Mail SMTP（Xserver SMTP 経由送信に使用） |
+| Stripe | アカウントおよび API キーが必要 |
 
-- 当日予約フォーム: `[reservation_form]`
-- 予約確認フォーム: `[confirm_reservation_form]`
-- 営業日カレンダー: `[customer_calendar]`
-- 管理画面からの予約開始操作
-- 時間枠ごとのテーブル席・カウンター席上限管理
-- 予約済み人数による空席判定
-- 営業日カレンダーの管理
-- AJAXによる予約登録、残席確認、予約確認、キャンセル処理
+---
 
-現行の時間枠は以下の6枠で運用されている。
+## 導入手順
 
-| 枠 | 到着時間 | 席利用時間 | 区分 |
-| --- | --- | --- | --- |
-| slot_1 | 11:40 | 12:00-13:00 | Lunch |
-| slot_2 | 12:40 | 13:00-14:00 | Lunch |
-| slot_3 | 16:40 | 17:00-18:00 | Dinner |
-| slot_4 | 17:40 | 18:00-19:00 | Dinner |
-| slot_5 | 18:40 | 19:00-20:00 | Dinner |
-| slot_6 | 19:40 | 20:00-21:00 | Dinner |
+### 1. プラグインを有効化する
 
-プレミアム予約でも、この時間枠を基本として利用する。ただし、当日予約とは別在庫として扱うか、共通在庫から差し引くかは管理設定で選べる設計とする。
+WordPress 管理画面 → **プラグイン** → 「キチキチ 決済予約システム」を **有効化**
 
-## 業務要件
+有効化と同時に以下のデータベーステーブルが自動作成されます。
 
-### プレミアム予約の基本条件
+| テーブル名 | 用途 |
+|---|---|
+| `{prefix}kkpay_holds` | 仮予約（5 分で自動開放） |
+| `{prefix}kkpay_reservations` | 本予約（決済完了済み） |
+| `{prefix}kkpay_cancellations` | キャンセル・返金履歴 |
 
-- 予約可能日は、来店日の3日前からとする。
-- 席料金は1席あたり3,000円とする。
-- 決済金額は `予約人数 x 3,000円` とする。
-- 食事代は席料金に含めない。
-- 来店当日は通常どおり店内で注文・会計する。
-- 決済完了後に予約を確定する。
-- 決済未完了の予約は確定予約として扱わない。
-- キャンセルしても席料金は返金しない。
-- お客様向け画面に「プレミアム予約できる日」を明記する。
+> **注意**: 既存プラグインが管理する `{prefix}calendar` テーブルへの書き込みは一切行いません。
 
-### 予約受付期間
+### 2. Configure environment settings
 
-「3日前から可能」は、以下のルールで定義する。
+Plugin settings are not entered in WordPress admin. Copy `.env.template` to `.env` in this plugin directory before enabling payments.
 
-- 今日を含めず、来店日の3日前 00:00 JST から受付開始する。
-- 例: 2026年4月20日に来店する予約は、2026年4月17日 00:00 JST から受付可能。
-- 受付終了は、原則として来店日前日 23:59 JST または店舗が管理画面で設定した締切時刻とする。
-- 当日枠は既存の当日予約システムに任せる。
+| Environment variable | Value |
+|---|---|
+| `KKPAY_STRIPE_PUBLISHABLE_KEY` | `pk_live_...` or `pk_test_...` |
+| `KKPAY_STRIPE_SECRET_KEY` | `sk_live_...` or `sk_test_...` |
+| `KKPAY_STRIPE_WEBHOOK_SECRET` | `whsec_...` from the Stripe Dashboard |
+| `KKPAY_FROM_EMAIL` | Outbound email From address |
+| `KKPAY_FROM_NAME` | Outbound email From name |
 
-### 予約可能日の表示
+The plugin loads this `.env` file at startup. `wp-config.php` constants and server-level environment variables with the same names are also supported.
 
-お客様向け画面では、以下を明確に表示する。
+### 3. Stripe Webhook を登録する
 
-- プレミアム予約受付中の日付
-- 受付前の日付
-- 満席の日付
-- 休業日
-- ランチのみ営業、ディナーのみ営業、両方営業
-- 「席料金は1席3,000円、食事代別、キャンセル返金なし」の注意事項
+Stripe ダッシュボード → **Developers** → **Webhooks** → **Add endpoint**
 
-既存の営業日カレンダー `wp_calendar` の `date`, `lunch`, `dinner` を参照し、営業していない時間帯は選択不可にする。
+| 項目 | 値 |
+|---|---|
+| Endpoint URL | `https://yoursite.com/wp-json/kkpay/v1/webhook` |
+| Listen to events | `payment_intent.succeeded`, `charge.refunded` |
 
-### 決済
+> Put the Webhook signing secret (`whsec_...`) in `KKPAY_STRIPE_WEBHOOK_SECRET`.
 
-- Stripe Checkoutを利用する。
-- 通貨はJPY。
-- 商品名は「KichiKichi Premium Reservation Seat Fee」など、席料金であることが分かる名称にする。
-- Stripe Checkout Session作成時点では仮予約を作成する。
-- Stripe Webhookの `checkout.session.completed` を受信した時点で予約を確定する。
-- Webhook検証にはStripe署名シークレットを使用する。
-- 返金はシステム上では自動実行しない。
-- 管理者が特例返金する場合はStripeダッシュボードで手動対応する。
+### 4. WordPress ページを作成する
 
-### メール
+以下の 3 ページを WordPress で作成し、各ショートコードを本文に貼り付けます。
 
-決済完了後に予約完了メールを送信する。
+| ページ | ショートコード | スラッグ例 |
+|---|---|---|
+| 予約フォームページ | `[kkpay_reservation_form]` | `/reservation/` |
+| 決済ページ | `[kkpay_payment_page]` | `/payment/` |
+| 予約照会・キャンセルページ | `[kkpay_my_reservation]` | `/my-reservation/` |
 
-送信先:
+### 5. 決済ページ URL を設定する
 
-- お客様
-- 店舗管理者
+予約フォームから決済ページへの自動遷移に使用する URL を、
+[early-reservation-system.php](early-reservation-system.php) の `wp_localize_script` に追記します。
 
-お客様向けメールに含める内容:
-
-- 予約番号
-- 氏名
-- メールアドレス
-- 来店日
-- 到着時間
-- 席利用時間
-- 人数
-- 席種別
-- 決済済み席料金
-- 食事代は別であること
-- キャンセルしても返金されないこと
-- 来店時の注意事項
-
-店舗向けメールに含める内容:
-
-- 予約番号
-- 予約日時
-- 氏名
-- メールアドレス
-- 来店日
-- 時間枠
-- 人数
-- 席種別
-- Stripe Payment Intent ID
-- Stripe Checkout Session ID
-
-### 管理画面
-
-WordPress管理画面に「プレミアム予約」メニューを追加する。
-
-必要な管理機能:
-
-- プレミアム予約一覧
-- 日付、時間枠、氏名、メールアドレスでの検索
-- 予約ステータスの確認
-- Stripe決済IDの確認
-- 予約メモの登録
-- 管理者によるキャンセル扱いへの変更
-- プレミアム予約の受付ON/OFF
-- 受付締切時刻の設定
-- 1席料金の設定
-- 時間枠ごとのプレミアム予約枠数設定
-- 当日予約と在庫を共通化するか、別管理するかの設定
-
-## 機能要件
-
-### お客様向け機能
-
-1. プレミアム予約カレンダー表示
-2. 来店日選択
-3. 時間枠選択
-4. 席種別選択
-5. 人数選択
-6. 氏名・メールアドレス入力
-7. 注意事項同意チェック
-8. Stripe Checkoutへの遷移
-9. 決済完了後の予約完了画面表示
-10. 予約完了メール受信
-
-### 管理者向け機能
-
-1. 予約一覧閲覧
-2. 予約詳細確認
-3. 予約ステータス変更
-4. プレミアム予約枠数設定
-5. 受付可能日の確認
-6. Stripe決済情報確認
-7. 予約完了メールの再送
-8. CSVエクスポート
-
-### システム機能
-
-1. 受付可能日判定
-2. 営業日判定
-3. 残席判定
-4. 仮予約作成
-5. Stripe Checkout Session作成
-6. Stripe Webhook受信
-7. 決済完了後の予約確定
-8. メール送信
-9. 期限切れ仮予約の自動失効
-10. 操作ログ・エラーログ記録
-
-## 非機能要件
-
-### セキュリティ
-
-- すべてのフォームにWordPress nonceを付与する。
-- AJAX/APIの入力値は `sanitize_text_field`, `sanitize_email`, `absint` などで検証する。
-- SQLは `$wpdb->prepare()` を使用する。
-- Stripe秘密鍵はDBに平文保存せず、可能であれば `wp-config.php` の定数で管理する。
-- WebhookはStripe署名で検証する。
-- 管理機能は `manage_options` 権限以上に限定する。
-- お客様の個人情報をフロントエンドに不要に露出しない。
-
-### 信頼性
-
-- 決済完了前の予約は `pending_payment` として扱い、残席の一時確保期限を設ける。
-- Webhookが複数回来ても二重確定しないよう、Stripe Session IDにユニーク制約を設ける。
-- メール送信失敗時も予約確定は維持し、管理画面にメール送信ステータスを表示する。
-- 仮予約の期限切れ処理をWP-Cronで実行する。
-
-### パフォーマンス
-
-- 予約一覧にはページネーションを実装する。
-- 残席確認クエリには `reservation_date`, `time_slot`, `status` のインデックスを設定する。
-- カレンダー取得は月単位で取得する。
-
-### 多言語
-
-現行システムが英語、日本語、韓国語、中国語に対応しているため、プレミアム予約も以下の言語対応を想定する。
-
-- English
-- 日本語
-- 한국어
-- 简体中文
-- 繁體中文
-
-初期実装では、最低限英語と日本語の文言を用意し、文言定義を拡張可能にする。
-
-## 基本設計
-
-### プラグイン構成案
-
-```text
-kichikichi-paid-reservation/
-  kichikichi-paid-reservation.php
-  includes/
-    class-plugin.php
-    class-activator.php
-    class-admin.php
-    class-frontend.php
-    class-reservation-service.php
-    class-stripe-service.php
-    class-mailer.php
-    class-calendar-service.php
-    class-cron.php
-  templates/
-    premium-reservation-form.php
-    premium-reservation-complete.php
-    admin-reservations.php
-    admin-settings.php
-  assets/
-    css/
-      premium-reservation.css
-      admin.css
-    js/
-      premium-reservation.js
-      admin.js
-  languages/
+```php
+// early-reservation-system.php の kkpay_enqueue_assets() 内
+wp_localize_script( 'kkpay-form', 'kkpay', array(
+    // ... 既存の項目 ...
+    'payment_page_url' => home_url( '/payment/' ),  // ← 決済ページのURLを追記
+) );
 ```
 
-### ショートコード
+> スラッグが異なる場合は `'/payment/'` を実際のパスに変更してください。
 
-| ショートコード | 用途 |
-| --- | --- |
-| `[kichikichi_premium_reservation]` | お客様向けプレミアム予約フォーム |
-| `[kichikichi_premium_reservation_complete]` | Stripe決済完了後の完了画面 |
+---
 
-### REST API / AJAX
+## Stripe 設定
 
-WordPress REST APIで実装することを推奨する。既存システムが `admin-ajax.php` を利用しているため、既存実装との統一を優先する場合はAJAXでもよい。
+### テストモードでの確認
 
-| エンドポイント | 用途 |
-| --- | --- |
-| `GET /premium-reservation/calendar` | 月単位の営業日・予約可能日取得 |
-| `GET /premium-reservation/slots` | 指定日の時間枠と残席取得 |
-| `POST /premium-reservation/checkout` | 仮予約作成とStripe Checkout Session作成 |
-| `POST /premium-reservation/webhook/stripe` | Stripe Webhook受信 |
-| `POST /premium-reservation/resend-mail` | 管理者によるメール再送 |
+1. Stripe ダッシュボードで **テストモード** をオンにする
+2. 公開キーに `pk_test_...`、シークレットキーに `sk_test_...` を入力
+3. テスト用カード番号 `4242 4242 4242 4242`（有効期限・CVC は任意）で決済をテスト
+4. 本番稼働前に `pk_live_...` / `sk_live_...` に切り替える
 
-### データベース設計
+### 3D セキュア対応
 
-#### `wp_kichikichi_premium_reservations`
+Stripe の `confirmCardPayment` を使用しているため、銀行が要求する場合は自動的に 3D セキュア認証画面が表示されます。追加設定は不要です。
 
-プレミアム予約本体を保存する。
+---
 
-| カラム | 型 | 内容 |
-| --- | --- | --- |
-| `id` | BIGINT UNSIGNED PK AUTO_INCREMENT | 内部ID |
-| `reservation_code` | VARCHAR(32) UNIQUE | お客様向け予約番号 |
-| `reservation_date` | DATE | 来店日 |
-| `time_slot` | VARCHAR(20) | `slot_1` など |
-| `arrival_time` | TIME | 到着時間 |
-| `seating_start` | TIME | 席利用開始 |
-| `seating_end` | TIME | 席利用終了 |
-| `seating_preference` | VARCHAR(20) | `Table` または `Bar` |
-| `number_of_people` | INT UNSIGNED | 人数 |
-| `seat_fee_unit` | INT UNSIGNED | 1席料金 |
-| `amount_total` | INT UNSIGNED | 合計決済額 |
-| `currency` | VARCHAR(3) | `JPY` |
-| `customer_name` | VARCHAR(191) | 氏名 |
-| `customer_email` | VARCHAR(191) | メール |
-| `language` | VARCHAR(10) | 表示言語 |
-| `status` | VARCHAR(30) | 予約ステータス |
-| `stripe_checkout_session_id` | VARCHAR(255) UNIQUE | Checkout Session ID |
-| `stripe_payment_intent_id` | VARCHAR(255) | Payment Intent ID |
-| `payment_status` | VARCHAR(30) | 決済ステータス |
-| `mail_sent_at` | DATETIME NULL | メール送信日時 |
-| `admin_note` | TEXT NULL | 管理メモ |
-| `created_at` | DATETIME | 作成日時 |
-| `updated_at` | DATETIME | 更新日時 |
-| `expires_at` | DATETIME NULL | 仮予約期限 |
+## WordPress ページ設置
 
-主なインデックス:
+### 予約フォーム `[kkpay_reservation_form]`
 
-- `reservation_date`
-- `time_slot`
-- `status`
-- `reservation_date, time_slot, seating_preference, status`
-- `customer_email`
-- `stripe_checkout_session_id`
+日付選択 → スロット選択 → 人数・氏名・メール入力 → 仮予約送信 → 決済ページへ遷移
 
-#### `wp_kichikichi_premium_slot_limits`
-
-時間枠ごとのプレミアム予約枠数を保存する。
-
-| カラム | 型 | 内容 |
-| --- | --- | --- |
-| `id` | BIGINT UNSIGNED PK AUTO_INCREMENT | 内部ID |
-| `time_slot` | VARCHAR(20) UNIQUE | `slot_1` など |
-| `table_limit` | INT UNSIGNED | テーブル席上限 |
-| `bar_limit` | INT UNSIGNED | カウンター席上限 |
-| `enabled` | TINYINT(1) | 受付有効フラグ |
-| `created_at` | DATETIME | 作成日時 |
-| `updated_at` | DATETIME | 更新日時 |
-
-#### `wp_kichikichi_premium_logs`
-
-決済・メール・管理操作ログを保存する。
-
-| カラム | 型 | 内容 |
-| --- | --- | --- |
-| `id` | BIGINT UNSIGNED PK AUTO_INCREMENT | 内部ID |
-| `reservation_id` | BIGINT UNSIGNED NULL | 関連予約ID |
-| `type` | VARCHAR(50) | `payment`, `mail`, `admin`, `webhook` など |
-| `message` | TEXT | ログ内容 |
-| `context_json` | LONGTEXT NULL | 補足情報 |
-| `created_at` | DATETIME | 作成日時 |
-
-### ステータス設計
-
-| ステータス | 意味 |
-| --- | --- |
-| `pending_payment` | Stripe決済前の仮予約 |
-| `confirmed` | 決済完了・予約確定 |
-| `expired` | 決済未完了で期限切れ |
-| `cancelled_no_refund` | キャンセル済み・返金なし |
-| `failed` | 決済または処理失敗 |
-
-残席計算では、原則として `pending_payment` と `confirmed` を席数に含める。ただし `pending_payment` は `expires_at` を過ぎたら除外する。
-
-### 予約可能判定
-
-指定日が予約可能かどうかは、以下の順で判定する。
-
-1. WordPressの現在時刻をJSTで取得する。
-2. 指定日が今日以前なら不可。
-3. 指定日の3日前 00:00 JST に達していなければ不可。
-4. 管理設定の受付締切を過ぎていれば不可。
-5. `wp_calendar` を参照し、休業日なら不可。
-6. ランチ枠の場合は `lunch = 1`、ディナー枠の場合は `dinner = 1` であることを確認する。
-7. プレミアム予約枠が有効であることを確認する。
-8. 残席数が希望人数以上あることを確認する。
-
-### 残席計算
-
-基本式:
-
-```text
-残席 = 設定上限 - 確定済み予約人数 - 有効な仮予約人数
+```
+[kkpay_reservation_form]
 ```
 
-共通在庫モードの場合:
+### 決済ページ `[kkpay_payment_page]`
 
-```text
-残席 = 共通上限 - 当日予約の予約人数 - プレミアム確定予約人数 - 有効なプレミアム仮予約人数
+hold_token を URL パラメータ（`?hold_token=xxx&lang=ja`）で受け取り、
+Stripe カード決済を行うページ。**予約フォームから自動遷移するため、直接アクセスするページではありません。**
+
+```
+[kkpay_payment_page]
 ```
 
-別在庫モードの場合:
+### 予約照会・キャンセル `[kkpay_my_reservation]`
 
-```text
-残席 = プレミアム予約上限 - プレミアム確定予約人数 - 有効なプレミアム仮予約人数
+メールアドレスを入力して予約情報を照会し、キャンセルを実行するページ。
+
+```
+[kkpay_my_reservation]
 ```
 
-初期導入では、既存当日予約への影響を抑えるため、別在庫モードを推奨する。店舗運用が安定した後、共通在庫モードを検討する。
+---
 
-### Stripe決済フロー
+## ショートコード一覧
 
-1. お客様が日付、時間枠、席種別、人数、氏名、メールアドレスを入力する。
-2. フロントエンドが残席確認を行う。
-3. サーバー側で再度、営業日・受付期間・残席・入力値を検証する。
-4. `pending_payment` の仮予約を作成する。
-5. Stripe Checkout Sessionを作成する。
-6. お客様をStripe Checkoutへリダイレクトする。
-7. 決済完了後、StripeがWebhookを送信する。
-8. Webhookで署名検証を行う。
-9. `checkout.session.completed` を受け取ったら予約を `confirmed` に更新する。
-10. 予約完了メールを送信する。
-11. 完了画面で予約番号と予約内容を表示する。
+| ショートコード | 機能 | 主な Ajax アクション |
+|---|---|---|
+| `[kkpay_reservation_form]` | 予約フォーム | `kkpay_get_available_slots`, `kkpay_create_hold` |
+| `[kkpay_payment_page]` | Stripe 決済 | `kkpay_create_payment_intent`, `kkpay_confirm_reservation` |
+| `[kkpay_my_reservation]` | 予約照会・キャンセル | `kkpay_check_reservation`, `kkpay_cancel_reservation` |
 
-### メール送信設計
+---
 
-メール送信は `KichiKichi_Premium_Mailer` のような専用クラスに集約する。
+## 定数・設定値一覧
 
-推奨するメソッド:
+[early-reservation-system.php](early-reservation-system.php) の先頭部分で以下の定数が定義されています。
+**変更が必要な場合はこのファイルを編集してください。**
 
-- `send_customer_confirmation($reservation_id)`
-- `send_admin_notification($reservation_id)`
-- `resend_confirmation($reservation_id)`
+| 定数名 | デフォルト値 | 説明 |
+|---|---|---|
+| `KKPAY_AMOUNT` | `3000` | 1席あたりの決済金額（円） |
+| `KKPAY_MAX_CAPACITY` | `8` | 各スロットの最大収容人数 |
+| `KKPAY_MAX_PEOPLE` | `4` | 1 予約あたりの最大人数 |
+| `KKPAY_HOLD_MINUTES` | `5` | 仮予約の有効時間（分） |
+| `KKPAY_ACCEPT_DAYS_BEFORE` | `3` | 何日前から予約受付を開始するか |
+| `KKPAY_ACCEPT_HOUR_JST` | `13` | 受付開始時刻（JST・時） |
 
-メール本文はテンプレート化し、HTMLメールとプレーンテキストの両方に対応できる構成にする。
+### 予約受付ルール（デフォルト）
 
-### 管理画面設計
+- **予約可能範囲**: 本日〜3 日後
+- **受付開始タイミング**: 予約希望日の **3 日前 13:00 JST** 以降
+  - 例）5 月 10 日（土）の予約 → 5 月 7 日（水）13:00 から受付開始
 
-管理画面は以下のタブで構成する。
+### Settings and environment values
 
-| タブ | 内容 |
-| --- | --- |
-| 予約一覧 | プレミアム予約の検索・詳細確認 |
-| 枠設定 | 時間枠ごとのプレミアム予約数設定 |
-| 決済設定 | Stripe公開鍵、秘密鍵、Webhookシークレット |
-| メール設定 | 管理者通知先、メール件名、送信者名 |
-| 運用設定 | 受付ON/OFF、受付締切、在庫モード |
-| ログ | Webhook、メール、管理操作のログ |
+Deployment settings are loaded from `.env` into environment variables, not saved in `wp_options`.
 
-Stripe秘密鍵・Webhookシークレットは管理画面に表示しない。保存後はマスク表示にする。
+| Name | Content |
+|---|---|
+| `KKPAY_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key |
+| `KKPAY_STRIPE_SECRET_KEY` | Stripe secret key |
+| `KKPAY_STRIPE_WEBHOOK_SECRET` | Webhook signing secret |
+| `KKPAY_FROM_EMAIL` | Outbound email From address |
+| `KKPAY_FROM_NAME` | Outbound email From name |
 
-## 画面設計
+---
 
-### お客様向け予約フォーム
+## 管理画面の使い方
 
-表示要素:
+管理画面 → **キチキチ 決済予約** に以下のタブがあります。
 
-- プレミアム予約説明
-- 予約可能日カレンダー
-- 日付選択
-- 時間枠選択
-- 席種別選択
-- 人数選択
-- 氏名
-- メールアドレス
-- 注意事項同意チェック
-- 決済へ進むボタン
 
-必須注意文:
+### 予約者リストタブ
 
-```text
-Premium reservation seat fee is 3,000 JPY per person.
-Food and drinks are not included.
-Payment is required in advance by credit card.
-No refunds will be made for cancellations.
-Please order food and drinks at the restaurant as usual on the day of your visit.
+全予約を **予約日・スロット順** で一覧表示します。
+
+- 日付・スロットでフィルタリング可能
+- **CSV エクスポートボタン** で Excel 対応の CSV（UTF-8 BOM）をダウンロード
+- 決済状態（`paid` / `pending` / `refunded`）とキャンセル有無を表示
+
+### 営業カレンダータブ
+
+既存プラグインが管理する `{prefix}calendar` テーブルを **読み取り専用** で参照します。
+本日から 60 日分の営業日（ランチ・ディナー）を確認できます。
+
+---
+
+## 予約フロー概要
+
+```
+① フォーム送信（日付・スロット・人数・氏名・メール・言語）
+        ↓
+② [サーバー] kkpay_create_hold
+   トランザクション + SELECT FOR UPDATE で枠をロック
+   確定済み人数 + ホールド中人数 + 申込人数 ≦ 8 を確認
+   空きあり → kkpay_holds に INSERT → hold_token を返却
+   満席    → ROLLBACK → エラー返却
+        ↓
+③ [フロント] 決済ページへ遷移
+   URL: /payment/?hold_token=xxx&lang=ja
+   5 分のカウントダウンタイマー表示
+        ↓
+④ [サーバー] kkpay_create_payment_intent
+   hold_token を検証 → Stripe Payment Intent 作成 → client_secret を返却
+        ↓
+⑤ [フロント] Stripe.js でカード決済
+   stripe.confirmCardPayment(clientSecret, { card: cardElement })
+        ↓
+⑥ 決済成功 → [フロント] kkpay_confirm_reservation を呼び出し
+       ↕（並行して）
+   Stripe → [サーバー] Webhook（payment_intent.succeeded）受信
+        ↓
+⑦ [サーバー] kkpay_reservations に INSERT（paid）
+   kkpay_holds のレコードを削除
+        ↓
+⑧ [サーバー] 予約確認メールを顧客に送信（wp_mail）
+        ↓
+⑨ [フロント] 決済完了画面を表示
 ```
 
-日本語:
+> **二重処理防止**: `stripe_payment_intent_id` で既存レコードを照合し、
+> クライアント側確定とウェブフック両方から安全に処理できます（冪等性）。
 
-```text
-プレミアム予約の席料金は1席3,000円です。
-お食事代・お飲み物代は含まれていません。
-席料金は事前にカード決済されます。
-キャンセルの場合も返金はありません。
-ご来店当日は通常どおり店内でご注文ください。
+---
+
+## キャンセル・返金ポリシー
+
+| タイミング | 返金 |
+|---|---|
+| 予約日の **24 時間前まで** | **全額返金**（決済済み合計金額） |
+| 予約日の **24 時間前以降** | 返金なし |
+
+キャンセルは `[kkpay_my_reservation]` ページのメールアドレス照会から行います。
+
+---
+
+## メール送信設定（Xserver SMTP）
+
+デフォルトの `wp_mail()` は迷惑メール判定されやすいため、
+**WP Mail SMTP** プラグインを使って Xserver の SMTP サーバー経由で送信することを推奨します。
+
+### WP Mail SMTP の設定例
+
+| 項目 | 値 |
+|---|---|
+| Mailer | Other SMTP |
+| SMTP Host | `sv****.xserver.jp`（契約サーバーのホスト名） |
+| Encryption | TLS（ポート 587）または SSL（ポート 465） |
+| SMTP Username | Xserver で作成したメールアドレス（例: `info@yourdomain.com`） |
+| SMTP Password | Xserver メールアカウントのパスワード |
+| From Email | Xserver で作成したメールアドレス |
+| From Name | 店舗名（例: キチキチ） |
+
+> Xserver のメールアドレスは、Xserver コントロールパネル → **メールアカウント設定** で事前に作成してください。
+
+---
+
+## トラブルシューティング
+
+### 予約フォームに日付が表示されない
+
+- `{prefix}calendar` テーブルに今後の営業日データが登録されているか確認してください
+- 「キチキチ予約システム」プラグインの管理画面 → 営業日カレンダーで登録します
+
+### Payment confirmation troubleshooting
+
+1. Confirm Webhook delivery is successful in the Stripe Dashboard.
+2. Confirm `KKPAY_STRIPE_WEBHOOK_SECRET` contains the correct Webhook signing secret (`whsec_...`).
+3. Confirm the WordPress REST API is available at `https://yoursite.com/wp-json/`.
+
+### Mail troubleshooting
+
+- WP Mail SMTP プラグインの **Email Test** 機能でテスト送信を実施してください
+- Confirm `KKPAY_FROM_EMAIL` matches an email address registered on the mail server.
+
+### 仮予約後に「期限切れ」と表示される
+
+- wp-cron が正常に動作しているか確認してください
+- Xserver では `disable_functions` の設定により wp-cron が遅延することがあります。
+  その場合はサーバー側の cron（crontab）で以下を 1 分ごとに実行することを推奨します。
+
+  ```bash
+  */1 * * * * /usr/bin/php /path/to/wordpress/wp-cron.php
+  ```
+
+### Countdown timer troubleshooting
+
+- Confirm JavaScript is enabled in the browser.
+- Confirm `KKPAY_STRIPE_PUBLISHABLE_KEY` is set in `.env`.
+
+---
+## ファイル構成
+
+```
+kichikichi-early-reservation-system/
+├── early-reservation-system.php     # プラグインエントリーポイント・定数定義
+├── README.md                        # このファイル
+├── assets/
+│   ├── css/
+│   │   ├── kkpay-form.css           # 予約フォーム・決済ページのスタイル
+│   │   └── kkpay-mypage.css         # 予約照会・キャンセルページのスタイル
+│   └── js/
+│       ├── kkpay-form.js            # フォーム制御・Stripe.js 連携
+│       └── kkpay-mypage.js          # 照会・キャンセル制御
+├── includes/
+│   ├── class-kkpay-activator.php    # DB テーブル作成（有効化/無効化フック）
+│   ├── class-kkpay-calendar.php     # 営業カレンダー参照（読取専用）
+│   ├── class-kkpay-hold.php         # 仮予約ロジック（トランザクション）
+│   ├── class-kkpay-payment.php      # Stripe 決済・Webhook 処理
+│   ├── class-kkpay-reservation.php  # 本予約 DB 操作・残席計算
+│   ├── class-kkpay-cancel.php       # キャンセル・返金ロジック
+│   ├── class-kkpay-mailer.php       # 5 言語メールテンプレート
+│   ├── class-kkpay-cron.php         # wp-cron（ホールド自動開放）
+│   └── class-kkpay-admin.php        # 管理画面（設定・予約リスト・CSV）
+└── templates/
+    ├── reservation-form.php         # 予約フォームテンプレート
+    ├── payment-page.php             # 決済ページテンプレート
+    └── my-reservation.php           # 予約照会・キャンセルテンプレート
 ```
 
-### 完了画面
+---
 
-表示要素:
+## 対応言語
 
-- 予約完了メッセージ
-- 予約番号
-- 来店日
-- 時間枠
-- 人数
-- 決済済み金額
-- メールを送信済みであること
-- キャンセル返金なしの再掲
+| コード | 言語 |
+|---|---|
+| `en` | English |
+| `ja` | 日本語 |
+| `ko` | 한국어 |
+| `zh-CN` | 简体中文 |
+| `zh-TW` | 繁體中文 |
 
-## 既存当日予約システムとの連携方針
-
-既存システムは当日の短時間受付に特化しているため、プレミアム予約は別プラグインまたは同一プラグイン内の別モジュールとして実装する。
-
-連携するもの:
-
-- 営業日カレンダー `wp_calendar`
-- 既存の時間枠定義
-- 必要に応じた席数上限
-
-分離するもの:
-
-- 予約テーブル
-- 決済状態
-- メール送信履歴
-- キャンセルポリシー
-- 管理画面の予約一覧
-
-この分離により、既存の当日予約運用を壊さずにプレミアム予約を段階導入できる。
-
-## 実装時の注意点
-
-- Stripe Checkout Session作成前後で必ずサーバー側の残席再確認を行う。
-- 決済完了はリダイレクトURLではなくWebhookを正とする。
-- Webhookは同じイベントが複数回来る前提で冪等に処理する。
-- 仮予約の期限は15分程度を初期値とする。
-- メール送信に失敗しても予約確定処理をロールバックしない。
-- 予約番号は推測しにくい値にする。
-- キャンセル操作は返金しないことを管理画面でも明示する。
-- 法務・店舗運用上、返金なしポリシーの文言は公開前に店舗側で最終確認する。
-
-## 導入手順案
-
-1. 開発環境にWordPressを用意する。
-2. 既存当日予約システムと同じ営業日カレンダーを利用できる状態にする。
-3. 本プラグインを `wp-content/plugins/kichikichi-paid-reservation` に配置する。
-4. Stripeテスト環境の公開鍵、秘密鍵、Webhookシークレットを設定する。
-5. プレミアム予約枠数を設定する。
-6. テスト決済で予約作成、Webhook、メール送信を確認する。
-7. 店舗側で文言、料金、キャンセルポリシーを確認する。
-8. Stripe本番キーへ切り替える。
-9. 本番サイトで短期間の限定枠から運用開始する。
-
-## 受け入れ条件
-
-- 3日前になっていない日付は予約できない。
-- 休業日は予約できない。
-- ランチ営業なしの日にランチ枠を予約できない。
-- ディナー営業なしの日にディナー枠を予約できない。
-- 残席を超える人数では予約できない。
-- Stripe決済未完了では予約確定にならない。
-- Stripe決済完了Webhook受信後に予約が確定する。
-- お客様に予約完了メールが送信される。
-- 店舗管理者に予約通知メールが送信される。
-- キャンセル時に自動返金されない。
-- 管理画面で予約内容とStripe決済IDを確認できる。
-- 既存の当日予約フォームが従来どおり動作する。
-
-## 未確定事項
-
-実装前に店舗側と確認する事項:
-
-- プレミアム予約枠を当日予約枠と共通にするか、別枠にするか
-- 予約受付終了時刻
-- 最大予約人数
-- テーブル席・カウンター席をお客様に選ばせるか、店舗側で割り当てるか
-- キャンセル受付フォームを設けるか
-- 返金なしポリシーの最終文言
-- メール本文の正式な多言語文言
-- Stripeアカウントの本番運用担当者
-
+フォームの表示言語はユーザーがセレクトボックスで選択します。
+確認メール・キャンセルメールは予約時に選択された言語で送信されます。

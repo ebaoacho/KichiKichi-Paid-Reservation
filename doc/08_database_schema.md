@@ -1,0 +1,155 @@
+# データベーススキーマ
+
+## テーブル一覧
+
+| テーブル名 | 説明 | 作成者 |
+|-----------|------|-------|
+| `{prefix}kkpay_holds` | 5 分間の仮予約（ホールド） | このプラグイン |
+| `{prefix}kkpay_reservations` | 確定済み予約 | このプラグイン |
+| `{prefix}kkpay_cancellations` | キャンセル・返金履歴 | このプラグイン |
+| `{prefix}calendar` | 営業カレンダー（読み取り専用） | KichiKichi Calendar プラグイン |
+
+テーブルは `class-kkpay-activator.php` の `KKPAY_Activator::activate()` が `dbDelta()` で作成します。
+
+---
+
+## kkpay_holds
+
+仮予約（ホールド）を保持するテーブルです。  
+ユーザーが予約フォームを送信してから 5 分間だけ席を確保します。  
+決済完了後 or 期限切れ後に削除されます。
+
+| カラム | 型 | NOT NULL | デフォルト | 説明 |
+|--------|-----|---------|----------|------|
+| `id` | BIGINT UNSIGNED | ✅ | AUTO_INCREMENT | 主キー |
+| `reservation_date` | DATE | ✅ | - | 予約日 |
+| `time_slot` | VARCHAR(10) | ✅ | - | スロットキー（`slot_1`〜`slot_6`） |
+| `number_of_people` | TINYINT UNSIGNED | ✅ | 1 | 人数（1〜4） |
+| `name` | VARCHAR(100) | ✅ | - | 氏名 |
+| `email` | VARCHAR(200) | ✅ | - | メールアドレス |
+| `language` | VARCHAR(10) | ✅ | `'en'` | 言語コード |
+| `hold_token` | VARCHAR(64) | ✅ | - | セッション識別子（UNIQUE） |
+| `expires_at` | DATETIME | ✅ | - | 有効期限（作成から +5 分） |
+| `created_at` | DATETIME | ✅ | - | 作成日時 |
+
+**インデックス：**
+- `PRIMARY KEY (id)`
+- `UNIQUE KEY hold_token (hold_token)`
+
+**設計意図：**
+- `hold_token` は `bin2hex(random_bytes(32))` で生成する 64 文字のランダム文字列。推測不可能で衝突しない。
+- `expires_at > NOW()` を WHERE に加えることで有効なホールドだけを取得できる。
+- Cron が 1 分ごとに `expires_at < NOW()` の行を削除するため、テーブルは肥大化しない。
+
+---
+
+## kkpay_reservations
+
+決済完了後の確定済み予約を保持するテーブルです。  
+キャンセル後も削除せず `cancelled_at` を SET して履歴を残します。
+
+| カラム | 型 | NOT NULL | デフォルト | 説明 |
+|--------|-----|---------|----------|------|
+| `id` | BIGINT UNSIGNED | ✅ | AUTO_INCREMENT | 主キー |
+| `hold_id` | BIGINT UNSIGNED | ❌（NULL 可） | NULL | 元ホールドの ID（参照のみ） |
+| `reservation_date` | DATE | ✅ | - | 予約日 |
+| `time_slot` | VARCHAR(10) | ✅ | - | スロットキー |
+| `name` | VARCHAR(100) | ✅ | - | 氏名 |
+| `email` | VARCHAR(200) | ✅ | - | メールアドレス |
+| `language` | VARCHAR(10) | ✅ | `'en'` | 言語コード |
+| `stripe_payment_intent_id` | VARCHAR(255) | ✅ | - | Stripe PaymentIntent ID |
+| `stripe_charge_id` | VARCHAR(255) | ❌（NULL 可） | NULL | Stripe Charge ID |
+| `payment_status` | ENUM | ✅ | `'pending'` | `pending` / `paid` / `refunded` |
+| `amount` | INT | ✅ | 3000 | 支払い金額（日本円） |
+| `number_of_people` | TINYINT UNSIGNED | ✅ | 1 | 人数 |
+| `created_at` | DATETIME | ✅ | - | 予約確定日時 |
+| `cancelled_at` | DATETIME | ❌（NULL 可） | NULL | キャンセル日時（NULL = 有効） |
+
+**インデックス：**
+- `PRIMARY KEY (id)`
+- `UNIQUE KEY email_date_slot (email(191), reservation_date, time_slot)`
+- `KEY payment_intent (stripe_payment_intent_id(191))`
+
+**設計意図：**
+
+`UNIQUE KEY (email, reservation_date, time_slot)` は 1 人が同じ日・同じスロットに二重予約することを DB レベルで防ぎます。  
+これにより `create_from_hold()` の冪等性が保証されます（INSERT 失敗時に既存レコードを返す）。
+
+`stripe_charge_id` が NULL になるケース：  
+Webhook が PaymentIntent.succeeded で受信した時点ではまだ `latest_charge` が確定していない場合があります。  
+キャンセル時に `stripe_charge_id` が NULL なら `/v1/payment_intents/{id}` を叩いて `latest_charge` を取得します。
+
+**payment_status の遷移：**
+```
+pending → paid       （決済成功）
+paid    → refunded   （返金完了）
+```
+`pending` のまま残ることは通常ありませんが、Webhook が先に到達した場合の中間状態として存在しえます。
+
+---
+
+## kkpay_cancellations
+
+キャンセル・返金の監査ログ（Audit Trail）です。  
+`reservations` テーブルは `cancelled_at` を UPDATE するだけですが、  
+このテーブルには返金額・Stripe の返金 ID など詳細情報を残します。
+
+| カラム | 型 | NOT NULL | デフォルト | 説明 |
+|--------|-----|---------|----------|------|
+| `id` | BIGINT UNSIGNED | ✅ | AUTO_INCREMENT | 主キー |
+| `reservation_id` | BIGINT UNSIGNED | ✅ | - | 対応する予約 ID |
+| `cancelled_at` | DATETIME | ✅ | - | キャンセル実行日時（JST） |
+| `refund_status` | ENUM | ✅ | `'none'` | `full` / `none` |
+| `stripe_refund_id` | VARCHAR(255) | ❌（NULL 可） | NULL | Stripe 返金 ID（`re_xxx`） |
+| `refund_amount` | INT | ✅ | 0 | 実際の返金額（日本円） |
+
+**インデックス：**
+- `PRIMARY KEY (id)`
+- `KEY reservation_id (reservation_id)`
+
+**設計意図：**
+- `reservations.cancelled_at` だけでは「なぜキャンセルしたか」「いくら返金したか」がわからない。
+- このテーブルを見ることで返金の証跡が追跡できる。
+- 現状は 1 予約に対して 1 行が想定されているが、将来的に部分返金などが追加される場合に備えて独立テーブルにしている。
+
+---
+
+## calendar（外部テーブル・読み取り専用）
+
+「KichiKichi Reservation System」プラグインが管理するテーブルです。  
+**このプラグインは読み取りのみ行い、書き込みは絶対に行いません。**
+
+| カラム | 型 | 説明 |
+|--------|-----|------|
+| `date` | DATE | 対象日 |
+| `lunch` | TINYINT(1) | 1 = ランチ営業あり |
+| `dinner` | TINYINT(1) | 1 = ディナー営業あり |
+
+---
+
+## テーブル間の関係
+
+```
+kkpay_holds ──── (hold_token) ────▶  Stripe PaymentIntent
+                                               │
+                                               ▼
+kkpay_holds ──── (hold_id) ───────▶ kkpay_reservations
+                                               │
+                                               ▼
+                                    kkpay_cancellations
+                                    (reservation_id)
+
+calendar ──── (date 参照) ─────────▶ kkpay_reservations
+                                    （外部キー制約なし・論理参照のみ）
+```
+
+**外部キー制約は設定していません。** WordPress のテーブルは `$wpdb` が InnoDBの外部キーを前提としないため、アプリケーション層でリレーションを管理します。
+
+---
+
+## スキーマ変更時の注意事項
+
+1. `dbDelta()` は**カラムの追加**と**インデックスの追加**のみ安全に行えます。
+2. カラムの型変更・削除・インデックスの変更は `dbDelta()` では行えません。手動で ALTER TABLE が必要です。
+3. `KKPAY_VERSION` 定数を上げるとバージョン管理できますが、現状は `dbDelta()` が常に実行される構成です。
+4. 本番環境でのマイグレーションは必ずバックアップを取ってから行ってください。

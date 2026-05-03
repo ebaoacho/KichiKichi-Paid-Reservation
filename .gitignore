@@ -1,0 +1,34 @@
+# Local secrets
+.env
+.env.*
+!.env.template
+!.env.example
+
+# Encrypted secret bundles are allowed when intentionally committed.
+!.env.enc
+
+# Dependency directories
+vendor/
+node_modules/
+
+# Build and package outputs
+dist/
+build/
+*.zip
+*.tar.gz
+
+# Logs and runtime files
+*.log
+debug.log
+
+# Test and coverage output
+coverage/
+.phpunit.result.cache
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
