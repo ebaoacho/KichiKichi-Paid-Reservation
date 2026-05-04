@@ -96,13 +96,8 @@ class KKPAY_Reservation_Service {
         $tz  = new DateTimeZone( 'Asia/Tokyo' );
         $now = new DateTimeImmutable( 'now', $tz );
 
-        // キャンセル期限：予約日 00:00 の 24 時間前
-        $deadline = ( new DateTimeImmutable( $reservation->reservation_date . ' 00:00:00', $tz ) )
-            ->modify( '-1 day' );
-
         $can_cancel = ( $reservation->cancelled_at === null )
-            && ( $reservation->payment_status !== 'pending' )
-            && ( $now < $deadline );
+            && ( $reservation->payment_status !== 'pending' );
 
         $slot_label = KKPAY_SLOT_LABELS[ $lang ][ $reservation->time_slot ] ?? $reservation->time_slot;
 
@@ -118,7 +113,6 @@ class KKPAY_Reservation_Service {
             'payment_status'   => $reservation->payment_status,
             'cancelled_at'     => $reservation->cancelled_at,
             'can_cancel'       => $can_cancel,
-            'cancel_deadline'  => $deadline->format( 'Y-m-d H:i' ),
             'language'         => $reservation->language,
         );
     }
