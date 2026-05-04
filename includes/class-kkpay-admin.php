@@ -68,14 +68,18 @@ class KKPAY_Admin {
 
         foreach ( $by_date as $date => $slots ) {
 
-            // 日付カードのサマリ計算（paid のみ）
-            $date_people = 0;
-            $date_amount = 0;
+            // 日付カードのサマリ計算
+            $date_coming = 0; // 来店予定（paid かつ未キャンセル）
+            $date_paid   = 0; // お支払い済み合計人数（paid、キャンセル含む）
+            $date_amount = 0; // お支払い済み合計金額
             foreach ( $slots as $rows ) {
                 foreach ( $rows as $row ) {
                     if ( $row->payment_status === 'paid' ) {
-                        $date_people += (int) $row->number_of_people;
+                        $date_paid   += (int) $row->number_of_people;
                         $date_amount += (int) $row->amount;
+                        if ( $row->cancelled_at === null ) {
+                            $date_coming += (int) $row->number_of_people;
+                        }
                     }
                 }
             }
@@ -86,17 +90,19 @@ class KKPAY_Admin {
             printf(
                 '<div style="background:var(--kkpay-red,#c8102e);color:#fff;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;">'
                 . '<span style="font-size:1.1rem;font-weight:700;">%s</span>'
-                . '<span style="font-size:0.9rem;opacity:0.9;">確定 %d名 &nbsp;／&nbsp; ¥%s</span>'
+                . '<span style="font-size:0.9rem;opacity:0.9;">来店予定 %d名 &nbsp;／&nbsp; お支払い済み %d名 ¥%s</span>'
                 . '</div>',
                 esc_html( $date ),
-                $date_people,
+                $date_coming,
+                $date_paid,
                 number_format( $date_amount )
             );
 
             foreach ( $slots as $slot_key => $rows ) {
                 $slot_label   = KKPAY_SLOT_LABELS['ja'][ $slot_key ] ?? $slot_key;
-                $slot_people  = 0;
-                $slot_amount  = 0;
+                $slot_coming  = 0; // 来店予定（paid かつ未キャンセル）
+                $slot_paid    = 0; // お支払い済み合計人数
+                $slot_amount  = 0; // お支払い済み合計金額
 
                 // スロットヘッダー
                 echo '<div style="background:#fafafa;border-top:1px solid #e5e7eb;padding:8px 20px;">'
@@ -115,18 +121,28 @@ class KKPAY_Admin {
                     . '</tr></thead><tbody>';
 
                 foreach ( $rows as $row ) {
+                    $is_cancelled = $row->cancelled_at !== null;
+
                     if ( $row->payment_status === 'paid' ) {
-                        $slot_people += (int) $row->number_of_people;
+                        $slot_paid   += (int) $row->number_of_people;
                         $slot_amount += (int) $row->amount;
+                        if ( ! $is_cancelled ) {
+                            $slot_coming += (int) $row->number_of_people;
+                        }
                     }
 
-                    $cancelled_at = $row->cancelled_at
+                    $cancelled_at = $is_cancelled
                         ? '<span style="color:#999;">' . esc_html( $row->cancelled_at ) . '</span>'
                         : '–';
 
                     $style = $status_styles[ $row->payment_status ] ?? '';
 
-                    echo '<tr>';
+                    // キャンセル行はグレー背景＋打ち消し線
+                    $row_style = $is_cancelled
+                        ? 'background:#f9f9f9;text-decoration:line-through;color:#9ca3af;'
+                        : '';
+
+                    echo '<tr style="' . esc_attr( $row_style ) . '">';
                     echo '<td>' . (int) $row->id . '</td>';
                     echo '<td>' . esc_html( $row->name ) . '</td>';
                     echo '<td>' . esc_html( $row->email ) . '</td>';
@@ -139,12 +155,13 @@ class KKPAY_Admin {
 
                 echo '</tbody></table>';
 
-                // スロット小計
+                // スロット小計（来店予定／お支払い済み）
                 printf(
                     '<div style="background:#fff8f8;border-top:1px solid #fde8eb;padding:7px 20px;text-align:right;font-size:0.85rem;color:var(--kkpay-red,#c8102e);font-weight:600;">'
-                    . '小計: %d名 &nbsp;¥%s'
+                    . '来店予定 %d名 &nbsp;／&nbsp; お支払い済み %d名 ¥%s'
                     . '</div>',
-                    $slot_people,
+                    $slot_coming,
+                    $slot_paid,
                     number_format( $slot_amount )
                 );
             }
