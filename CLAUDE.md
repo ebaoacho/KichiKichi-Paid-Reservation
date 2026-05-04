@@ -87,7 +87,7 @@ Five languages: `en`, `ja`, `ko`, `zh-CN`, `zh-TW`. All user-facing strings go t
 
 ## Cancellation Policy
 
-Full refund if cancelled before `reservation_date 00:00 − 24h`. No refund within 24h. Logic lives in `CancellationService` (originally `class-kkpay-cancel.php`). Cancellations are audited in `kkpay_cancellations` table.
+返金は一切なし。キャンセル時は常に `refund_status = 'none'`, `refund_amount = 0` で記録される。Logic lives in `CancellationService` (`includes/Services/class-kkpay-cancellation-service.php`). Cancellations are audited in `kkpay_cancellations` table.
 
 ## Timezone
 
