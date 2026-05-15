@@ -2,7 +2,7 @@
 /**
  * Plugin Name: キチキチ 決済予約システム
  * Description: 営業カレンダー参照・Stripe決済対応の早期予約プラグイン
- * Version:     1.0.1
+ * Version:     1.0.4
  * Author:      Kaito HINO
  */
 
@@ -13,10 +13,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 // ----------------------------------------------------------------
 // 定数
 // ----------------------------------------------------------------
-define( 'KKPAY_VERSION',            '1.0.1' );
+define( 'KKPAY_VERSION',            '1.0.4' );
 define( 'KKPAY_PLUGIN_DIR',         plugin_dir_path( __FILE__ ) );
 define( 'KKPAY_PLUGIN_URL',         plugin_dir_url( __FILE__ ) );
-define( 'KKPAY_AMOUNT',             3000 );
+define( 'KKPAY_AMOUNT',             13 );
+define( 'KKPAY_CURRENCY',           'usd' );
+define( 'KKPAY_STRIPE_AMOUNT_MULTIPLIER', 100 );
 define( 'KKPAY_MAX_CAPACITY',       8 );
 define( 'KKPAY_MAX_PEOPLE',         4 );
 define( 'KKPAY_HOLD_MINUTES',       5 );
@@ -153,6 +155,13 @@ define( 'KKPAY_MESSAGES', array(
         'zh-CN' => '预约已取消。概不退款。',
         'zh-TW' => '預約已取消。概不退款。',
     ),
+    'cancel_success_full_refund' => array(
+        'en'    => 'Your reservation has been cancelled. No refund will be issued.',
+        'ja'    => '予約をキャンセルしました。返金はございません。',
+        'ko'    => '예약이 취소되었습니다. 환불은 제공되지 않습니다.',
+        'zh-CN' => '预约已取消。不会退款。',
+        'zh-TW' => '預約已取消。不會退款。',
+    ),
     'max_people_exceeded' => array(
         'en'    => 'Maximum 4 people per reservation.',
         'ja'    => '1予約あたり最大4名までです。',
@@ -208,6 +217,7 @@ require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-calendar-repo
 require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-hold-repository.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-reservation-repository.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-cancellation-repository.php';
+require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-accepted-dates-repository.php';
 
 // Services（ビジネスロジック層）
 require_once KKPAY_PLUGIN_DIR . 'includes/Services/class-kkpay-calendar-service.php';
@@ -240,6 +250,7 @@ require_once KKPAY_PLUGIN_DIR . 'includes/class-kkpay-cron.php';
 // ----------------------------------------------------------------
 register_activation_hook( __FILE__, array( 'KKPAY_Activator', 'activate' ) );
 register_deactivation_hook( __FILE__, array( 'KKPAY_Activator', 'deactivate' ) );
+add_action( 'plugins_loaded', array( 'KKPAY_Activator', 'maybe_upgrade' ) );
 
 // Shortcodes
 add_action( 'init', function () {
@@ -291,11 +302,14 @@ function kkpay_enqueue_form_assets( $has_payment = false ) {
 
     wp_enqueue_style( 'kkpay-form', KKPAY_PLUGIN_URL . 'assets/css/kkpay-form.css', array(), KKPAY_VERSION );
     wp_enqueue_script( 'kkpay-form', KKPAY_PLUGIN_URL . 'assets/js/kkpay-form.js', $script_dependencies, KKPAY_VERSION, true );
+
     wp_localize_script( 'kkpay-form', 'kkpay', array(
         'ajax_url'           => admin_url( 'admin-ajax.php' ),
         'stripe_pk'          => KKPAY_Stripe_Config::publishable_key(),
         'nonce'              => wp_create_nonce( 'kkpay_nonce' ),
         'amount'             => KKPAY_AMOUNT,
+        'currency'           => KKPAY_CURRENCY,
+        'date_picker_days'   => KKPAY_ACCEPT_DAYS_BEFORE,
         'time_slots'         => KKPAY_SLOT_LABELS,
         'slot_types'         => KKPAY_SLOT_TYPES,
         'hold_minutes'       => KKPAY_HOLD_MINUTES,
@@ -352,8 +366,9 @@ foreach ( $kkpay_public_actions as $action => $callback ) {
 }
 
 // 管理画面専用 AJAX
-add_action( 'wp_ajax_kkpay_load_admin_list', array( 'KKPAY_Admin_Controller', 'ajax_load_admin_list' ) );
-add_action( 'wp_ajax_kkpay_export_csv',      array( 'KKPAY_Admin_Controller', 'ajax_export_csv' ) );
+add_action( 'wp_ajax_kkpay_load_admin_list',   array( 'KKPAY_Admin_Controller', 'ajax_load_admin_list' ) );
+add_action( 'wp_ajax_kkpay_export_csv',        array( 'KKPAY_Admin_Controller', 'ajax_export_csv' ) );
+add_action( 'wp_ajax_kkpay_save_slot_capacity', array( 'KKPAY_Admin_Controller', 'ajax_save_slot_capacity' ) );
 
 // Stripe Webhook（REST API）
 add_action( 'rest_api_init', function () {

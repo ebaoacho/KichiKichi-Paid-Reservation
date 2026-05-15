@@ -12,6 +12,7 @@ class KKPAY_Activator {
     public static function activate() {
         self::create_tables();
         self::schedule_cron();
+        update_option( 'kkpay_db_version', KKPAY_VERSION );
     }
 
     public static function deactivate() {
@@ -21,7 +22,14 @@ class KKPAY_Activator {
         }
     }
 
-    private static function create_tables() {
+    public static function maybe_upgrade() {
+        if ( get_option( 'kkpay_db_version' ) !== KKPAY_VERSION ) {
+            self::create_tables();
+            update_option( 'kkpay_db_version', KKPAY_VERSION );
+        }
+    }
+
+    public static function create_tables() {
         global $wpdb;
 
         $charset_collate = $wpdb->get_charset_collate();
@@ -78,10 +86,25 @@ class KKPAY_Activator {
             KEY reservation_id (reservation_id)
         ) {$charset_collate};";
 
+        $accepted_dates_table = $wpdb->prefix . 'kkpay_accepted_dates';
+        $sql_accepted_dates   = "CREATE TABLE {$accepted_dates_table} (
+            id                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            reservation_date  DATE            NOT NULL,
+            time_slot         VARCHAR(20)     NOT NULL,
+            capacity          TINYINT UNSIGNED NOT NULL DEFAULT 8,
+            enabled           TINYINT(1) UNSIGNED NOT NULL DEFAULT 1,
+            created_at        DATETIME        NOT NULL,
+            updated_at        DATETIME        NOT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY date_slot (reservation_date, time_slot),
+            KEY reservation_date (reservation_date)
+        ) {$charset_collate};";
+
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         dbDelta( $sql_holds );
         dbDelta( $sql_reservations );
         dbDelta( $sql_cancellations );
+        dbDelta( $sql_accepted_dates );
     }
 
     private static function schedule_cron() {

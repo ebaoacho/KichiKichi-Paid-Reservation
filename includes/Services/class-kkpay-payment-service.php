@@ -12,10 +12,12 @@ class KKPAY_Payment_Service {
     /** PaymentIntent を作成し Stripe API レスポンスを返す */
     public static function create_payment_intent( $hold ) {
         $amount = KKPAY_Reservation_Service::calculate_amount( $hold->number_of_people );
+        $stripe_amount = $amount * KKPAY_STRIPE_AMOUNT_MULTIPLIER;
 
         return KKPAY_Stripe_Client::request( 'POST', '/v1/payment_intents', array(
-            'amount'                             => $amount,
-            'currency'                           => 'jpy',
+            'amount'                             => $stripe_amount,
+            'currency'                           => KKPAY_CURRENCY,
+            'description'                        => 'KichiKichi reservation: seats with goods included',
             'automatic_payment_methods[enabled]' => 'true',
             'metadata[hold_token]'               => $hold->hold_token,
             'metadata[reservation_date]'         => $hold->reservation_date,
@@ -23,6 +25,7 @@ class KKPAY_Payment_Service {
             'metadata[number_of_people]'         => (int) $hold->number_of_people,
             'metadata[unit_amount]'              => KKPAY_AMOUNT,
             'metadata[total_amount]'             => $amount,
+            'metadata[stripe_amount]'            => $stripe_amount,
             'metadata[email]'                    => $hold->email,
         ) );
     }

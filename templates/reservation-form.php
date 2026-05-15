@@ -26,9 +26,9 @@
         <div id="kkpay-slot-list"></div>
     </div>
 
-    <!-- ④ 人数 -->
+    <!-- ④ Seats -->
     <div class="kkpay-field" id="kkpay-people-section" style="display:none;">
-        <label class="kkpay-label kkpay-i18n" id="lbl-people">人数 / Number of People</label>
+        <label class="kkpay-label kkpay-i18n" id="lbl-people">席数 / Number of Seats</label>
         <select id="kkpay-people" class="kkpay-select">
             <option value="1">1</option>
             <option value="2">2</option>
@@ -55,7 +55,7 @@
     <!-- ⑦ 確認・送信 -->
     <div class="kkpay-field" id="kkpay-submit-section" style="display:none;">
         <div id="kkpay-summary" class="kkpay-summary"></div>
-        <p class="kkpay-price-notice kkpay-i18n" id="lbl-seat-price">¥3,000 per seat</p>
+        <p class="kkpay-price-notice kkpay-i18n" id="lbl-seat-price">$13 per seat, goods included</p>
         <button id="kkpay-submit-btn" class="kkpay-btn kkpay-btn-primary">
             <span class="kkpay-i18n" id="lbl-submit">予約する / Reserve</span>
         </button>

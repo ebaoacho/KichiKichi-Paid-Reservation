@@ -34,9 +34,9 @@ Service 層は「Stripe API を呼ぶ」ことだけを意識すれば済むよ�
 $pi = KKPAY_Stripe_Client::request( 'GET', '/v1/payment_intents/' . $pi_id );
 
 // POST リクエスト（$body は連想配列）
-$refund = KKPAY_Stripe_Client::request( 'POST', '/v1/refunds', array(
-    'charge' => $charge_id,
-    'amount' => 3000,
+$pi = KKPAY_Stripe_Client::request( 'POST', '/v1/payment_intents', array(
+    'amount'   => 1300,
+    'currency' => 'usd',
 ) );
 
 // 戻り値
@@ -65,8 +65,7 @@ if ( is_wp_error( $pi ) ) {
 // PaymentIntent 取得（ID が含まれる場合は rawurlencode で安全にエンコード）
 '/v1/payment_intents/' . rawurlencode( $pi_id )
 
-// 返金
-'/v1/refunds'
+// 通常のキャンセル処理では返金 API は使用しない
 
 // Charge 取得
 '/v1/charges/' . rawurlencode( $charge_id )

@@ -235,21 +235,15 @@ Webhook の `find_by_payment_intent` で既存レコードが見つかり、重�
   → KKPAY_Reservation_Repository::find_by_id(reservation_id)
       メール一致・未キャンセル・paid 状態の確認
   → KKPAY_Cancellation_Service::cancel($reservation, $lang)
-      ① 現在時刻 < 予約日 - 24h → do_refund = true
-      ② do_refund の場合:
-         stripe_charge_id がなければ:
-           KKPAY_Stripe_Client::request('GET', '/v1/payment_intents/pi_xxx')
-           → charge_id = latest_charge
-         KKPAY_Stripe_Client::request('POST', '/v1/refunds', { charge:charge_id, amount:3000 })
-         → { id:'re_xxx', amount:3000 }
-      ③ KKPAY_Cancellation_Repository::insert({ reservation_id, refund_status:'full', ... })
-      ④ KKPAY_Reservation_Repository::update_cancelled(id, now, 'refunded')
-      ⑤ KKPAY_Email_Service::send_cancellation_confirmation($reservation, 'full', 3000)
-      ⑥ return { refund_status:'full', refund_amount:3000, message:'...' }
+      ① refund_status = 'none', refund_amount = 0, stripe_refund_id = null
+      ② KKPAY_Cancellation_Repository::insert({ reservation_id, refund_status:'none', refund_amount:0, ... })
+      ③ KKPAY_Reservation_Repository::update_cancelled(id, now, 現在の payment_status)
+      ④ KKPAY_Email_Service::send_cancellation_confirmation($reservation, 'none', 0)
+      ⑤ return { refund_status:'none', refund_amount:0, message:'...' }
         │
         ▼
 [ブラウザ]
-  { message:'予約をキャンセルしました。全額返金処理を行いました。' }
+  { message:'予約をキャンセルしました。返金はありません。' }
 ```
 
 ---

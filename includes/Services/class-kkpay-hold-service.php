@@ -23,9 +23,16 @@ class KKPAY_Hold_Service {
         $wpdb->query( 'START TRANSACTION' );
 
         $confirmed = KKPAY_Reservation_Repository::sum_people_for_slot_with_lock( $date, $slot );
-        $held      = KKPAY_Hold_Repository::sum_people_for_slot_with_lock( $date, $slot );
 
-        if ( ( $confirmed + $held + $num ) > KKPAY_MAX_CAPACITY ) {
+        if ( KKPAY_Reservation_Repository::exists_by_email_date_slot_with_lock( $email, $date, $slot ) ) {
+            $wpdb->query( 'ROLLBACK' );
+            return new WP_Error( 'duplicate_reservation', kkpay_msg( 'duplicate_reservation', $lang ) );
+        }
+
+        $held      = KKPAY_Hold_Repository::sum_people_for_slot_with_lock( $date, $slot );
+        $capacity  = KKPAY_Accepted_Dates_Repository::get_slot_capacity( $date, $slot );
+
+        if ( ( $confirmed + $held + $num ) > $capacity ) {
             $wpdb->query( 'ROLLBACK' );
             return new WP_Error( 'capacity_exceeded', kkpay_msg( 'capacity_exceeded', $lang ) );
         }

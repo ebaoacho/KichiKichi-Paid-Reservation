@@ -17,7 +17,7 @@
         en: {
             date: 'Select Date',
             slot: 'Select Time Slot',
-            people: 'Number of People',
+            people: 'Number of Seats',
             name: 'Your Name',
             email: 'Email Address',
             emailConfirm: 'Confirm Email',
@@ -28,14 +28,14 @@
             emailSent: 'A confirmation email has been sent.',
             date_label: 'Date',
             slot_label: 'Time Slot',
-            people_label: 'People',
+            people_label: 'Seats',
             name_label: 'Name',
             email_label: 'Email',
             amount_label: 'Amount',
             unit_price_label: 'Price per seat',
             total_label: 'Total',
             pay_action: 'Pay',
-            seat_price_notice: '¥3,000 per seat',
+            seat_price_notice: '$13 per seat, goods included',
             remaining: 'remaining',
             fullyBooked: 'Fully Booked',
             notYetOpen: 'Not Yet Open',
@@ -44,7 +44,7 @@
         ja: {
             date: '予約日を選択',
             slot: '時間枠を選択',
-            people: '人数',
+            people: '席数',
             name: 'お名前',
             email: 'メールアドレス',
             emailConfirm: 'メール確認',
@@ -55,14 +55,14 @@
             emailSent: '確認メールをお送りしました。',
             date_label: '予約日',
             slot_label: '時間枠',
-            people_label: '人数',
+            people_label: '席数',
             name_label: 'お名前',
             email_label: 'メール',
             amount_label: 'お支払い',
             unit_price_label: '1席あたり',
             total_label: '合計',
             pay_action: '決済する',
-            seat_price_notice: '1席あたり ¥3,000',
+            seat_price_notice: '1席あたり $13（グッズ付き）',
             remaining: '席残り',
             fullyBooked: '満席',
             notYetOpen: '受付前',
@@ -71,7 +71,7 @@
         ko: {
             date: '예약 날짜 선택',
             slot: '시간대 선택',
-            people: '인원',
+            people: '좌석 수',
             name: '이름',
             email: '이메일',
             emailConfirm: '이메일 확인',
@@ -82,14 +82,14 @@
             emailSent: '확인 이메일이 발송되었습니다.',
             date_label: '예약 날짜',
             slot_label: '시간대',
-            people_label: '인원',
+            people_label: '좌석 수',
             name_label: '이름',
             email_label: '이메일',
             amount_label: '결제 금액',
             unit_price_label: '좌석당',
             total_label: '합계',
             pay_action: '결제하기',
-            seat_price_notice: '좌석당 ¥3,000',
+            seat_price_notice: '좌석당 $13 (굿즈 포함)',
             remaining: '석 남음',
             fullyBooked: '만석',
             notYetOpen: '접수 전',
@@ -98,7 +98,7 @@
         'zh-CN': {
             date: '选择预约日期',
             slot: '选择时间段',
-            people: '人数',
+            people: '席数',
             name: '姓名',
             email: '电子邮件',
             emailConfirm: '确认邮件',
@@ -109,14 +109,14 @@
             emailSent: '确认邮件已发送。',
             date_label: '预约日期',
             slot_label: '时间段',
-            people_label: '人数',
+            people_label: '席数',
             name_label: '姓名',
             email_label: '邮件',
             amount_label: '金额',
             unit_price_label: '每席',
             total_label: '合计',
             pay_action: '支付',
-            seat_price_notice: '每席 ¥3,000',
+            seat_price_notice: '每席 $13（含周边商品）',
             remaining: '席位剩余',
             fullyBooked: '已满',
             notYetOpen: '尚未开放',
@@ -125,7 +125,7 @@
         'zh-TW': {
             date: '選擇預約日期',
             slot: '選擇時間段',
-            people: '人數',
+            people: '席數',
             name: '姓名',
             email: '電子郵件',
             emailConfirm: '確認郵件',
@@ -136,14 +136,14 @@
             emailSent: '確認郵件已發送。',
             date_label: '預約日期',
             slot_label: '時間段',
-            people_label: '人數',
+            people_label: '席數',
             name_label: '姓名',
             email_label: '郵件',
             amount_label: '金額',
             unit_price_label: '每席',
             total_label: '合計',
             pay_action: '支付',
-            seat_price_notice: '每席 ¥3,000',
+            seat_price_notice: '每席 $13（含周邊商品）',
             remaining: '席位剩餘',
             fullyBooked: '已滿',
             notYetOpen: '尚未開放',
@@ -165,6 +165,9 @@
     function formatYen(amount) {
         var parsed = parseInt(amount, 10);
         if (isNaN(parsed)) parsed = 0;
+        if (kkpay.currency === 'usd') {
+            return '$' + parsed.toLocaleString('en-US');
+        }
         return '¥' + parsed.toLocaleString('en-US');
     }
 
@@ -187,11 +190,14 @@
         var $slotSec  = $('#kkpay-slot-section');
         var $slotList = $('#kkpay-slot-list');
         var $peopleSec = $('#kkpay-people-section');
+        var $peopleSel = $('#kkpay-people');
         var $nameSec  = $('#kkpay-name-section');
         var $emailSec = $('#kkpay-email-section');
         var $submitSec = $('#kkpay-submit-section');
         var $submitBtn = $('#kkpay-submit-btn');
         var $msg      = $('#kkpay-form-message');
+        var maxPeople = $peopleSel.find('option').length || 1;
+        var selectedSlotRemaining = 0;
 
         $langSel.on('change', function () {
             lang = $(this).val();
@@ -217,7 +223,7 @@
             var tz_offset = 9 * 60; // JST offset in minutes
             var now_utc   = new Date();
             var now_jst   = new Date(now_utc.getTime() + (now_utc.getTimezoneOffset() + tz_offset) * 60000);
-            var days      = kkpay.accept_days_before;
+            var days      = kkpay.date_picker_days || kkpay.accept_days_before;
 
             for (var i = 0; i <= days; i++) {
                 var d = new Date(now_jst);
@@ -233,7 +239,9 @@
                 openFrom.setDate(openFrom.getDate() - days);
                 openFrom.setHours(kkpay.accept_hour_jst, 0, 0, 0);
 
-                var isOpen = now_jst >= openFrom;
+                var isOpen = kkpay.accepted_dates_mode
+                    ? !!(kkpay.accepted_dates && kkpay.accepted_dates[dateStr])
+                    : now_jst >= openFrom;
 
                 var $btn = $('<button type="button" class="kkpay-date-btn"></button>');
                 $btn.attr('data-date', dateStr);
@@ -299,10 +307,14 @@
                         $rem.text(slot.remaining + ' ' + t('remaining'));
                         if (slot.remaining <= 2) $rem.addClass('low');
                         $item.attr('data-slot', slot.key);
+                        $item.attr('data-remaining', slot.remaining);
                         $item.on('click', function () {
                             $('.kkpay-slot-item').removeClass('selected');
                             $(this).addClass('selected');
                             selectedSlot = $(this).data('slot');
+                            selectedSlotRemaining = parseInt($(this).data('remaining'), 10);
+                            if (isNaN(selectedSlotRemaining)) selectedSlotRemaining = 0;
+                            renderPeopleOptions(selectedSlotRemaining);
                             showGuestInputs();
                         });
                     }
@@ -316,6 +328,24 @@
             });
         }
 
+        function renderPeopleOptions(remaining) {
+            var limit = Math.min(maxPeople, remaining);
+            var current = parseInt($peopleSel.val(), 10);
+
+            if (isNaN(limit) || limit < 1) {
+                limit = 1;
+            }
+            if (isNaN(current) || current < 1 || current > limit) {
+                current = 1;
+            }
+
+            $peopleSel.empty();
+            for (var i = 1; i <= limit; i++) {
+                $peopleSel.append($('<option></option>').val(i).text(i));
+            }
+            $peopleSel.val(current);
+        }
+
         function showGuestInputs() {
             $peopleSec.show();
             $nameSec.show();
@@ -326,6 +356,7 @@
 
         function resetFromSlot() {
             selectedSlot = null;
+            selectedSlotRemaining = 0;
             $slotSec.hide();
             $peopleSec.hide();
             $nameSec.hide();
@@ -370,6 +401,10 @@
 
             if (!selectedDate || !selectedSlot || !name || !email) {
                 showMessage($msg, msg('server_error'), 'error');
+                return;
+            }
+            if (people > selectedSlotRemaining) {
+                showMessage($msg, msg('capacity_exceeded'), 'error');
                 return;
             }
             if (!/^[A-Za-z][A-Za-z .'-]*$/.test(name) || name.length > 100) {
@@ -565,6 +600,7 @@
             summaryHtml += '<div class="kkpay-summary-row"><span class="kkpay-summary-label">' + t('people_label') + '</span><span>' + people + '</span></div>';
             summaryHtml += '<div class="kkpay-summary-row"><span class="kkpay-summary-label">' + t('unit_price_label') + '</span><span>' + formatYen(unitAmount) + '</span></div>';
             summaryHtml += '<div class="kkpay-summary-row"><span class="kkpay-summary-label">' + t('total_label') + '</span><span>' + formatYen(amount) + '</span></div>';
+            summaryHtml += '<div class="kkpay-summary-row"><span class="kkpay-summary-label">Product</span><span>' + t('seat_price_notice') + '</span></div>';
             $summary.html(summaryHtml);
             $summary.show();
             $('#lbl-pay').text(t('pay_action') + ' ' + formatYen(amount));

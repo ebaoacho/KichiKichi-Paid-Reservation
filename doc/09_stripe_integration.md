@@ -22,7 +22,7 @@ Use `pk_test_` / `sk_test_` values in the environment for test mode. No code cha
 |-------------|------|
 | `POST /v1/payment_intents` | PaymentIntent 作成 |
 | `GET /v1/payment_intents/{id}` | PaymentIntent のステータス確認 |
-| `POST /v1/refunds` | 返金実行 |
+| `POST /v1/refunds` | 使用しない（通常キャンセル時の返金なし） |
 
 **API バージョン：** `2023-10-16`  
 （`includes/Infrastructure/class-kkpay-stripe-client.php` の `Stripe-Version` ヘッダーで管理）
@@ -86,7 +86,7 @@ The Webhook URL is `https://yoursite.com/wp-json/kkpay/v1/webhook`.
 | イベント | 処理内容 |
 |---------|---------|
 | `payment_intent.succeeded` | 予約確定（`confirm_reservation` が失敗した場合のフォールバック） |
-| `charge.refunded` | `payment_status` を `refunded` に更新 |
+| `charge.refunded` | Stripe ダッシュボード等で外部返金された場合に `payment_status` を `refunded` に更新 |
 
 それ以外のイベントは 200 を返して無視します。
 
@@ -159,7 +159,9 @@ Webhook が先         → 予約確定済み → confirm_reservation は find_b
 `KKPAY_Stripe_Client::request()` は HTTP 2xx 以外のレスポンスを `WP_Error` に変換します。
 
 ```php
-$result = KKPAY_Stripe_Client::request( 'POST', '/v1/refunds', [...] );
+// 通常のキャンセル処理では Stripe /v1/refunds を呼び出さない。
+// charge.refunded Webhook は、外部返金が発生した場合の同期用。
+$result = KKPAY_Stripe_Client::request( 'GET', '/v1/payment_intents/' . rawurlencode( $pi_id ) );
 if ( is_wp_error( $result ) ) {
     // $result->get_error_message() に Stripe のエラーメッセージが入っている
     return $result; // 呼び出し元に伝播させる
@@ -173,7 +175,7 @@ if ( is_wp_error( $result ) ) {
 | `card_declined` | カード拒否 | ユーザーに別のカードを試すよう案内 |
 | `insufficient_funds` | 残高不足 | 同上 |
 | `authentication_required` | 3D セキュア要求 | Stripe.js が自動処理（通常は発生しない） |
-| `charge_already_refunded` | 既に返金済み | キャンセル処理の重複実行 |
+| `charge_already_refunded` | 既に返金済み | 外部返金操作の重複 |
 
 ---
 
@@ -183,5 +185,5 @@ if ( is_wp_error( $result ) ) {
 - [ ] Production keys (`pk_live_`, `sk_live_`) are set in environment variables
 - [ ] `KKPAY_STRIPE_WEBHOOK_SECRET` contains the Webhook signing secret (`whsec_`)
 - [ ] テストモードで予約→決済→確認メールの動作を確認した
-- [ ] テストモードでキャンセル→返金の動作を確認した
+- [ ] テストモードでキャンセルしても返金されないことを確認した
 - [ ] Stripe ダッシュボードで Webhook のテスト送信が成功することを確認した

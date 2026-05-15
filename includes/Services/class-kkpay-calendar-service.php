@@ -17,6 +17,10 @@ class KKPAY_Calendar_Service {
      *   - 対象日の ACCEPT_DAYS_BEFORE 日前 ACCEPT_HOUR_JST 時以降
      */
     public static function is_accepting_reservations( $date_str ) {
+        if ( KKPAY_Accepted_Dates_Repository::has_any_records() ) {
+            return KKPAY_Accepted_Dates_Repository::is_date_enabled( $date_str );
+        }
+
         $tz  = new DateTimeZone( 'Asia/Tokyo' );
         $now = new DateTimeImmutable( 'now', $tz );
 
@@ -57,6 +61,14 @@ class KKPAY_Calendar_Service {
             } elseif ( $type === 'dinner' && $info->dinner ) {
                 $keys[] = $key;
             }
+        }
+
+        if ( KKPAY_Accepted_Dates_Repository::has_any_records() ) {
+            $accepted = array();
+            foreach ( KKPAY_Accepted_Dates_Repository::find_by_date( $date_str ) as $row ) {
+                $accepted[] = $row->time_slot;
+            }
+            $keys = array_values( array_intersect( $keys, $accepted ) );
         }
 
         return $keys;

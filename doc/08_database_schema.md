@@ -6,7 +6,7 @@
 |-----------|------|-------|
 | `{prefix}kkpay_holds` | 5 分間の仮予約（ホールド） | このプラグイン |
 | `{prefix}kkpay_reservations` | 確定済み予約 | このプラグイン |
-| `{prefix}kkpay_cancellations` | キャンセル・返金履歴 | このプラグイン |
+| `{prefix}kkpay_cancellations` | キャンセル履歴 | このプラグイン |
 | `{prefix}calendar` | 営業カレンダー（読み取り専用） | KichiKichi Calendar プラグイン |
 
 テーブルは `class-kkpay-activator.php` の `KKPAY_Activator::activate()` が `dbDelta()` で作成します。
@@ -77,12 +77,12 @@
 
 `stripe_charge_id` が NULL になるケース：  
 Webhook が PaymentIntent.succeeded で受信した時点ではまだ `latest_charge` が確定していない場合があります。  
-キャンセル時に `stripe_charge_id` が NULL なら `/v1/payment_intents/{id}` を叩いて `latest_charge` を取得します。
+通常のキャンセル処理では返金を行わないため、`stripe_charge_id` を使って Stripe 返金 API を呼び出すことはありません。
 
 **payment_status の遷移：**
 ```
 pending → paid       （決済成功）
-paid    → refunded   （返金完了）
+paid    → refunded   （Stripe ダッシュボード等で外部返金された場合）
 ```
 `pending` のまま残ることは通常ありませんが、Webhook が先に到達した場合の中間状態として存在しえます。
 
@@ -90,27 +90,27 @@ paid    → refunded   （返金完了）
 
 ## kkpay_cancellations
 
-キャンセル・返金の監査ログ（Audit Trail）です。  
+キャンセルの監査ログ（Audit Trail）です。  
 `reservations` テーブルは `cancelled_at` を UPDATE するだけですが、  
-このテーブルには返金額・Stripe の返金 ID など詳細情報を残します。
+このテーブルには返金なしでキャンセルされたことを示す `refund_status = 'none'` と `refund_amount = 0` を残します。
 
 | カラム | 型 | NOT NULL | デフォルト | 説明 |
 |--------|-----|---------|----------|------|
 | `id` | BIGINT UNSIGNED | ✅ | AUTO_INCREMENT | 主キー |
 | `reservation_id` | BIGINT UNSIGNED | ✅ | - | 対応する予約 ID |
 | `cancelled_at` | DATETIME | ✅ | - | キャンセル実行日時（JST） |
-| `refund_status` | ENUM | ✅ | `'none'` | `full` / `none` |
-| `stripe_refund_id` | VARCHAR(255) | ❌（NULL 可） | NULL | Stripe 返金 ID（`re_xxx`） |
-| `refund_amount` | INT | ✅ | 0 | 実際の返金額（日本円） |
+| `refund_status` | ENUM | ✅ | `'none'` | 通常キャンセルでは `none` |
+| `stripe_refund_id` | VARCHAR(255) | ❌（NULL 可） | NULL | 通常キャンセルでは NULL |
+| `refund_amount` | INT | ✅ | 0 | 通常キャンセルでは 0 |
 
 **インデックス：**
 - `PRIMARY KEY (id)`
 - `KEY reservation_id (reservation_id)`
 
 **設計意図：**
-- `reservations.cancelled_at` だけでは「なぜキャンセルしたか」「いくら返金したか」がわからない。
-- このテーブルを見ることで返金の証跡が追跡できる。
-- 現状は 1 予約に対して 1 行が想定されているが、将来的に部分返金などが追加される場合に備えて独立テーブルにしている。
+- `reservations.cancelled_at` だけではキャンセル処理の監査情報が不足する。
+- このテーブルを見ることで「返金なし」でキャンセルされた証跡を追跡できる。
+- 現状は 1 予約に対して 1 行が想定されている。
 
 ---
 

@@ -71,7 +71,7 @@ WordPress AJAX / REST API
           │
           ▼
 ┌─────────────────────┐
-│     Services 層     │  ← ビジネスロジック（予約・決済・返金の判断）
+│     Services 層     │  ← ビジネスロジック（予約・決済・キャンセル）
 └──────┬──────┬───────┘
        │      │
        ▼      ▼
@@ -111,7 +111,7 @@ WordPress AJAX / REST API
    → Stripe Webhook（payment_intent.succeeded）が確定処理をフォールバック実行
 
 5. キャンセル
-   → kkpay_cancel_reservation（期限内なら Stripe 返金 + キャンセルメール）
+   → kkpay_cancel_reservation（返金なしでキャンセル記録 + キャンセルメール）
 ```
 
 ---
