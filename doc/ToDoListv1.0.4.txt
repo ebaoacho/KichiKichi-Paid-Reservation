@@ -1,0 +1,291 @@
+v1.0.4バージョン
+
+【対応事項リスト】
+
+■ 最優先で対応すべき事項
+
+1. kkpay_accepted_dates とプレミアム予約仕様をドキュメント化する ✅ 対応済み
+- kkpay_accepted_dates テーブルをドキュメントに追記する ✅
+- KKPAY_Accepted_Dates_Repository を Repository 層のドキュメントに追記する ✅
+- 通常予約は当日13:00 JST受付開始であることを明記する ✅
+- 3日前プレミアム予約は対象日の3日前 0:00 JST受付開始であることを明記する ✅
+- KKPAY_ACCEPT_HOUR_JST は通常予約用の定数であり、プレミアム予約には別ルールがあることを明記する ✅
+- CalendarService の分岐ロジックにコメントを追加する ✅
+
+対象ファイル:
+- doc/08_database_schema.md ✅
+- doc/05_layer_repositories.md ✅
+- doc/04_layer_services.md ✅
+- doc/07_data_flow.md ✅
+- CLAUDE.md ✅
+- class-kkpay-calendar-service.php ✅
+
+追加対応（コードバグ修正）:
+- KKPAY_Accepted_Dates_Repository に欠けていた3メソッドを追加 ✅
+  → has_any_records() / is_date_enabled() / find_by_date()
+  ※ CalendarService から呼ばれていたが未実装だったため、テーブルにデータが入ると PHP エラーが発生する状態だった
+
+
+2. AdminController のビジネスロジック混入を解消する ✅ 対応済み
+- AdminController::get_calendar_open_slots() を削除 ✅
+- CalendarService::get_open_slot_keys_for_date($date) を新規追加 ✅
+- AdminController::ajax_save_slot_capacity() が CalendarService を呼ぶように変更 ✅
+
+対象ファイル:
+- class-kkpay-admin-controller.php ✅
+- class-kkpay-calendar-service.php ✅
+
+目的:
+- Controller にビジネスロジックを書かないようにする
+- CalendarService::get_available_slot_keys() との重複をなくす
+- 将来スロット仕様が変わった時の修正漏れを防ぐ
+
+
+3. 管理画面 AJAX の Nonce / 権限チェック順序を統一する ✅ 対応済み
+- 管理画面専用 AJAX 全エンドポイントで check_ajax_referer() を current_user_can() より前に移動する ✅
+
+対象:
+- ajax_load_admin_list() ✅
+- ajax_export_csv() ✅
+- ajax_save_slot_capacity() ✅
+
+対象ファイル:
+- class-kkpay-admin-controller.php ✅
+
+目的:
+- 不正リクエストを早く弾く
+- 公開エンドポイントとの一貫性を保つ
+- セキュリティ上の保守性を上げる
+
+
+■ 次に対応すべき事項
+
+4. CSVエクスポートの日時を JST に統一する ✅ 対応済み
+- date('Ymd_His') を DateTimeImmutable + Asia/Tokyo に変更する ✅
+
+修正案:
+(new DateTimeImmutable('now', new DateTimeZone('Asia/Tokyo')))->format('Ymd_His')
+
+対象ファイル:
+- class-kkpay-admin-controller.php ✅
+
+目的:
+- サーバータイムゾーンに依存しないようにする
+- コーディング規約の JST 統一に合わせる
+
+
+5. cancel_success_full_refund を削除する ✅ 対応済み
+- grep -r 'cancel_success_full_refund' で使用箇所を確認する → 定義箇所のみ、呼び出しゼロを確認 ✅
+- 使用箇所がなければ KKPAY_MESSAGES から削除する ✅
+
+対象ファイル:
+- early-reservation-system.php ✅
+
+理由:
+- キー名は「全額返金」なのに、本文は「返金なし」になっている
+- 返金なしポリシーと矛盾していて危険
+- 現状はデッドコード
+
+
+6. 韓国語・中国語のキャンセル期限ラベルを修正する ✅ 対応済み
+- kkpay-mypage.js の cancel_deadline ラベルを修正する ✅
+- 韓国語・中国語が「全額返金キャンセル期限」のような意味になっているため、返金なしポリシーと矛盾している → 修正済み
+
+修正案:
+- 韓国語: 예약 취소 기한 ✅
+- 簡体字中国語: 预约取消截止日 ✅
+- 繁体字中国語: 預約取消截止日 ✅
+
+対象ファイル:
+- kkpay-mypage.js ✅
+
+
+7. KKPAY_MESSAGES を別ファイルに分離する ✅ 対応済み
+- includes/kkpay-messages.php を作成する ✅
+- KKPAY_MESSAGES と kkpay_msg() を移動する ✅
+- early-reservation-system.php では require_once するだけにする ✅
+
+対象ファイル:
+- early-reservation-system.php ✅
+- includes/kkpay-messages.php ✅（新規作成）
+
+目的:
+- エントリポイントを軽くする
+- 翻訳メッセージの管理をしやすくする
+
+
+■ ビジネス確認後に対応すべき事項
+
+8. cancel_deadline の計算を実装する → ビジネス判断によりキャンセル期限なしに決定 ✅ 対応済み
+- キャンセルはいつでも可能とするため、cancel_deadline をシステムから除去
+- ReservationService::build_check_data() から 'cancel_deadline' キーを削除 ✅
+- kkpay-mypage.js の cancel_deadline ラベル定義（全5言語）を削除 ✅
+- kkpay-mypage.js の cancel_deadline 表示ブロックを削除 ✅
+- can_cancel の判定ロジックは変更なし（キャンセル済みでない かつ pending でない = キャンセル可）
+
+対象ファイル:
+- class-kkpay-reservation-service.php ✅
+- assets/js/kkpay-mypage.js ✅
+
+
+9. can_cancel に期限チェックを追加する → 項目8と同じ判断で不要 ✅ 対応済み
+- キャンセルはいつでも可能とするため、期限チェックは実装しない
+- 現行の can_cancel ロジックをそのまま維持
+
+
+■ 後回しでよい改善事項
+
+10. KKPAY_Admin の責務を分離する ✅ 対応済み
+- インライン JS を外部ファイル化する ✅ → assets/js/kkpay-admin-capacity.js を新規作成
+- HTML を templates/admin/ に分離する ✅ → reservations-tab.php / seat-capacity-tab.php を新規作成
+- DB 呼び出しは render_*() メソッドに残しつつ、テンプレートには変数のみ渡す形に整理 ✅
+
+対象ファイル:
+- class-kkpay-admin.php ✅（render_* をデータ取得 + include だけに簡素化）
+- assets/js/kkpay-admin-capacity.js ✅（新規作成）
+- templates/admin/reservations-tab.php ✅（新規作成）
+- templates/admin/seat-capacity-tab.php ✅（新規作成）
+
+対応内容:
+- enqueue_admin_assets() に wp_enqueue_script + wp_localize_script を追加
+- kkpay_admin_cap.nonce / kkpay_admin_cap.maxCapacity を JS から参照するよう変更
+- PHP 直埋め込みの nonce・KKPAY_MAX_CAPACITY を JS から除去
+
+優先度:
+- 中
+- 管理画面を今後拡張する予定があるなら早めに対応
+
+
+11. Cron の add_filter をエントリポイントに移動する ✅ 対応済み
+- class-kkpay-cron.php 内の add_filter('cron_schedules', ...) を移動する ✅
+- エントリポイントのフック登録セクションに集約する ✅
+
+対象ファイル:
+- class-kkpay-cron.php ✅（クラス外の add_filter を削除）
+- early-reservation-system.php ✅（// Cron セクションに add_filter を追記）
+
+優先度:
+- 中〜低
+- 変更リスクはかなり低い
+
+
+12. マイページショートコードのアセット読み込みを統一する ✅ 対応済み
+- kkpay_enqueue_mypage_assets() を切り出す ✅
+- kkpay_render_my_reservation() 内で kkpay_enqueue_mypage_assets() を呼ぶ ✅
+- kkpay_enqueue_assets() 内のインライン enqueue を kkpay_enqueue_mypage_assets() 呼び出しに置き換え ✅
+
+対象ファイル:
+- early-reservation-system.php ✅
+
+目的:
+- 他ショートコードと読み込み方式を揃える
+- ブロックエディタなどでアセット漏れが起きる可能性を下げる
+
+
+13. Cancellation_Repository::insert() の戻り値を追加する ✅ 対応済み
+- insert 成功時は ID を返す ✅ → (int) $wpdb->insert_id を返す
+- 失敗時は false を返す ✅ → $wpdb->insert() が false のとき false を返す
+- CancellationService 側で結果をチェックする ✅ → false なら error_log() でシステムログに記録
+
+対象ファイル:
+- class-kkpay-cancellation-repository.php ✅
+- class-kkpay-cancellation-service.php ✅
+
+目的:
+- キャンセル監査ログの保存失敗を検知できるようにする
+- 失敗時もキャンセル処理自体（予約更新・メール送信）は続行する設計
+
+
+14. 静的SQLにコメントを追加する ✅ 対応済み
+- KKPAY_Hold_Repository::delete_expired() の SQL はユーザー入力を含まないため、prepare() を使っていない理由をコメントで明記する ✅
+
+対象ファイル:
+- class-kkpay-hold-repository.php ✅
+
+
+-----------------------------------------------------------------------
+
+
+■ 要件定義書レビューによる追加対応事項
+
+15. キャンセル完了時の案内文言を確認・明文化する ✅ 対応済み
+- kkpay-messages.php の cancel_success_no_refund キーに全5言語で返金なし旨が記載済みであることを確認 ✅
+- 文言はキャンセル処理完了後に画面表示・メール本文の両方で使用されている ✅
+
+確認内容:
+- en: 'Your reservation has been cancelled. No refund will be issued.'
+- ja: '予約をキャンセルしました。返金はございません。'
+- ko: '예약이 취소되었습니다. 환불은 일절 불가합니다.'
+- zh-CN: '预约已取消。概不退款。'
+- zh-TW: '預約已取消。概不退款。'
+
+対象ファイル:
+- includes/kkpay-messages.php ✅（定義確認のみ・コード変更なし）
+
+
+16. 予約確定前にキャンセルポリシーを表示する ✅ 対応済み
+- 予約フォームの送信ボタン直前にキャンセルポリシー文言を追加する ✅
+- 決済ページの「決済する」ボタン直前にも同様の文言を追加する ✅
+- kkpay-form.js の LABELS に cancel_policy キーを追加（全5言語） ✅
+- updateLabels() で #lbl-cancel-policy を更新するよう追加 ✅
+- initPaymentPage() で #lbl-cancel-policy-pay を更新するよう追加 ✅
+
+表示文言:
+- en: 'Cancellations are accepted at any time. No refund will be issued.'
+- ja: 'キャンセルはいつでも可能ですが、返金はございません。'
+- ko: '취소는 언제든지 가능합니다. 단, 환불은 일절 불가합니다.'
+- zh-CN: '随时可取消，但概不退款。'
+- zh-TW: '隨時可取消，但概不退款。'
+
+対象ファイル:
+- assets/js/kkpay-form.js ✅（LABELS追加 + updateLabels + initPaymentPage）
+- templates/reservation-form.php ✅（#lbl-cancel-policy 追加）
+- templates/payment-page.php ✅（#lbl-cancel-policy-pay 追加）
+
+目的:
+- 要件定義書 §7「利用規約・予約確認画面での注意表記」の充足
+- 顧客が決済前にキャンセルポリシーを理解できる状態にする
+
+
+17. 予約確認画面（マイページ）にもキャンセルポリシーを表示する ✅ 対応済み
+- キャンセルボタン直上にポリシー文言を表示する ✅
+- kkpay-mypage.js の LABELS に cancel_policy キーを追加（全5言語） ✅
+- updateLabels() で #lbl-my-cancel-policy を更新するよう追加 ✅
+
+表示文言:
+- en: 'Note: Cancellations are accepted at any time, but no refund will be issued.'
+- ja: '※ キャンセルはいつでも可能ですが、返金はございません。'
+- ko: '※ 취소는 언제든지 가능합니다. 단, 환불은 일절 불가합니다.'
+- zh-CN: '※ 随时可取消，但概不退款。'
+- zh-TW: '※ 隨時可取消，但概不退款。'
+
+対象ファイル:
+- assets/js/kkpay-mypage.js ✅（LABELS追加 + updateLabels）
+- templates/my-reservation.php ✅（#lbl-my-cancel-policy 追加）
+
+目的:
+- キャンセルボタンを押す前に返金なしポリシーを確認できる状態にする
+- 言語切替時も文言が連動して更新される
+
+
+【おすすめの実施順】
+
+1. ドキュメントに kkpay_accepted_dates とプレミアム予約0時受付仕様を追記する
+2. 管理画面 AJAX の Nonce / 権限チェック順序を修正する
+3. CSVファイル名の日時を JST 化する
+4. cancel_success_full_refund を削除する
+5. 韓国語・中国語の cancel_deadline ラベルを修正する
+6. KKPAY_MESSAGES を別ファイルへ分離する
+7. AdminController::get_calendar_open_slots() を CalendarService 呼び出しに変更する
+8. ビジネス確認後、cancel_deadline と can_cancel を修正する
+9. 余裕があれば KKPAY_Admin のテンプレート・JS分離を行う
+
+
+【今回すぐやるなら】
+
+まずは 1〜7 までを対応するのがよい。
+特に以下の3つは優先度が高い。
+
+- ドキュメント整合
+- AdminController の責務整理
+- Nonce / 権限チェック順序の修正

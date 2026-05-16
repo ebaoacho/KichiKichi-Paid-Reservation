@@ -59,11 +59,28 @@ KKPAY_Calendar_Service::is_accepting_reservations( '2025-06-01' ); // bool
 KKPAY_Calendar_Service::get_available_slot_keys( '2025-06-01' ); // string[]
 ```
 
-**受付判定のルール（変更時はここを修正）：**
-- 対象日が「本日〜`KKPAY_ACCEPT_DAYS_BEFORE` 日後」の範囲内
-- かつ「対象日の `KKPAY_ACCEPT_DAYS_BEFORE` 日前の `KKPAY_ACCEPT_HOUR_JST` 時以降」
+**受付判定は 2 モードあり、`kkpay_accepted_dates` テーブルの有無で自動的に切り替わります。**
 
-例：5/10 の予約 → 5/7（3 日前）の 13:00 JST から受付開始
+#### 通常モード（`kkpay_accepted_dates` にレコードなし）
+
+時刻ベースの受付判定を行います。
+
+- 対象日が「本日〜`KKPAY_ACCEPT_DAYS_BEFORE` 日後」の範囲内
+- かつ「対象日の `KKPAY_ACCEPT_DAYS_BEFORE` 日前の **`KKPAY_ACCEPT_HOUR_JST` 時** 以降」
+
+例：5/10 の予約 → 5/7（3 日前）の **13:00 JST** から受付開始
+
+`KKPAY_ACCEPT_HOUR_JST` は**通常モード専用**の定数です。プレミアムモードでは参照されません。
+
+#### プレミアムモード（`kkpay_accepted_dates` にレコードあり）
+
+管理者が登録した日程・スロットのみ受付します。
+
+- `enabled = 1` のレコードがある日程だけ `is_accepting_reservations()` が `true` を返す
+- 受付開始は**対象日の 3 日前 0:00 JST**（時刻ベースのルールは適用されない）
+- `get_available_slot_keys()` は `enabled = 1` のスロットのみを返す
+
+例：5/10 の予約が `accepted_dates` に登録済み → 5/7 **0:00 JST** から受付開始
 
 ---
 

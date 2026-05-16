@@ -15,6 +15,7 @@ Repositories 層は **データベースへのすべてのアクセスを担当*
 | `class-kkpay-hold-repository.php` | `KKPAY_Hold_Repository` | `{prefix}kkpay_holds` |
 | `class-kkpay-reservation-repository.php` | `KKPAY_Reservation_Repository` | `{prefix}kkpay_reservations` |
 | `class-kkpay-cancellation-repository.php` | `KKPAY_Cancellation_Repository` | `{prefix}kkpay_cancellations` |
+| `class-kkpay-accepted-dates-repository.php` | `KKPAY_Accepted_Dates_Repository` | `{prefix}kkpay_accepted_dates` |
 | `class-kkpay-calendar-repository.php` | `KKPAY_Calendar_Repository` | `{prefix}calendar`（外部・読み取り専用） |
 
 ---
@@ -111,6 +112,23 @@ $wpdb->query( 'COMMIT' );
 | メソッド | 説明 |
 |---------|------|
 | `insert( array $data )` | キャンセル履歴を挿入 |
+
+### KKPAY_Accepted_Dates_Repository
+
+プレミアム予約の受付日程・スロット別席数を管理します。  
+`KKPAY_Calendar_Service` から呼ばれ、通常モード／プレミアムモードの切り替えに使われます。
+
+| メソッド | 説明 |
+|---------|------|
+| `has_any_records()` | テーブルに 1 件でもレコードがあれば `true`（プレミアムモード判定用） |
+| `is_date_enabled( $date )` | 指定日に `enabled = 1` のレコードがあれば `true`（受付可否判定用） |
+| `find_by_date( $date )` | 指定日の `enabled = 1` スロット一覧を返す（スロット絞り込み用） |
+| `get_slot_capacity( $date, $slot )` | 指定スロットの席数上限を返す（なければ `KKPAY_MAX_CAPACITY`） |
+| `get_capacity_range( $from, $to )` | 期間内の全席数レコードを返す（管理画面表示用） |
+| `upsert_slot( $date, $slot, $capacity )` | 席数を登録・更新する（管理画面保存用） |
+
+> `has_any_records()` / `is_date_enabled()` / `find_by_date()` は `CalendarService` の分岐ロジックで使われます。  
+> `get_slot_capacity()` は `HoldService` と `ReservationService` から呼ばれ、プレミアムモードに関係なく常に参照されます。
 
 ### KKPAY_Calendar_Repository（読み取り専用）
 

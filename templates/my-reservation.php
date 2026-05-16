@@ -30,6 +30,7 @@
         <div id="kkpay-my-details" class="kkpay-summary"></div>
 
         <div id="kkpay-my-cancel-section" style="display:none; margin-top:20px;">
+            <p class="kkpay-cancel-policy" id="lbl-my-cancel-policy">Note: Cancellations are accepted at any time, but no refund will be issued.</p>
             <button id="kkpay-my-cancel-btn" class="kkpay-btn kkpay-btn-danger">
                 <span id="lbl-my-cancel">予約をキャンセルする / Cancel Reservation</span>
             </button>

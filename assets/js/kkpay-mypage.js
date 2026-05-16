@@ -17,13 +17,13 @@
             amount:          'Amount Paid',
             status:          'Status',
             cancelled_at:    'Cancelled At',
-            cancel_deadline: 'Cancel Deadline',
             status_paid:     'Confirmed',
             status_pending:  'Pending',
             status_refunded: 'Cancelled',
             confirmCancel:   'Are you sure you want to cancel? No refund will be issued.',
             cancelDone:      'Your reservation has been cancelled.',
             alreadyCancelled:'This reservation has already been cancelled.',
+            cancel_policy:   'Note: Cancellations are accepted at any time, but no refund will be issued.',
         },
         ja: {
             email:           'メールアドレス',
@@ -35,13 +35,13 @@
             amount:          'お支払い金額',
             status:          'ステータス',
             cancelled_at:    'キャンセル日時',
-            cancel_deadline: 'キャンセル期限',
             status_paid:     '予約確定',
             status_pending:  '決済待ち',
             status_refunded: 'キャンセル済み',
             confirmCancel:   'キャンセルしますか？返金はございません。',
             cancelDone:      '予約をキャンセルしました。',
             alreadyCancelled:'この予約は既にキャンセル済みです。',
+            cancel_policy:   '※ キャンセルはいつでも可能ですが、返金はございません。',
         },
         ko: {
             email:           '이메일',
@@ -53,13 +53,13 @@
             amount:          '결제 금액',
             status:          '상태',
             cancelled_at:    '취소 일시',
-            cancel_deadline: '전액 환불 취소 기한',
             status_paid:     '예약 확정',
             status_pending:  '결제 대기',
             status_refunded: '취소됨',
             confirmCancel:   '취소하시겠습니까? 환불은 제공되지 않습니다.',
             cancelDone:      '예약이 취소되었습니다.',
             alreadyCancelled:'이미 취소된 예약입니다.',
+            cancel_policy:   '※ 취소는 언제든지 가능합니다. 단, 환불은 일절 불가합니다.',
         },
         'zh-CN': {
             email:           '电子邮件',
@@ -71,13 +71,13 @@
             amount:          '支付金额',
             status:          '状态',
             cancelled_at:    '取消时间',
-            cancel_deadline: '全额退款截止时间',
             status_paid:     '预约确认',
             status_pending:  '待支付',
             status_refunded: '已取消',
             confirmCancel:   '确定要取消吗？不会退款。',
             cancelDone:      '预约已取消。',
             alreadyCancelled:'该预约已取消。',
+            cancel_policy:   '※ 随时可取消，但概不退款。',
         },
         'zh-TW': {
             email:           '電子郵件',
@@ -89,13 +89,13 @@
             amount:          '支付金額',
             status:          '狀態',
             cancelled_at:    '取消時間',
-            cancel_deadline: '全額退款截止時間',
             status_paid:     '預約確認',
             status_pending:  '待支付',
             status_refunded: '已取消',
             confirmCancel:   '確定要取消嗎？不會退款。',
             cancelDone:      '預約已取消。',
             alreadyCancelled:'該預約已取消。',
+            cancel_policy:   '※ 隨時可取消，但概不退款。',
         },
     };
 
@@ -133,6 +133,7 @@
         $('#lbl-my-email').text(t('email'));
         $('#lbl-my-search').text(t('search'));
         $('#lbl-my-cancel').text(t('cancel'));
+        $('#lbl-my-cancel-policy').text(t('cancel_policy'));
     }
 
     $langSel.on('change', function () {
@@ -205,9 +206,6 @@
             $cancelSection.hide();
             $cancelledNotice.hide();
         } else if (d.can_cancel) {
-            if (d.cancel_deadline) {
-                row(t('cancel_deadline'), d.cancel_deadline);
-            }
             $cancelSection.show();
             $cancelledNotice.hide();
         } else {

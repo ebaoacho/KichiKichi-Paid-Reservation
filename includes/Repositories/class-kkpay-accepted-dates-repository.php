@@ -15,6 +15,37 @@ class KKPAY_Accepted_Dates_Repository {
     }
 
     /**
+     * テーブルに 1 件でもレコードがあれば true を返す（プレミアムモード判定用）。
+     */
+    public static function has_any_records() {
+        global $wpdb;
+        return (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . self::table() . ' LIMIT 1' ) > 0;
+    }
+
+    /**
+     * 指定日に enabled=1 のレコードが 1 件でもあれば true を返す（受付可否判定用）。
+     */
+    public static function is_date_enabled( $date ) {
+        global $wpdb;
+        $count = $wpdb->get_var( $wpdb->prepare(
+            'SELECT COUNT(*) FROM ' . self::table() . ' WHERE reservation_date = %s AND enabled = 1 LIMIT 1',
+            $date
+        ) );
+        return (int) $count > 0;
+    }
+
+    /**
+     * 指定日の enabled=1 スロット一覧を返す（スロット絞り込み用）。
+     */
+    public static function find_by_date( $date ) {
+        global $wpdb;
+        return $wpdb->get_results( $wpdb->prepare(
+            'SELECT reservation_date, time_slot, capacity FROM ' . self::table() . ' WHERE reservation_date = %s AND enabled = 1 ORDER BY time_slot ASC',
+            $date
+        ) );
+    }
+
+    /**
      * 指定スロットの席数を返す。
      * レコードが存在しない場合は KKPAY_MAX_CAPACITY にフォールバック。
      */

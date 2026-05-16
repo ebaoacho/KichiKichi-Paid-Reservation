@@ -12,14 +12,22 @@ class KKPAY_Calendar_Service {
     /**
      * 指定日が予約受付期間内かどうかを判定する（JST 固定）
      *
-     * 受付条件:
+     * 【プレミアムモード】kkpay_accepted_dates にレコードが 1 件でもある場合:
+     *   - enabled=1 のレコードがある日のみ受付
+     *   - 受付開始は対象日の 3 日前 0:00 JST（時刻ベースのチェックは行わない）
+     *
+     * 【通常モード】kkpay_accepted_dates が空の場合:
      *   - 本日〜ACCEPT_DAYS_BEFORE 日後の範囲内
-     *   - 対象日の ACCEPT_DAYS_BEFORE 日前 ACCEPT_HOUR_JST 時以降
+     *   - かつ対象日の ACCEPT_DAYS_BEFORE 日前の ACCEPT_HOUR_JST 時以降
+     *   - KKPAY_ACCEPT_HOUR_JST は通常モード専用。プレミアムモードでは参照されない。
      */
     public static function is_accepting_reservations( $date_str ) {
+        // プレミアムモード: accepted_dates に登録された日程のみ受付
         if ( KKPAY_Accepted_Dates_Repository::has_any_records() ) {
             return KKPAY_Accepted_Dates_Repository::is_date_enabled( $date_str );
         }
+
+        // 通常モード: 時刻ベースの受付判定
 
         $tz  = new DateTimeZone( 'Asia/Tokyo' );
         $now = new DateTimeImmutable( 'now', $tz );
@@ -42,6 +50,29 @@ class KKPAY_Calendar_Service {
             ->setTime( KKPAY_ACCEPT_HOUR_JST, 0, 0 );
 
         return $now >= $open_from;
+    }
+
+    /**
+     * 指定日にカレンダーが営業しているスロットキーの配列を返す（accepted_dates フィルターなし）
+     * 管理画面など「カレンダー上の全営業スロット」が必要な場合に使う
+     * ユーザー向けの予約受付には get_available_slot_keys() を使うこと
+     */
+    public static function get_open_slot_keys_for_date( $date_str ) {
+        $info = KKPAY_Calendar_Repository::find_by_date( $date_str );
+        if ( ! $info ) {
+            return array();
+        }
+
+        $keys = array();
+        foreach ( KKPAY_SLOT_TYPES as $key => $type ) {
+            if ( $type === 'lunch' && $info->lunch ) {
+                $keys[] = $key;
+            } elseif ( $type === 'dinner' && $info->dinner ) {
+                $keys[] = $key;
+            }
+        }
+
+        return $keys;
     }
 
     /**

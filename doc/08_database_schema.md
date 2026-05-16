@@ -7,6 +7,7 @@
 | `{prefix}kkpay_holds` | 5 分間の仮予約（ホールド） | このプラグイン |
 | `{prefix}kkpay_reservations` | 確定済み予約 | このプラグイン |
 | `{prefix}kkpay_cancellations` | キャンセル履歴 | このプラグイン |
+| `{prefix}kkpay_accepted_dates` | プレミアム予約の受付日程・スロット別席数管理 | このプラグイン |
 | `{prefix}calendar` | 営業カレンダー（読み取り専用） | KichiKichi Calendar プラグイン |
 
 テーブルは `class-kkpay-activator.php` の `KKPAY_Activator::activate()` が `dbDelta()` で作成します。
@@ -111,6 +112,37 @@ paid    → refunded   （Stripe ダッシュボード等で外部返金され�
 - `reservations.cancelled_at` だけではキャンセル処理の監査情報が不足する。
 - このテーブルを見ることで「返金なし」でキャンセルされた証跡を追跡できる。
 - 現状は 1 予約に対して 1 行が想定されている。
+
+---
+
+## kkpay_accepted_dates
+
+プレミアム予約モードで使用するテーブルです。  
+管理画面から管理者が「どの日程・スロットを受付対象にするか」と「スロットごとの席数上限」を設定します。  
+このテーブルに 1 件でもレコードが存在する場合、プラグイン全体が**プレミアムモード**で動作します。
+
+| カラム | 型 | NOT NULL | デフォルト | 説明 |
+|--------|-----|---------|----------|------|
+| `id` | BIGINT UNSIGNED | ✅ | AUTO_INCREMENT | 主キー |
+| `reservation_date` | DATE | ✅ | - | 受付対象日 |
+| `time_slot` | VARCHAR(20) | ✅ | - | スロットキー（`slot_1`〜`slot_6`） |
+| `capacity` | TINYINT UNSIGNED | ✅ | 8 | スロットの席数上限（`KKPAY_MAX_CAPACITY` にフォールバック） |
+| `enabled` | TINYINT(1) UNSIGNED | ✅ | 1 | 1 = 受付有効、0 = 受付停止 |
+| `created_at` | DATETIME | ✅ | - | 作成日時 |
+| `updated_at` | DATETIME | ✅ | - | 更新日時 |
+
+**インデックス：**
+- `PRIMARY KEY (id)`
+- `UNIQUE KEY date_slot (reservation_date, time_slot)`
+- `KEY reservation_date (reservation_date)`
+
+**設計意図：**
+
+- レコードが 1 件でも存在すると `KKPAY_Calendar_Service::is_accepting_reservations()` がプレミアムモードに切り替わる。
+- プレミアムモードでは `enabled = 1` のレコードがある日程・スロットだけが予約可能になる。受付開始は**対象日の 3 日前 0:00 JST**（時刻ベースのルールは適用されない）。
+- 通常モード（レコードなし）では `KKPAY_ACCEPT_HOUR_JST`（13 時）が受付開始時刻を制御する。
+- `capacity` は通常モード・プレミアムモードどちらでも常に参照される。レコードがないスロットは `KKPAY_MAX_CAPACITY` にフォールバックする。
+- 管理画面の「席数設定」タブから `upsert_slot()` 経由で登録・更新する。
 
 ---
 

@@ -114,7 +114,6 @@ class KKPAY_Reservation_Service {
             'payment_status'   => $reservation->payment_status,
             'cancelled_at'     => $reservation->cancelled_at,
             'can_cancel'       => $can_cancel,
-            'cancel_deadline'  => '',
             'language'         => $reservation->language,
         );
     }

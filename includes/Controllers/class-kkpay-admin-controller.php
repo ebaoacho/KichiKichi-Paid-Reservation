@@ -6,10 +6,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 class KKPAY_Admin_Controller {
 
     public static function ajax_load_admin_list() {
+        check_ajax_referer( 'kkpay_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_send_json_error( array( 'message' => 'Unauthorized' ) );
         }
-        check_ajax_referer( 'kkpay_nonce', 'nonce' );
 
         ob_start();
         KKPAY_Admin::render_reservations_tab();
@@ -19,17 +19,17 @@ class KKPAY_Admin_Controller {
     }
 
     public static function ajax_export_csv() {
+        check_ajax_referer( 'kkpay_export', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( 'Unauthorized' );
         }
-        check_ajax_referer( 'kkpay_export', 'nonce' );
 
         $filter_date = sanitize_text_field( $_GET['filter_date'] ?? '' );
         $filter_slot = sanitize_text_field( $_GET['filter_slot'] ?? '' );
         $results     = KKPAY_Reservation_Repository::get_list_as_array( $filter_date, $filter_slot );
 
         header( 'Content-Type: text/csv; charset=UTF-8' );
-        header( 'Content-Disposition: attachment; filename="kkpay_reservations_' . date( 'Ymd_His' ) . '.csv"' );
+        header( 'Content-Disposition: attachment; filename="kkpay_reservations_' . ( new DateTimeImmutable( 'now', new DateTimeZone( 'Asia/Tokyo' ) ) )->format( 'Ymd_His' ) . '.csv"' );
         echo "\xEF\xBB\xBF";
 
         $out = fopen( 'php://output', 'w' );
@@ -56,10 +56,10 @@ class KKPAY_Admin_Controller {
     }
 
     public static function ajax_save_slot_capacity() {
+        check_ajax_referer( 'kkpay_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_send_json_error( array( 'message' => 'Unauthorized' ) );
         }
-        check_ajax_referer( 'kkpay_nonce', 'nonce' );
 
         $raw   = wp_unslash( $_POST['dates'] ?? '[]' );
         $dates = json_decode( $raw, true );
@@ -75,7 +75,7 @@ class KKPAY_Admin_Controller {
                 continue;
             }
 
-            $valid_slots = self::get_calendar_open_slots( $date );
+            $valid_slots = KKPAY_Calendar_Service::get_open_slot_keys_for_date( $date );
             foreach ( $valid_slots as $slot ) {
                 if ( array_key_exists( $slot, $slots ) ) {
                     KKPAY_Accepted_Dates_Repository::upsert_slot( $date, $slot, (int) $slots[ $slot ] );
@@ -86,19 +86,5 @@ class KKPAY_Admin_Controller {
         wp_send_json_success( array( 'message' => 'Saved' ) );
     }
 
-    private static function get_calendar_open_slots( $date ) {
-        $calendar = KKPAY_Calendar_Repository::find_by_date( $date );
-        if ( ! $calendar ) {
-            return array();
-        }
 
-        $slots = array();
-        foreach ( KKPAY_SLOT_TYPES as $slot => $type ) {
-            if ( ( $type === 'lunch' && $calendar->lunch ) || ( $type === 'dinner' && $calendar->dinner ) ) {
-                $slots[] = $slot;
-            }
-        }
-
-        return $slots;
-    }
 }

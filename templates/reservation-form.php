@@ -56,6 +56,7 @@
     <div class="kkpay-field" id="kkpay-submit-section" style="display:none;">
         <div id="kkpay-summary" class="kkpay-summary"></div>
         <p class="kkpay-price-notice kkpay-i18n" id="lbl-seat-price">$13 per seat, goods included</p>
+        <p class="kkpay-cancel-policy kkpay-i18n" id="lbl-cancel-policy">Cancellations are accepted at any time. No refund will be issued.</p>
         <button id="kkpay-submit-btn" class="kkpay-btn kkpay-btn-primary">
             <span class="kkpay-i18n" id="lbl-submit">予約する / Reserve</span>
         </button>

@@ -83,7 +83,7 @@ Five languages: `en`, `ja`, `ko`, `zh-CN`, `zh-TW`. All user-facing strings go t
 | `KKPAY_MAX_PEOPLE` | 4 | Max people per single booking |
 | `KKPAY_HOLD_MINUTES` | 5 | Hold expiration window |
 | `KKPAY_ACCEPT_DAYS_BEFORE` | 3 | Booking window (days ahead) |
-| `KKPAY_ACCEPT_HOUR_JST` | 13 | Hour (JST) when booking opens for a date |
+| `KKPAY_ACCEPT_HOUR_JST` | 13 | **通常モード専用**。対象日の 3 日前・この時刻（JST）から受付開始。`kkpay_accepted_dates` にレコードがある場合（プレミアムモード）は参照されず、受付開始は 3 日前 0:00 JST 固定になる。 |
 
 ## Cancellation Policy
 

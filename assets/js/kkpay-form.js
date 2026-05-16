@@ -40,6 +40,7 @@
             fullyBooked: 'Fully Booked',
             notYetOpen: 'Not Yet Open',
             closed: 'Closed',
+            cancel_policy: 'Cancellations are accepted at any time. No refund will be issued.',
         },
         ja: {
             date: '予約日を選択',
@@ -67,6 +68,7 @@
             fullyBooked: '満席',
             notYetOpen: '受付前',
             closed: '定休日',
+            cancel_policy: 'キャンセルはいつでも可能ですが、返金はございません。',
         },
         ko: {
             date: '예약 날짜 선택',
@@ -94,6 +96,7 @@
             fullyBooked: '만석',
             notYetOpen: '접수 전',
             closed: '휴무',
+            cancel_policy: '취소는 언제든지 가능합니다. 단, 환불은 일절 불가합니다.',
         },
         'zh-CN': {
             date: '选择预约日期',
@@ -121,6 +124,7 @@
             fullyBooked: '已满',
             notYetOpen: '尚未开放',
             closed: '休息日',
+            cancel_policy: '随时可取消，但概不退款。',
         },
         'zh-TW': {
             date: '選擇預約日期',
@@ -148,6 +152,7 @@
             fullyBooked: '已滿',
             notYetOpen: '尚未開放',
             closed: '休息日',
+            cancel_policy: '隨時可取消，但概不退款。',
         },
     };
 
@@ -215,6 +220,7 @@
             $('#lbl-email-confirm').text(t('emailConfirm'));
             $('#lbl-submit').text(t('submit'));
             $('#lbl-seat-price').text(t('seat_price_notice'));
+            $('#lbl-cancel-policy').text(t('cancel_policy'));
         }
 
         // 日付ピッカーをレンダリング
@@ -506,6 +512,7 @@
         $('#lbl-success-title').text(t('successTitle'));
         $('#lbl-email-sent').text(t('emailSent'));
         $('#lbl-card').text(t('card') || 'Card Details');
+        $('#lbl-cancel-policy-pay').text(t('cancel_policy'));
 
         // カウントダウン開始
         $countdown.show();

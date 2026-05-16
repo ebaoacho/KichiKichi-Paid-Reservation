@@ -18,6 +18,7 @@
             <div id="kkpay-card-element" class="kkpay-card-element"></div>
             <div id="kkpay-card-errors" class="kkpay-error" role="alert"></div>
 
+            <p class="kkpay-cancel-policy kkpay-i18n" id="lbl-cancel-policy-pay">Cancellations are accepted at any time. No refund will be issued.</p>
             <button id="kkpay-pay-btn" class="kkpay-btn kkpay-btn-primary" style="margin-top:16px;">
                 <span class="kkpay-i18n" id="lbl-pay">決済する / Pay</span>
             </button>

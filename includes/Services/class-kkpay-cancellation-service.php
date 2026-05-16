@@ -13,13 +13,16 @@ class KKPAY_Cancellation_Service {
         $stripe_refund_id = null;
         $refund_amount    = 0;
 
-        KKPAY_Cancellation_Repository::insert( array(
+        $log_id = KKPAY_Cancellation_Repository::insert( array(
             'reservation_id'   => (int) $reservation->id,
             'cancelled_at'     => $now->format( 'Y-m-d H:i:s' ),
             'refund_status'    => $refund_status,
             'stripe_refund_id' => $stripe_refund_id,
             'refund_amount'    => $refund_amount,
         ) );
+        if ( $log_id === false ) {
+            error_log( '[KKPAY] Cancellation audit log insert failed for reservation_id=' . (int) $reservation->id );
+        }
 
         KKPAY_Reservation_Repository::update_cancelled(
             $reservation->id,
