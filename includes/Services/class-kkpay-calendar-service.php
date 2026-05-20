@@ -14,7 +14,7 @@ class KKPAY_Calendar_Service {
      *
      * 【プレミアムモード】kkpay_accepted_dates にレコードが 1 件でもある場合:
      *   - enabled=1 のレコードがある日のみ受付
-     *   - 受付開始は対象日の 3 日前 0:00 JST（時刻ベースのチェックは行わない）
+     *   - 受付開始は対象日の ACCEPT_DAYS_BEFORE 日前 0:00 JST
      *
      * 【通常モード】kkpay_accepted_dates が空の場合:
      *   - 本日〜ACCEPT_DAYS_BEFORE 日後の範囲内
@@ -24,7 +24,25 @@ class KKPAY_Calendar_Service {
     public static function is_accepting_reservations( $date_str ) {
         // プレミアムモード: accepted_dates に登録された日程のみ受付
         if ( KKPAY_Accepted_Dates_Repository::has_any_records() ) {
-            return KKPAY_Accepted_Dates_Repository::is_date_enabled( $date_str );
+            if ( ! KKPAY_Accepted_Dates_Repository::is_date_enabled( $date_str ) ) {
+                return false;
+            }
+
+            $tz  = new DateTimeZone( 'Asia/Tokyo' );
+            $now = new DateTimeImmutable( 'now', $tz );
+
+            try {
+                $target = new DateTimeImmutable( $date_str . ' 00:00:00', $tz );
+            } catch ( Exception $e ) {
+                return false;
+            }
+
+            // 対象日の ACCEPT_DAYS_BEFORE 日前 0:00 JST 以降のみ受付
+            $open_from = $target
+                ->modify( '-' . KKPAY_ACCEPT_DAYS_BEFORE . ' days' )
+                ->setTime( 0, 0, 0 );
+
+            return $now >= $open_from;
         }
 
         // 通常モード: 時刻ベースの受付判定

@@ -23,6 +23,22 @@ class KKPAY_Accepted_Dates_Repository {
     }
 
     /**
+     * enabled=1 の全日付を連想配列で返す（JS への受け渡し用）。
+     * 例: array( '2026-05-20' => true, '2026-05-21' => true )
+     */
+    public static function get_enabled_dates_map() {
+        global $wpdb;
+        $rows = $wpdb->get_col(
+            'SELECT DISTINCT reservation_date FROM ' . self::table() . ' WHERE enabled = 1 ORDER BY reservation_date ASC'
+        );
+        $map = array();
+        foreach ( $rows as $date ) {
+            $map[ $date ] = true;
+        }
+        return $map;
+    }
+
+    /**
      * 指定日に enabled=1 のレコードが 1 件でもあれば true を返す（受付可否判定用）。
      */
     public static function is_date_enabled( $date ) {

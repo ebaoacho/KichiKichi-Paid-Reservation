@@ -35,7 +35,8 @@
             unit_price_label: 'Price per seat',
             total_label: 'Total',
             pay_action: 'Pay',
-            seat_price_notice: '$13 per seat, goods included',
+            product_label: 'Product',
+            seat_price_notice: '{price} per seat, goods included',
             remaining: 'remaining',
             fullyBooked: 'Fully Booked',
             notYetOpen: 'Not Yet Open',
@@ -63,7 +64,8 @@
             unit_price_label: '1席あたり',
             total_label: '合計',
             pay_action: '決済する',
-            seat_price_notice: '1席あたり $13（グッズ付き）',
+            product_label: '商品',
+            seat_price_notice: '1席あたり {price}（グッズ付き）',
             remaining: '席残り',
             fullyBooked: '満席',
             notYetOpen: '受付前',
@@ -91,7 +93,8 @@
             unit_price_label: '좌석당',
             total_label: '합계',
             pay_action: '결제하기',
-            seat_price_notice: '좌석당 $13 (굿즈 포함)',
+            product_label: '상품',
+            seat_price_notice: '좌석당 {price} (굿즈 포함)',
             remaining: '석 남음',
             fullyBooked: '만석',
             notYetOpen: '접수 전',
@@ -119,7 +122,8 @@
             unit_price_label: '每席',
             total_label: '合计',
             pay_action: '支付',
-            seat_price_notice: '每席 $13（含周边商品）',
+            product_label: '商品',
+            seat_price_notice: '每席 {price}（含周边商品）',
             remaining: '席位剩余',
             fullyBooked: '已满',
             notYetOpen: '尚未开放',
@@ -147,7 +151,8 @@
             unit_price_label: '每席',
             total_label: '合計',
             pay_action: '支付',
-            seat_price_notice: '每席 $13（含周邊商品）',
+            product_label: '商品',
+            seat_price_notice: '每席 {price}（含周邊商品）',
             remaining: '席位剩餘',
             fullyBooked: '已滿',
             notYetOpen: '尚未開放',
@@ -219,7 +224,7 @@
             $('#lbl-email').text(t('email'));
             $('#lbl-email-confirm').text(t('emailConfirm'));
             $('#lbl-submit').text(t('submit'));
-            $('#lbl-seat-price').text(t('seat_price_notice'));
+            $('#lbl-seat-price').text(t('seat_price_notice').replace('{price}', '$' + kkpay.amount));
             $('#lbl-cancel-policy').text(t('cancel_policy'));
         }
 
@@ -607,7 +612,7 @@
             summaryHtml += '<div class="kkpay-summary-row"><span class="kkpay-summary-label">' + t('people_label') + '</span><span>' + people + '</span></div>';
             summaryHtml += '<div class="kkpay-summary-row"><span class="kkpay-summary-label">' + t('unit_price_label') + '</span><span>' + formatYen(unitAmount) + '</span></div>';
             summaryHtml += '<div class="kkpay-summary-row"><span class="kkpay-summary-label">' + t('total_label') + '</span><span>' + formatYen(amount) + '</span></div>';
-            summaryHtml += '<div class="kkpay-summary-row"><span class="kkpay-summary-label">Product</span><span>' + t('seat_price_notice') + '</span></div>';
+            summaryHtml += '<div class="kkpay-summary-row"><span class="kkpay-summary-label">' + t('product_label') + '</span><span>' + t('seat_price_notice').replace('{price}', '$' + kkpay.amount) + '</span></div>';
             $summary.html(summaryHtml);
             $summary.show();
             $('#lbl-pay').text(t('pay_action') + ' ' + formatYen(amount));

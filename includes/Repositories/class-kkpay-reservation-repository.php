@@ -60,9 +60,15 @@ class KKPAY_Reservation_Repository {
         $wpdb->update( self::table(), $data, array( 'id' => (int) $id ), null, array( '%d' ) );
     }
 
+    /**
+     * 予約をキャンセル済みに更新する。
+     * 成功時は更新行数（int）、失敗時は false を返す。
+     *
+     * @return int|false
+     */
     public static function update_cancelled( $id, $cancelled_at, $payment_status ) {
         global $wpdb;
-        $wpdb->update(
+        return $wpdb->update(
             self::table(),
             array(
                 'cancelled_at'   => $cancelled_at,

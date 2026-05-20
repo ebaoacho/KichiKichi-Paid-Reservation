@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Plugin Name: キチキチ 決済予約システム
  * Description: 営業カレンダー参照・Stripe決済対応の早期予約プラグイン
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // ----------------------------------------------------------------
 // 定数
 // ----------------------------------------------------------------
-define( 'KKPAY_VERSION',            '1.0.4' );
+define( 'KKPAY_VERSION',            '1.0.5' );
 define( 'KKPAY_PLUGIN_DIR',         plugin_dir_path( __FILE__ ) );
 define( 'KKPAY_PLUGIN_URL',         plugin_dir_url( __FILE__ ) );
 define( 'KKPAY_AMOUNT',             13 );
@@ -201,6 +201,8 @@ function kkpay_enqueue_form_assets( $has_payment = false ) {
         'hold_minutes'       => KKPAY_HOLD_MINUTES,
         'accept_days_before' => KKPAY_ACCEPT_DAYS_BEFORE,
         'accept_hour_jst'    => KKPAY_ACCEPT_HOUR_JST,
+        'accepted_dates_mode' => KKPAY_Accepted_Dates_Repository::has_any_records(),
+        'accepted_dates'      => KKPAY_Accepted_Dates_Repository::get_enabled_dates_map(),
         'payment_page_url'   => kkpay_find_shortcode_page_url( 'kkpay_payment_page' ),
         'messages'           => KKPAY_MESSAGES,
     ) );
