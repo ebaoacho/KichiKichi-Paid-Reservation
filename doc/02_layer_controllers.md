@@ -177,13 +177,14 @@ public static function ajax_get_slots() {
 }
 ```
 
-### NG：Controller 内に返金ロジックを書く
+### NG：Controller 内にキャンセル処理を書く
 
 ```php
 // ❌ やってはいけない
 public static function ajax_cancel() {
-    $charge_id = ...; // StripeAPIを直接呼ぶ
-    $refund = KKPAY_Stripe_Client::request('POST', '/v1/refunds', ['charge' => $charge_id]);
+    global $wpdb;
+    $wpdb->update( $wpdb->prefix . 'kkpay_reservations', ... );
+    KKPAY_Email_Service::send_cancellation_confirmation( $reservation, 'none', 0 );
 }
 
 // ✅ 正しい

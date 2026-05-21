@@ -23,5 +23,3 @@ class KKPAY_Cron {
         KKPAY_Hold_Repository::delete_expired();
     }
 }
-
-add_filter( 'cron_schedules', array( 'KKPAY_Cron', 'add_schedules' ) );

@@ -50,8 +50,9 @@ class KKPAY_Reservation_Service {
     public static function get_remaining_capacity( $date, $slot ) {
         $confirmed = KKPAY_Reservation_Repository::sum_people_for_slot( $date, $slot );
         $held      = KKPAY_Hold_Repository::sum_people_for_slot( $date, $slot );
+        $capacity  = KKPAY_Accepted_Dates_Repository::get_slot_capacity( $date, $slot );
 
-        return max( 0, KKPAY_MAX_CAPACITY - $confirmed - $held );
+        return max( 0, $capacity - $confirmed - $held );
     }
 
     /**

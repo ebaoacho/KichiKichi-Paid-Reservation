@@ -18,7 +18,7 @@ Controller はリクエストを受けるだけ、Repository は SQL を発行�
 | `class-kkpay-hold-service.php` | `KKPAY_Hold_Service` | 仮予約作成（トランザクション管理） |
 | `class-kkpay-reservation-service.php` | `KKPAY_Reservation_Service` | 残席計算・予約レコード作成・照会データ整形 |
 | `class-kkpay-payment-service.php` | `KKPAY_Payment_Service` | Stripe PaymentIntent 処理・Webhook ハンドラ |
-| `class-kkpay-cancellation-service.php` | `KKPAY_Cancellation_Service` | 返金判定・Stripe 返金実行・キャンセル記録 |
+| `class-kkpay-cancellation-service.php` | `KKPAY_Cancellation_Service` | キャンセル記録・キャンセルメール送信（返金なし） |
 | `class-kkpay-email-service.php` | `KKPAY_Email_Service` | 5 言語メールテンプレートと送信 |
 
 ---
@@ -26,7 +26,7 @@ Controller はリクエストを受けるだけ、Repository は SQL を発行�
 ## Services 層がやること（責務）
 
 ```
-1. ビジネスルールの判定（「いつまでなら無料キャンセルか」など）
+1. ビジネスルールの判定（キャンセル可否など）
 2. 複数の Repository / Infrastructure を協調して呼ぶ
 3. トランザクション管理（START TRANSACTION / COMMIT / ROLLBACK）
 4. 成功時は結果値、失敗時は WP_Error を返す
@@ -59,11 +59,28 @@ KKPAY_Calendar_Service::is_accepting_reservations( '2025-06-01' ); // bool
 KKPAY_Calendar_Service::get_available_slot_keys( '2025-06-01' ); // string[]
 ```
 
-**受付判定のルール（変更時はここを修正）：**
-- 対象日が「本日〜`KKPAY_ACCEPT_DAYS_BEFORE` 日後」の範囲内
-- かつ「対象日の `KKPAY_ACCEPT_DAYS_BEFORE` 日前の `KKPAY_ACCEPT_HOUR_JST` 時以降」
+**受付判定は 2 モードあり、`kkpay_accepted_dates` テーブルの有無で自動的に切り替わります。**
 
-例：5/10 の予約 → 5/7（3 日前）の 13:00 JST から受付開始
+#### 通常モード（`kkpay_accepted_dates` にレコードなし）
+
+時刻ベースの受付判定を行います。
+
+- 対象日が「本日〜`KKPAY_ACCEPT_DAYS_BEFORE` 日後」の範囲内
+- かつ「対象日の `KKPAY_ACCEPT_DAYS_BEFORE` 日前の **`KKPAY_ACCEPT_HOUR_JST` 時** 以降」
+
+例：5/10 の予約 → 5/7（3 日前）の **13:00 JST** から受付開始
+
+`KKPAY_ACCEPT_HOUR_JST` は**通常モード専用**の定数です。プレミアムモードでは参照されません。
+
+#### プレミアムモード（`kkpay_accepted_dates` にレコードあり）
+
+管理者が登録した日程・スロットのみ受付します。
+
+- `enabled = 1` のレコードがある日程だけ `is_accepting_reservations()` が `true` を返す
+- 受付開始は**対象日の 3 日前 0:00 JST**（時刻ベースのルールは適用されない）
+- `get_available_slot_keys()` は `enabled = 1` のスロットのみを返す
+
+例：5/10 の予約が `accepted_dates` に登録済み → 5/7 **0:00 JST** から受付開始
 
 ---
 
@@ -160,26 +177,26 @@ KKPAY_Payment_Service::handle_charge_refunded( $charge );
 
 ```php
 $result = KKPAY_Cancellation_Service::cancel( $reservation, $lang );
-// 成功: ['refund_status'=>'full', 'refund_amount'=>3000, 'message'=>'...']
+// 成功: ['refund_status'=>'none', 'refund_amount'=>0, 'message'=>'...']
 // 失敗: WP_Error
 ```
 
-**返金ポリシーの判定（変更時はここを修正）：**
+**キャンセルポリシー：**
 
 ```
-cutoff = 予約日 00:00 の 24 時間前
-現在時刻 < cutoff → 全額返金あり
-現在時刻 >= cutoff → 返金なし
+キャンセルしても返金なし
+Stripe /v1/refunds は呼び出さない
+refund_status = 'none'
+refund_amount = 0
+stripe_refund_id = null
 ```
 
 **キャンセル処理の順序：**
 
 ```
-1. 返金判定（返金あり / なし）
-2. 返金あり → Stripe API で返金を実行
-3. cancellations テーブルに履歴を INSERT
-4. reservations の cancelled_at を UPDATE、payment_status を更新
-5. キャンセル確認メールを送信
+1. cancellations テーブルに refund_status='none' / refund_amount=0 の履歴を INSERT
+2. reservations の cancelled_at を UPDATE（payment_status はキャンセル前の値を維持）
+3. キャンセル確認メールを送信
 ```
 
 ---
@@ -193,7 +210,6 @@ cutoff = 予約日 00:00 の 24 時間前
 KKPAY_Email_Service::send_booking_confirmation( $reservation );
 
 // キャンセル確認メール
-KKPAY_Email_Service::send_cancellation_confirmation( $reservation, 'full', 3000 );
 KKPAY_Email_Service::send_cancellation_confirmation( $reservation, 'none', 0 );
 ```
 

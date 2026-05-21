@@ -39,6 +39,7 @@ class KKPAY_Payment_Controller {
             'number_of_people'  => $number_of_people,
             'unit_amount'       => KKPAY_AMOUNT,
             'amount'            => $amount,
+            'currency'          => KKPAY_CURRENCY,
         ) );
     }
 

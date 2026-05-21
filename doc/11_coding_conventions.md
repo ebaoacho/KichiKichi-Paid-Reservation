@@ -82,7 +82,7 @@ $data = [ 'key' => 'value' ];
 | 対象 | パターン | 例 |
 |------|---------|---|
 | public メソッド | `snake_case` | `create_payment_intent()` |
-| private メソッド | `snake_case` | `process_stripe_refund()` |
+| private メソッド | `snake_case` | `build_cancellation_payload()` |
 | ローカル変数 | `snake_case` | `$hold_token`, `$filter_date` |
 | 引数 | `snake_case` | `$reservation_id`, `$lang` |
 
@@ -277,7 +277,7 @@ WordPress 外から直接ファイルを実行されることを防ぎます。
 
 例:
   feat: クーポンコード機能を追加
-  fix: キャンセル時の返金判定が正しく動作しない不具合を修正
+  fix: キャンセル時の履歴記録が正しく動作しない不具合を修正
   refactor: AdminController を分離して Admin クラスを UI のみにする
   docs: Stripe 連携の仕様ドキュメントを追加
   chore: KKPAY_VERSION を 1.0.2 に更新

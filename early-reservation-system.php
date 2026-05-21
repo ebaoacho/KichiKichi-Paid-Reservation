@@ -2,7 +2,7 @@
 /**
  * Plugin Name: キチキチ 決済予約システム
  * Description: 営業カレンダー参照・Stripe決済対応の早期予約プラグイン
- * Version:     1.0.1
+ * Version:     1.0.5
  * Author:      Kaito HINO
  */
 
@@ -13,10 +13,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 // ----------------------------------------------------------------
 // 定数
 // ----------------------------------------------------------------
-define( 'KKPAY_VERSION',            '1.0.1' );
+define( 'KKPAY_VERSION',            '1.0.5' );
 define( 'KKPAY_PLUGIN_DIR',         plugin_dir_path( __FILE__ ) );
 define( 'KKPAY_PLUGIN_URL',         plugin_dir_url( __FILE__ ) );
-define( 'KKPAY_AMOUNT',             3000 );
+define( 'KKPAY_AMOUNT',             13 );
+define( 'KKPAY_CURRENCY',           'usd' );
+define( 'KKPAY_STRIPE_AMOUNT_MULTIPLIER', 100 );
 define( 'KKPAY_MAX_CAPACITY',       8 );
 define( 'KKPAY_MAX_PEOPLE',         4 );
 define( 'KKPAY_HOLD_MINUTES',       5 );
@@ -75,118 +77,10 @@ define( 'KKPAY_SLOT_LABELS', array(
     ),
 ) );
 
-define( 'KKPAY_MESSAGES', array(
-    'closed' => array(
-        'en'    => 'This day is closed. Please choose another date.',
-        'ja'    => 'この日は定休日です。別の日付を選択してください。',
-        'ko'    => '이 날은 휴무일입니다. 다른 날짜를 선택해주세요.',
-        'zh-CN' => '此日为休息日，请选择其他日期。',
-        'zh-TW' => '此日為休息日，請選擇其他日期。',
-    ),
-    'not_yet_open' => array(
-        'en'    => 'Reservations for this date are not yet open.',
-        'ja'    => 'この日付の予約受付はまだ始まっていません。',
-        'ko'    => '이 날짜의 예약 접수는 아직 시작되지 않았습니다.',
-        'zh-CN' => '该日期的预约尚未开放。',
-        'zh-TW' => '該日期的預約尚未開放。',
-    ),
-    'date_unavailable' => array(
-        'en'    => 'This date is unavailable for reservations.',
-        'ja'    => 'この日付は予約できません。',
-        'ko'    => '이 날짜는 예약할 수 없습니다.',
-        'zh-CN' => '该日期无法预约。',
-        'zh-TW' => '該日期無法預約。',
-    ),
-    'capacity_exceeded' => array(
-        'en'    => 'Sorry, this time slot is fully booked.',
-        'ja'    => 'このスロットは満席です。',
-        'ko'    => '이 시간대는 만석입니다.',
-        'zh-CN' => '此时间段已满员。',
-        'zh-TW' => '此時間段已滿員。',
-    ),
-    'hold_expired' => array(
-        'en'    => 'Your reservation session has expired. Please start over.',
-        'ja'    => '仮予約の有効期限が切れました。最初からやり直してください。',
-        'ko'    => '임시 예약 유효기간이 만료되었습니다. 처음부터 다시 시작해주세요.',
-        'zh-CN' => '临时预约已过期，请重新操作。',
-        'zh-TW' => '臨時預約已過期，請重新操作。',
-    ),
-    'invalid_token' => array(
-        'en'    => 'Invalid reservation token.',
-        'ja'    => '無効な予約トークンです。',
-        'ko'    => '잘못된 예약 토큰입니다.',
-        'zh-CN' => '无效的预约令牌。',
-        'zh-TW' => '無效的預約令牌。',
-    ),
-    'invalid_name' => array(
-        'en'    => 'Please enter your name using English letters only.',
-        'ja'    => 'お名前は英字のみで入力してください。',
-        'ko'    => '이름은 영문자로만 입력해주세요.',
-        'zh-CN' => '姓名请仅使用英文字母输入。',
-        'zh-TW' => '姓名請僅使用英文字母輸入。',
-    ),
-    'payment_failed' => array(
-        'en'    => 'Payment failed. Please try again.',
-        'ja'    => '決済に失敗しました。もう一度お試しください。',
-        'ko'    => '결제에 실패했습니다. 다시 시도해주세요.',
-        'zh-CN' => '支付失败，请重试。',
-        'zh-TW' => '支付失敗，請重試。',
-    ),
-    'reservation_not_found' => array(
-        'en'    => 'No reservation found for this email address.',
-        'ja'    => 'このメールアドレスの予約が見つかりません。',
-        'ko'    => '이 이메일 주소의 예약을 찾을 수 없습니다.',
-        'zh-CN' => '未找到此邮箱地址的预约。',
-        'zh-TW' => '未找到此電子郵件地址的預約。',
-    ),
-    'already_cancelled' => array(
-        'en'    => 'This reservation has already been cancelled.',
-        'ja'    => 'この予約は既にキャンセル済みです。',
-        'ko'    => '이미 취소된 예약입니다.',
-        'zh-CN' => '该预约已取消。',
-        'zh-TW' => '該預約已取消。',
-    ),
-    'cancel_success_no_refund' => array(
-        'en'    => 'Your reservation has been cancelled. No refund will be issued.',
-        'ja'    => '予約をキャンセルしました。返金はございません。',
-        'ko'    => '예약이 취소되었습니다. 환불은 일절 불가합니다.',
-        'zh-CN' => '预约已取消。概不退款。',
-        'zh-TW' => '預約已取消。概不退款。',
-    ),
-    'max_people_exceeded' => array(
-        'en'    => 'Maximum 4 people per reservation.',
-        'ja'    => '1予約あたり最大4名までです。',
-        'ko'    => '1예약당 최대 4명까지 가능합니다.',
-        'zh-CN' => '每次预约最多4人。',
-        'zh-TW' => '每次預約最多4人。',
-    ),
-    'duplicate_reservation' => array(
-        'en'    => 'A reservation already exists for this email, date, and time slot.',
-        'ja'    => 'このメール・日付・スロットの予約は既に存在します。',
-        'ko'    => '이 이메일, 날짜, 시간대의 예약이 이미 존재합니다.',
-        'zh-CN' => '该邮箱、日期和时间段的预约已存在。',
-        'zh-TW' => '該電子郵件、日期和時間段的預約已存在。',
-    ),
-    'server_error' => array(
-        'en'    => 'A server error occurred. Please try again later.',
-        'ja'    => 'サーバーエラーが発生しました。後でもう一度お試しください。',
-        'ko'    => '서버 오류가 발생했습니다. 나중에 다시 시도해주세요.',
-        'zh-CN' => '发生服务器错误，请稍后重试。',
-        'zh-TW' => '發生伺服器錯誤，請稍後重試。',
-    ),
-) );
-
-/**
- * 指定言語のメッセージを返す（fallback: en）
- */
-function kkpay_msg( $key, $lang = 'en' ) {
-    $msgs = KKPAY_MESSAGES;
-    $lang = in_array( $lang, array( 'en', 'ja', 'ko', 'zh-CN', 'zh-TW' ), true ) ? $lang : 'en';
-    if ( isset( $msgs[ $key ][ $lang ] ) ) {
-        return $msgs[ $key ][ $lang ];
-    }
-    return $msgs[ $key ]['en'] ?? '';
-}
+// ----------------------------------------------------------------
+// メッセージ定数・ユーティリティ
+// ----------------------------------------------------------------
+require_once KKPAY_PLUGIN_DIR . 'includes/kkpay-messages.php';
 
 // ----------------------------------------------------------------
 // クラスのロード（依存順）
@@ -208,6 +102,7 @@ require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-calendar-repo
 require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-hold-repository.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-reservation-repository.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-cancellation-repository.php';
+require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-accepted-dates-repository.php';
 
 // Services（ビジネスロジック層）
 require_once KKPAY_PLUGIN_DIR . 'includes/Services/class-kkpay-calendar-service.php';
@@ -240,6 +135,7 @@ require_once KKPAY_PLUGIN_DIR . 'includes/class-kkpay-cron.php';
 // ----------------------------------------------------------------
 register_activation_hook( __FILE__, array( 'KKPAY_Activator', 'activate' ) );
 register_deactivation_hook( __FILE__, array( 'KKPAY_Activator', 'deactivate' ) );
+add_action( 'plugins_loaded', array( 'KKPAY_Activator', 'maybe_upgrade' ) );
 
 // Shortcodes
 add_action( 'init', function () {
@@ -263,6 +159,7 @@ function kkpay_render_payment_page() {
 }
 
 function kkpay_render_my_reservation() {
+    kkpay_enqueue_mypage_assets();
     ob_start();
     include KKPAY_PLUGIN_DIR . 'templates/my-reservation.php';
     return ob_get_clean();
@@ -291,16 +188,21 @@ function kkpay_enqueue_form_assets( $has_payment = false ) {
 
     wp_enqueue_style( 'kkpay-form', KKPAY_PLUGIN_URL . 'assets/css/kkpay-form.css', array(), KKPAY_VERSION );
     wp_enqueue_script( 'kkpay-form', KKPAY_PLUGIN_URL . 'assets/js/kkpay-form.js', $script_dependencies, KKPAY_VERSION, true );
+
     wp_localize_script( 'kkpay-form', 'kkpay', array(
         'ajax_url'           => admin_url( 'admin-ajax.php' ),
         'stripe_pk'          => KKPAY_Stripe_Config::publishable_key(),
         'nonce'              => wp_create_nonce( 'kkpay_nonce' ),
         'amount'             => KKPAY_AMOUNT,
+        'currency'           => KKPAY_CURRENCY,
+        'date_picker_days'   => KKPAY_ACCEPT_DAYS_BEFORE,
         'time_slots'         => KKPAY_SLOT_LABELS,
         'slot_types'         => KKPAY_SLOT_TYPES,
         'hold_minutes'       => KKPAY_HOLD_MINUTES,
         'accept_days_before' => KKPAY_ACCEPT_DAYS_BEFORE,
         'accept_hour_jst'    => KKPAY_ACCEPT_HOUR_JST,
+        'accepted_dates_mode' => KKPAY_Accepted_Dates_Repository::has_any_records(),
+        'accepted_dates'      => KKPAY_Accepted_Dates_Repository::get_enabled_dates_map(),
         'payment_page_url'   => kkpay_find_shortcode_page_url( 'kkpay_payment_page' ),
         'messages'           => KKPAY_MESSAGES,
     ) );
@@ -324,16 +226,20 @@ function kkpay_enqueue_assets() {
     }
 
     if ( $has_mypage ) {
-        wp_enqueue_style( 'kkpay-form',   KKPAY_PLUGIN_URL . 'assets/css/kkpay-form.css',   array(), KKPAY_VERSION );
-        wp_enqueue_style( 'kkpay-mypage', KKPAY_PLUGIN_URL . 'assets/css/kkpay-mypage.css', array( 'kkpay-form' ), KKPAY_VERSION );
-        wp_enqueue_script( 'kkpay-mypage', KKPAY_PLUGIN_URL . 'assets/js/kkpay-mypage.js', array( 'jquery' ), KKPAY_VERSION, true );
-        wp_localize_script( 'kkpay-mypage', 'kkpay_mypage', array(
-            'ajax_url'   => admin_url( 'admin-ajax.php' ),
-            'nonce'      => wp_create_nonce( 'kkpay_nonce' ),
-            'time_slots' => KKPAY_SLOT_LABELS,
-            'messages'   => KKPAY_MESSAGES,
-        ) );
+        kkpay_enqueue_mypage_assets();
     }
+}
+
+function kkpay_enqueue_mypage_assets() {
+    wp_enqueue_style( 'kkpay-form',   KKPAY_PLUGIN_URL . 'assets/css/kkpay-form.css',   array(), KKPAY_VERSION );
+    wp_enqueue_style( 'kkpay-mypage', KKPAY_PLUGIN_URL . 'assets/css/kkpay-mypage.css', array( 'kkpay-form' ), KKPAY_VERSION );
+    wp_enqueue_script( 'kkpay-mypage', KKPAY_PLUGIN_URL . 'assets/js/kkpay-mypage.js', array( 'jquery' ), KKPAY_VERSION, true );
+    wp_localize_script( 'kkpay-mypage', 'kkpay_mypage', array(
+        'ajax_url'   => admin_url( 'admin-ajax.php' ),
+        'nonce'      => wp_create_nonce( 'kkpay_nonce' ),
+        'time_slots' => KKPAY_SLOT_LABELS,
+        'messages'   => KKPAY_MESSAGES,
+    ) );
 }
 
 // AJAX ハンドラ登録（公開エンドポイント）
@@ -352,8 +258,9 @@ foreach ( $kkpay_public_actions as $action => $callback ) {
 }
 
 // 管理画面専用 AJAX
-add_action( 'wp_ajax_kkpay_load_admin_list', array( 'KKPAY_Admin_Controller', 'ajax_load_admin_list' ) );
-add_action( 'wp_ajax_kkpay_export_csv',      array( 'KKPAY_Admin_Controller', 'ajax_export_csv' ) );
+add_action( 'wp_ajax_kkpay_load_admin_list',   array( 'KKPAY_Admin_Controller', 'ajax_load_admin_list' ) );
+add_action( 'wp_ajax_kkpay_export_csv',        array( 'KKPAY_Admin_Controller', 'ajax_export_csv' ) );
+add_action( 'wp_ajax_kkpay_save_slot_capacity', array( 'KKPAY_Admin_Controller', 'ajax_save_slot_capacity' ) );
 
 // Stripe Webhook（REST API）
 add_action( 'rest_api_init', function () {
@@ -369,4 +276,5 @@ add_action( 'admin_menu',            array( 'KKPAY_Admin', 'add_menu' ) );
 add_action( 'admin_enqueue_scripts', array( 'KKPAY_Admin', 'enqueue_admin_assets' ) );
 
 // Cron
+add_filter( 'cron_schedules',   array( 'KKPAY_Cron', 'add_schedules' ) );
 add_action( 'kkpay_cleanup_holds', array( 'KKPAY_Cron', 'delete_expired_holds' ) );

@@ -3,45 +3,58 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-/**
- * 予約キャンセルのビジネスロジックを担当する
- * キャンセル履歴の記録・予約ステータス更新はすべてここを通す
- * 返金は一切行わない
- */
 class KKPAY_Cancellation_Service {
 
-    /**
-     * 予約をキャンセルする
-     * 成功時は array( 'refund_status', 'refund_amount', 'message' ) を返す
-     * 失敗時は WP_Error を返す
-     */
     public static function cancel( $reservation, $lang ) {
+        global $wpdb;
+
         $tz  = new DateTimeZone( 'Asia/Tokyo' );
         $now = new DateTimeImmutable( 'now', $tz );
 
-        KKPAY_Cancellation_Repository::insert( array(
+        $refund_status    = 'none';
+        $stripe_refund_id = null;
+        $refund_amount    = 0;
+        $cancelled_at     = $now->format( 'Y-m-d H:i:s' );
+
+        $wpdb->query( 'START TRANSACTION' );
+
+        $log_id = KKPAY_Cancellation_Repository::insert( array(
             'reservation_id'   => (int) $reservation->id,
-            'cancelled_at'     => $now->format( 'Y-m-d H:i:s' ),
-            'refund_status'    => 'none',
-            'stripe_refund_id' => null,
-            'refund_amount'    => 0,
+            'cancelled_at'     => $cancelled_at,
+            'refund_status'    => $refund_status,
+            'stripe_refund_id' => $stripe_refund_id,
+            'refund_amount'    => $refund_amount,
         ) );
 
-        KKPAY_Reservation_Repository::update_cancelled(
+        if ( $log_id === false ) {
+            $wpdb->query( 'ROLLBACK' );
+            error_log( '[KKPAY] Cancellation audit log insert failed for reservation_id=' . (int) $reservation->id );
+            return new WP_Error( 'cancel_failed', kkpay_msg( 'server_error', $lang ) );
+        }
+
+        $updated = KKPAY_Reservation_Repository::update_cancelled(
             $reservation->id,
-            $now->format( 'Y-m-d H:i:s' ),
+            $cancelled_at,
             $reservation->payment_status
         );
 
+        if ( $updated === false ) {
+            $wpdb->query( 'ROLLBACK' );
+            error_log( '[KKPAY] Reservation update_cancelled failed for reservation_id=' . (int) $reservation->id );
+            return new WP_Error( 'cancel_failed', kkpay_msg( 'server_error', $lang ) );
+        }
+
+        $wpdb->query( 'COMMIT' );
+
         KKPAY_Email_Service::send_cancellation_confirmation(
             $reservation,
-            'none',
-            0
+            $refund_status,
+            $refund_amount
         );
 
         return array(
-            'refund_status' => 'none',
-            'refund_amount' => 0,
+            'refund_status' => $refund_status,
+            'refund_amount' => $refund_amount,
             'message'       => kkpay_msg( 'cancel_success_no_refund', $lang ),
         );
     }

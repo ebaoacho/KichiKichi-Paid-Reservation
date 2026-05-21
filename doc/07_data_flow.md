@@ -28,12 +28,19 @@
         │
         ▼
 [KKPAY_Calendar_Service::is_accepting_reservations('2025-06-01')]
+  ├─ プレミアムモード（accepted_dates にレコードあり）:
+  │    KKPAY_Accepted_Dates_Repository::is_date_enabled('2025-06-01')
+  │    → enabled=1 のレコードがなければ false（受付対象外）
+  └─ 通常モード（accepted_dates が空）:
+       対象日が本日〜3日後の範囲内 かつ 3日前13:00 JST 以降なら true
   → false なら 'not_yet_open' エラーを返す
         │
         ▼
 [KKPAY_Calendar_Service::get_available_slot_keys('2025-06-01')]
   → KKPAY_Calendar_Repository::find_by_date('2025-06-01')
   → { lunch:1, dinner:1 }
+  ├─ プレミアムモード: calendar のスロットと accepted_dates の enabled=1 スロットの積集合
+  └─ 通常モード: calendar のスロットをそのまま使用
   → ['slot_1','slot_2','slot_3','slot_4','slot_5','slot_6']
         │
         ▼
@@ -75,7 +82,11 @@
         │
         ▼
 [KKPAY_Calendar_Service::is_accepting_reservations('2025-06-01')]
+  ├─ プレミアムモード: is_date_enabled() で enabled=1 レコードの存在確認
+  └─ 通常モード: 3日前13:00 JST 以降かどうかを時刻比較
 [KKPAY_Calendar_Service::get_available_slot_keys('2025-06-01')]
+  ├─ プレミアムモード: accepted_dates の enabled=1 スロットに絞り込み
+  └─ 通常モード: calendar テーブルのスロットをそのまま使用
   → slot_3 が有効リストに含まれることを確認
         │
         ▼
@@ -235,21 +246,15 @@ Webhook の `find_by_payment_intent` で既存レコードが見つかり、重�
   → KKPAY_Reservation_Repository::find_by_id(reservation_id)
       メール一致・未キャンセル・paid 状態の確認
   → KKPAY_Cancellation_Service::cancel($reservation, $lang)
-      ① 現在時刻 < 予約日 - 24h → do_refund = true
-      ② do_refund の場合:
-         stripe_charge_id がなければ:
-           KKPAY_Stripe_Client::request('GET', '/v1/payment_intents/pi_xxx')
-           → charge_id = latest_charge
-         KKPAY_Stripe_Client::request('POST', '/v1/refunds', { charge:charge_id, amount:3000 })
-         → { id:'re_xxx', amount:3000 }
-      ③ KKPAY_Cancellation_Repository::insert({ reservation_id, refund_status:'full', ... })
-      ④ KKPAY_Reservation_Repository::update_cancelled(id, now, 'refunded')
-      ⑤ KKPAY_Email_Service::send_cancellation_confirmation($reservation, 'full', 3000)
-      ⑥ return { refund_status:'full', refund_amount:3000, message:'...' }
+      ① refund_status = 'none', refund_amount = 0, stripe_refund_id = null
+      ② KKPAY_Cancellation_Repository::insert({ reservation_id, refund_status:'none', refund_amount:0, ... })
+      ③ KKPAY_Reservation_Repository::update_cancelled(id, now, 現在の payment_status)
+      ④ KKPAY_Email_Service::send_cancellation_confirmation($reservation, 'none', 0)
+      ⑤ return { refund_status:'none', refund_amount:0, message:'...' }
         │
         ▼
 [ブラウザ]
-  { message:'予約をキャンセルしました。全額返金処理を行いました。' }
+  { message:'予約をキャンセルしました。返金はありません。' }
 ```
 
 ---

@@ -49,6 +49,7 @@ class KKPAY_Hold_Repository {
 
     public static function delete_expired() {
         global $wpdb;
+        // SQL はすべて固定値（ユーザー入力なし）のため prepare() 不要
         $wpdb->query( 'DELETE FROM ' . self::table() . ' WHERE expires_at < NOW()' );
     }
 

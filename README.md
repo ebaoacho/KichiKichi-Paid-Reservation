@@ -15,7 +15,7 @@ Stripe 決済を組み込んだ予約受付機能を提供する WordPress プ�
 6. [定数・設定値一覧](#定数設定値一覧)
 7. [管理画面の使い方](#管理画面の使い方)
 8. [予約フロー概要](#予約フロー概要)
-9. [キャンセル・返金ポリシー](#キャンセル返金ポリシー)
+9. [キャンセルポリシー](#キャンセルポリシー)
 10. [メール送信設定（Xserver SMTP）](#メール送信設定xserver-smtp)
 11. [トラブルシューティング](#トラブルシューティング)
 
@@ -45,7 +45,7 @@ WordPress 管理画面 → **プラグイン** → 「キチキチ 決済予約�
 |---|---|
 | `{prefix}kkpay_holds` | 仮予約（5 分で自動開放） |
 | `{prefix}kkpay_reservations` | 本予約（決済完了済み） |
-| `{prefix}kkpay_cancellations` | キャンセル・返金履歴 |
+| `{prefix}kkpay_cancellations` | キャンセル履歴 |
 
 > **注意**: 既存プラグインが管理する `{prefix}calendar` テーブルへの書き込みは一切行いません。
 
@@ -70,7 +70,7 @@ Stripe ダッシュボード → **Developers** → **Webhooks** → **Add endpo
 | 項目 | 値 |
 |---|---|
 | Endpoint URL | `https://yoursite.com/wp-json/kkpay/v1/webhook` |
-| Listen to events | `payment_intent.succeeded`, `charge.refunded` |
+| Listen to events | `payment_intent.succeeded`, `charge.refunded`（外部返金同期用） |
 
 > Put the Webhook signing secret (`whsec_...`) in `KKPAY_STRIPE_WEBHOOK_SECRET`.
 
@@ -201,6 +201,7 @@ Deployment settings are loaded from `.env` into environment variables, not saved
 - 日付・スロットでフィルタリング可能
 - **CSV エクスポートボタン** で Excel 対応の CSV（UTF-8 BOM）をダウンロード
 - 決済状態（`paid` / `pending` / `refunded`）とキャンセル有無を表示
+- 通常のキャンセルでは返金せず、`payment_status` はキャンセル前の値を維持
 
 ### 営業カレンダータブ
 
@@ -247,14 +248,11 @@ Deployment settings are loaded from `.env` into environment variables, not saved
 
 ---
 
-## キャンセル・返金ポリシー
-
-| タイミング | 返金 |
-|---|---|
-| 予約日の **24 時間前まで** | **全額返金**（決済済み合計金額） |
-| 予約日の **24 時間前以降** | 返金なし |
+## キャンセルポリシー
 
 キャンセルは `[kkpay_my_reservation]` ページのメールアドレス照会から行います。
+
+キャンセルしても返金は行いません。キャンセル処理では Stripe の返金 API を呼び出さず、`kkpay_cancellations` には `refund_status = 'none'`, `refund_amount = 0`, `stripe_refund_id = NULL` を記録します。
 
 ---
 
@@ -332,7 +330,7 @@ kichikichi-early-reservation-system/
 │   ├── class-kkpay-hold.php         # 仮予約ロジック（トランザクション）
 │   ├── class-kkpay-payment.php      # Stripe 決済・Webhook 処理
 │   ├── class-kkpay-reservation.php  # 本予約 DB 操作・残席計算
-│   ├── class-kkpay-cancel.php       # キャンセル・返金ロジック
+│   ├── class-kkpay-cancel.php       # キャンセルロジック（返金なし）
 │   ├── class-kkpay-mailer.php       # 5 言語メールテンプレート
 │   ├── class-kkpay-cron.php         # wp-cron（ホールド自動開放）
 │   └── class-kkpay-admin.php        # 管理画面（設定・予約リスト・CSV）

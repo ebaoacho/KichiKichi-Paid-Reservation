@@ -26,8 +26,7 @@ class KKPAY_Reservation_Repository {
         return $wpdb->get_row( $wpdb->prepare(
             "SELECT * FROM " . self::table() . "
              WHERE email = %s
-               AND (cancelled_at IS NULL OR payment_status = 'paid')
-             ORDER BY created_at DESC
+             ORDER BY created_at DESC, id DESC
              LIMIT 1",
             $email
         ) );
@@ -61,9 +60,15 @@ class KKPAY_Reservation_Repository {
         $wpdb->update( self::table(), $data, array( 'id' => (int) $id ), null, array( '%d' ) );
     }
 
+    /**
+     * 予約をキャンセル済みに更新する。
+     * 成功時は更新行数（int）、失敗時は false を返す。
+     *
+     * @return int|false
+     */
     public static function update_cancelled( $id, $cancelled_at, $payment_status ) {
         global $wpdb;
-        $wpdb->update(
+        return $wpdb->update(
             self::table(),
             array(
                 'cancelled_at'   => $cancelled_at,
@@ -100,6 +105,41 @@ class KKPAY_Reservation_Repository {
     }
 
     /** 管理画面リスト・CSV エクスポート用の一覧取得 */
+    /** Check duplicate reservation with FOR UPDATE inside an open transaction. */
+    public static function exists_by_email_date_slot_with_lock( $email, $date, $slot ) {
+        global $wpdb;
+        return (bool) $wpdb->get_var( $wpdb->prepare(
+            'SELECT id FROM ' . self::table() . '
+             WHERE email = %s AND reservation_date = %s AND time_slot = %s
+             LIMIT 1
+             FOR UPDATE',
+            $email, $date, $slot
+        ) );
+    }
+
+    /**
+     * 指定日付範囲の確定済み予約人数を [date][slot] => count の形で返す
+     */
+    public static function sum_people_by_date_range( $from, $to ) {
+        global $wpdb;
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            'SELECT reservation_date, time_slot, COALESCE(SUM(number_of_people), 0) AS total
+             FROM ' . self::table() . '
+             WHERE reservation_date BETWEEN %s AND %s
+               AND cancelled_at IS NULL
+               AND payment_status = %s
+             GROUP BY reservation_date, time_slot',
+            $from, $to, 'paid'
+        ) );
+
+        $result = array();
+        foreach ( $rows as $row ) {
+            $result[ $row->reservation_date ][ $row->time_slot ] = (int) $row->total;
+        }
+        return $result;
+    }
+
+    /** Admin list for CSV export. */
     public static function get_list( $filter_date = '', $filter_slot = '' ) {
         global $wpdb;
         $where  = 'WHERE 1=1';

@@ -57,7 +57,7 @@ Key constraints:
 ## Stripe Integration
 
 - **PaymentIntent flow**: frontend calls `kkpay_create_payment_intent` → gets `client_secret` → Stripe.js confirms card → frontend calls `kkpay_confirm_reservation`.
-- **Webhook** (`POST /wp-json/kkpay/v1/webhook`): handles `payment_intent.succeeded` and `charge.refunded`. Signature verified with HMAC-SHA256, ±300s tolerance.
+- **Webhook** (`POST /wp-json/kkpay/v1/webhook`): handles `payment_intent.succeeded` and external `charge.refunded` events. Signature verified with HMAC-SHA256, ±300s tolerance.
 - Deployment settings are read from environment variables through config classes. Never store Stripe secrets or mail sender settings in `wp_options`, and never expose the Stripe secret key to the frontend.
 
 ## Multi-Language
@@ -83,12 +83,23 @@ Five languages: `en`, `ja`, `ko`, `zh-CN`, `zh-TW`. All user-facing strings go t
 | `KKPAY_MAX_PEOPLE` | 4 | Max people per single booking |
 | `KKPAY_HOLD_MINUTES` | 5 | Hold expiration window |
 | `KKPAY_ACCEPT_DAYS_BEFORE` | 3 | Booking window (days ahead) |
-| `KKPAY_ACCEPT_HOUR_JST` | 13 | Hour (JST) when booking opens for a date |
+| `KKPAY_ACCEPT_HOUR_JST` | 13 | **通常モード専用**。対象日の 3 日前・この時刻（JST）から受付開始。`kkpay_accepted_dates` にレコードがある場合（プレミアムモード）は参照されず、受付開始は 3 日前 0:00 JST 固定になる。 |
 
 ## Cancellation Policy
 
-返金は一切なし。キャンセル時は常に `refund_status = 'none'`, `refund_amount = 0` で記録される。Logic lives in `CancellationService` (`includes/Services/class-kkpay-cancellation-service.php`). Cancellations are audited in `kkpay_cancellations` table.
+キャンセルしても返金は行わない。プラグインのキャンセル処理から Stripe `/v1/refunds` は呼ばない。
+
+- `KKPAY_Cancellation_Service::cancel()` は常に `refund_status = 'none'`, `refund_amount = 0`, `stripe_refund_id = null` を記録する。
+- `payment_status` はキャンセル前の値を維持し、キャンセル日時は `cancelled_at` に記録する。
+- フロントエンドの「キャンセルボタン」は `can_cancel` フラグで制御される。
+- `charge.refunded` Webhook は、Stripe ダッシュボード等で外部返金された場合の同期用として扱う。
+- Logic lives in `CancellationService` (`includes/Services/class-kkpay-cancellation-service.php`). Cancellations are audited in `kkpay_cancellations` table.
 
 ## Timezone
 
 Always `Asia/Tokyo` (JST). All `DateTimeImmutable` instances must be constructed with `new DateTimeZone('Asia/Tokyo')`.
+
+
+
+
+
