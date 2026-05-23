@@ -123,6 +123,9 @@
             }
             currentClientSecret = res.data.client_secret;
             currentPaymentIntentId = res.data.payment_intent_id;
+            if ( res.data.locked_people ) {
+                $( '#kkpay-premium-people' ).val( parseInt( res.data.locked_people, 10 ) ).prop( 'disabled', true );
+            }
             if ( res.data.amount ) {
                 $( '#kkpay-premium-total-amount' ).text( 'Total / 合計: USD ' + parseInt( res.data.amount, 10 ) );
                 $( '#kkpay-premium-pay-btn' ).text( 'Pay USD ' + parseInt( res.data.amount, 10 ) + ' / USD ' + parseInt( res.data.amount, 10 ) + ' を決済する' );

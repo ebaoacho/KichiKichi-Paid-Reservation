@@ -71,7 +71,7 @@ class KKPAY_Premium_Reservation_Service {
             if ( is_wp_error( $existing_pi ) ) {
                 return new WP_Error( 'stripe_error', kkpay_msg( 'server_error', $data['lang'] ) );
             }
-            return self::build_payment_intent_response( $existing_pi );
+            return self::build_payment_intent_response( $existing_pi, $premium );
         }
 
         $number_of_people = (int) $data['num'];
@@ -116,13 +116,13 @@ class KKPAY_Premium_Reservation_Service {
             if ( $updated && $updated->stripe_payment_intent_id ) {
                 $existing_pi = KKPAY_Stripe_Client::request( 'GET', '/v1/payment_intents/' . rawurlencode( $updated->stripe_payment_intent_id ) );
                 if ( ! is_wp_error( $existing_pi ) ) {
-                    return self::build_payment_intent_response( $existing_pi );
+                    return self::build_payment_intent_response( $existing_pi, $updated );
                 }
             }
             return new WP_Error( 'payment_intent_race', kkpay_msg( 'server_error', $data['lang'] ) );
         }
 
-        return self::build_payment_intent_response( $pi );
+        return self::build_payment_intent_response( $pi, array( 'number_of_people' => $number_of_people ) );
     }
 
     // ------------------------------------------------------------------
@@ -303,16 +303,13 @@ class KKPAY_Premium_Reservation_Service {
             return new WP_Error( 'not_scheduled', kkpay_msg( 'server_error', $premium->language ?? 'en' ) );
         }
 
-        $refund_id  = null;
-        $did_refund = false;
-
         $is_refundable = self::is_refundable( $premium->reservation_date, $now );
 
         // 通常予約テーブルのキャンセル
         $updated = KKPAY_Reservation_Repository::update_cancelled(
             (int) $premium->reservation_id,
             $now_str,
-            $is_refundable ? 'refunded' : 'paid'
+            'paid'
         );
         if ( $updated === false ) {
             $wpdb->query( 'ROLLBACK' );
@@ -327,28 +324,37 @@ class KKPAY_Premium_Reservation_Service {
         }
 
         // 返金対象判定: 予約日の3日前まで
+        $wpdb->query( 'COMMIT' );
+
+        $refund_id      = null;
+        $did_refund     = false;
+        $refund_pending = false;
+
         if ( $is_refundable ) {
             $refund = KKPAY_Stripe_Client::request( 'POST', '/v1/refunds', array(
                 'payment_intent' => $premium->stripe_payment_intent_id,
+            ), array(
+                'Idempotency-Key' => 'kkpay-premium-cancel-' . (int) $premium->id,
             ) );
 
             if ( is_wp_error( $refund ) ) {
-                $wpdb->query( 'ROLLBACK' );
-                return new WP_Error( 'refund_failed', kkpay_msg( 'server_error', $premium->language ?? 'en' ) );
+                $refund_pending = true;
+                error_log( '[KKPAY] Premium refund request failed after cancellation. premium_id=' . (int) $premium->id . ' message=' . $refund->get_error_message() );
+            } else {
+                $refund_id  = $refund['id'] ?? null;
+                $did_refund = true;
+                KKPAY_Premium_Reservation_Repository::update_refunded( (int) $premium->id, $refund_id, $now_str );
+                KKPAY_Reservation_Repository::update_payment_status( (int) $premium->reservation_id, 'refunded', null );
             }
-            $refund_id  = $refund['id'] ?? null;
-            $did_refund = true;
-            KKPAY_Premium_Reservation_Repository::update_refunded( (int) $premium->id, $refund_id, $now_str );
         }
 
-        $wpdb->query( 'COMMIT' );
-
         $updated = KKPAY_Premium_Reservation_Repository::find_by_id( (int) $premium->id );
-        KKPAY_Email_Service::send_premium_cancellation_confirmation( $updated, $did_refund );
+        KKPAY_Email_Service::send_premium_cancellation_confirmation( $updated, $did_refund, $refund_pending );
 
         return array(
-            'refunded' => $did_refund,
-            'amount'   => (int) $premium->amount,
+            'refunded'       => $did_refund,
+            'refund_pending' => $refund_pending,
+            'amount'         => (int) $premium->amount,
         );
     }
 
@@ -450,14 +456,27 @@ class KKPAY_Premium_Reservation_Service {
         return true;
     }
 
-    private static function build_payment_intent_response( array $pi ) {
+    private static function build_payment_intent_response( array $pi, $source = null ) {
         $stripe_amount = isset( $pi['amount'] ) ? (int) $pi['amount'] : KKPAY_PREMIUM_AMOUNT * KKPAY_STRIPE_AMOUNT_MULTIPLIER;
         $amount        = (int) round( $stripe_amount / KKPAY_STRIPE_AMOUNT_MULTIPLIER );
+        $metadata      = $pi['metadata'] ?? array();
+        $locked_people = 0;
+        if ( is_object( $source ) && isset( $source->number_of_people ) ) {
+            $locked_people = (int) $source->number_of_people;
+        } elseif ( is_array( $source ) && isset( $source['number_of_people'] ) ) {
+            $locked_people = (int) $source['number_of_people'];
+        } elseif ( isset( $metadata['number_of_people'] ) ) {
+            $locked_people = (int) $metadata['number_of_people'];
+        }
+        if ( $locked_people < 1 ) {
+            $locked_people = max( 1, (int) round( $amount / KKPAY_PREMIUM_AMOUNT ) );
+        }
         return array(
             'client_secret'     => $pi['client_secret'],
             'payment_intent_id' => $pi['id'],
             'amount'            => $amount,
             'unit_amount'       => KKPAY_PREMIUM_AMOUNT,
+            'locked_people'     => $locked_people,
             'currency'          => KKPAY_PREMIUM_CURRENCY,
         );
     }

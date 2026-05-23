@@ -25,12 +25,16 @@
             } )
             .done( function ( res ) {
                 if ( res.success ) {
-                    var amount = parseInt( res.data.amount, 10 ) || 32;
-                    $( '#kkpay-premium-cancel-result-msg' ).text(
-                        res.data.refunded
-                            ? 'A refund of USD ' + amount + ' has been processed. / USD ' + amount + ' の返金処理が完了しました。'
-                            : 'Your reservation has been cancelled. No refund will be issued. / ご予約をキャンセルしました。返金はございません。'
-                    );
+                    var amount = parseInt( res.data.amount, 10 );
+                    var message = 'Your reservation has been cancelled. No refund will be issued. / ご予約をキャンセルしました。返金はございません。';
+
+                    if ( res.data.refund_pending ) {
+                        message = 'Your reservation has been cancelled. The refund is being checked. / ご予約をキャンセルしました。返金状況を確認しています。';
+                    } else if ( res.data.refunded ) {
+                        message = 'A refund of USD ' + amount + ' has been processed. / USD ' + amount + ' の返金処理が完了しました。';
+                    }
+
+                    $( '#kkpay-premium-cancel-result-msg' ).text( message );
                     $( '#kkpay-premium-cancel-section' ).hide();
                     $( '#kkpay-premium-cancel-success-section' ).show();
                 } else {

@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class KKPAY_Stripe_Client {
 
-    public static function request( $method, $path, $body = array() ) {
+    public static function request( $method, $path, $body = array(), $headers = array() ) {
         $sk = KKPAY_Stripe_Config::secret_key();
         if ( ! $sk ) {
             return new WP_Error( 'no_key', 'Stripe secret key not configured' );
@@ -25,6 +25,9 @@ class KKPAY_Stripe_Client {
             ),
             'timeout' => 30,
         );
+        if ( ! empty( $headers ) ) {
+            $args['headers'] = array_merge( $args['headers'], $headers );
+        }
 
         if ( $method === 'POST' && ! empty( $body ) ) {
             $args['body'] = $body;

@@ -308,7 +308,7 @@ class KKPAY_Email_Service {
     /**
      * キャンセル完了メール（To: お客様、CC: マスター）
      */
-    public static function send_premium_cancellation_confirmation( $premium, $did_refund ) {
+    public static function send_premium_cancellation_confirmation( $premium, $did_refund, $refund_pending = false ) {
         if ( ! $premium || ! $premium->email ) {
             return;
         }
@@ -325,7 +325,15 @@ class KKPAY_Email_Service {
             'zh-TW' => '【KichiKichi】特別高級預約取消完成',
         );
 
-        if ( $did_refund ) {
+        if ( $refund_pending ) {
+            $refund_note = array(
+                'en'    => "The cancellation is complete. We are checking the refund status and will follow up if needed.",
+                'ja'    => "キャンセルは完了しました。返金状況を確認しており、必要に応じて改めてご連絡します。",
+                'ko'    => "취소는 완료되었습니다. 환불 상태를 확인 중이며 필요한 경우 다시 안내드리겠습니다.",
+                'zh-CN' => "取消已完成。我们正在确认退款状态，如有需要会再次联系您。",
+                'zh-TW' => "取消已完成。我們正在確認退款狀態，如有需要會再次聯絡您。",
+            );
+        } elseif ( $did_refund ) {
             $refund_note = array(
                 'en'    => "A full refund of USD {$amount} has been processed via Stripe.",
                 'ja'    => "USD {$amount} の全額返金を Stripe 経由で処理しました。",
@@ -387,11 +395,14 @@ class KKPAY_Email_Service {
     private static function send_with_cc( $to, $subject, $message ) {
         $from_name  = KKPAY_Email_Config::from_name();
         $from_email = KKPAY_Email_Config::from_email();
+        $master_email = KKPAY_Email_Config::master_email();
 
         $headers = array( 'Content-Type: text/plain; charset=UTF-8' );
         if ( $from_email !== '' ) {
             $headers[] = "From: {$from_name} <{$from_email}>";
-            $headers[] = "Cc: {$from_name} <{$from_email}>";
+        }
+        if ( $master_email !== '' ) {
+            $headers[] = "Cc: {$from_name} <{$master_email}>";
         }
 
         wp_mail( $to, $subject, $message, $headers );

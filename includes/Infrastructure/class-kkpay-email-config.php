@@ -20,6 +20,11 @@ class KKPAY_Email_Config {
         return self::credential( 'KKPAY_FROM_EMAIL' );
     }
 
+    public static function master_email() {
+        $value = self::credential( 'KKPAY_MASTER_EMAIL' );
+        return $value !== '' ? $value : self::from_email();
+    }
+
     public static function has_from_name() {
         return self::credential( 'KKPAY_FROM_NAME' ) !== '';
     }

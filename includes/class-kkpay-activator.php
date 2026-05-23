@@ -23,10 +23,32 @@ class KKPAY_Activator {
     }
 
     public static function maybe_upgrade() {
-        if ( get_option( 'kkpay_db_version' ) !== KKPAY_VERSION ) {
+        if ( get_option( 'kkpay_db_version' ) !== KKPAY_VERSION || self::schema_is_missing() ) {
             self::create_tables();
+            self::schedule_cron();
             update_option( 'kkpay_db_version', KKPAY_VERSION );
         }
+    }
+
+    private static function schema_is_missing() {
+        global $wpdb;
+
+        $required_tables = array(
+            $wpdb->prefix . 'kkpay_holds',
+            $wpdb->prefix . 'kkpay_reservations',
+            $wpdb->prefix . 'kkpay_cancellations',
+            $wpdb->prefix . 'kkpay_accepted_dates',
+            $wpdb->prefix . 'kkpay_premium_reservations',
+        );
+
+        foreach ( $required_tables as $table ) {
+            $exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) );
+            if ( $exists !== $table ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static function create_tables() {
