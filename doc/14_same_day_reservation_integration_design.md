@@ -130,6 +130,15 @@ KEY email_hash (email_hash),
 KEY payment_intent (stripe_payment_intent_id(191))
 ```
 
+既存の `kkpay_reservations` には `UNIQUE KEY email_date_slot (email, reservation_date, time_slot)` が存在する。
+当日予約統合後も、同じメールアドレスが同じ日・同じ時間枠に複数予約することは許可しない方針とするため、このUNIQUE制約は原則維持する。
+
+ただし、`seating_preference` を含めた別制約に変更したい場合、`dbDelta()` だけでは既存UNIQUE KEYの削除・再作成を安全に扱えない。
+そのため、PR 1では次のどちらかを明示的に選ぶ。
+
+- 推奨: `email_date_slot` を維持し、同一メール・同一日・同一枠では `Table` と `Bar` の二重予約も禁止する。
+- 代替: `UNIQUE KEY email_date_slot_seat (email, reservation_date, time_slot, seating_preference)` に変更する。この場合は `ALTER TABLE DROP INDEX` と `ADD UNIQUE KEY` の明示的なマイグレーションを用意する。
+
 ### `kkpay_slot_capacities`
 
 当日予約とプレミアム予約の空席判定で共通利用する席数設定テーブル。  
@@ -166,10 +175,51 @@ UNIQUE KEY date_slot_seat (capacity_date, time_slot, seating_preference)
 | `event_type` | VARCHAR(50) | `created`, `scheduled`, `changed`, `cancelled`, `refunded`, `no_show`, `masked` など |
 | `actor_type` | VARCHAR(20) | `customer`, `admin`, `system`, `stripe` |
 | `actor_id` | BIGINT UNSIGNED NULL | 管理者ユーザーIDなど |
-| `event_payload` | JSON または LONGTEXT | 操作内容 |
+| `event_payload` | LONGTEXT | JSON文字列として保存する操作内容 |
 | `ip_hash` | CHAR(64) NULL | IPハッシュ |
 | `user_agent_hash` | CHAR(64) NULL | User-Agentハッシュ |
 | `created_at` | DATETIME | 作成日時 |
+
+`event_payload` は MySQL / MariaDB の環境差を避けるため、JSON型ではなく `LONGTEXT` に固定する。
+保存時は `wp_json_encode()`、読み取り時は `json_decode()` を使い、アプリケーション側で配列として扱う。
+
+### 既存 `kkpay_accepted_dates` の扱い
+
+既存の有料予約プラグインには、営業日・時間枠ごとの受付可否と席数を扱う `kkpay_accepted_dates` が存在する。
+統合後は `Table` / `Bar` を分けて残席を管理する必要があるため、席数管理の正本は新設する `kkpay_slot_capacities` に移す。
+
+PR 1では次の方針で移行する。
+
+- `kkpay_slot_capacities` を新規作成する。
+- 既存の `kkpay_accepted_dates` の営業枠・席数は `seating_preference = 'Bar'` として `kkpay_slot_capacities` に移行する。
+- `Table` の初期席数は `0` とし、管理者が明示的に設定するまで当日予約のTable受付は開始しない。
+- プレミアム予約とスペシャルプレミアム予約は、移行後も強制的に `Bar` として扱う。
+- `kkpay_accepted_dates` は互換性確認のため当面は残すが、新規実装の書き込み先にはしない。
+- 既存の「プレミアムモード判定」は、`kkpay_slot_capacities.enabled` と営業枠の有無に置き換える。
+
+`kkpay_accepted_dates` の削除はこの統合PR群には含めない。
+削除する場合は、運用切替後に別PRで影響確認とデータ退避を行う。
+
+### 既存 `kkpay_cancellations` の扱い
+
+現行の有料予約キャンセル処理では、返金情報を含む監査データを `kkpay_cancellations` に保存している。
+統合後も既存の返金履歴を壊さないため、`kkpay_cancellations` は継続利用する。
+
+役割は次のように分ける。
+
+- `kkpay_cancellations`: 既存の有料予約・プレミアム予約のキャンセル返金履歴を保持する。
+- `kkpay_reservation_events`: 全予約タイプ共通の操作履歴を保持する。
+- 当日予約のキャンセルは返金を伴わないため、`kkpay_cancellations` には書かず、`kkpay_reservation_events` に `cancelled` イベントを記録する。
+
+将来的に `kkpay_cancellations` を `kkpay_reservation_events` に統合する場合は、`refund_status`、`refund_amount`、`stripe_refund_id` の移行設計を別PRで扱う。
+
+### 既存レコードの `seating_preference` バックフィル
+
+`kkpay_reservations` に `seating_preference` を追加した直後、既存レコードは `NULL` になりうる。
+プレミアム予約とスペシャルプレミアム予約はどちらも `Bar` 固定のため、PR 1のマイグレーションで既存の `kkpay_reservations.seating_preference IS NULL` の行を `Bar` に更新する。
+
+アプリケーション側で `NULL` を暗黙に `Bar` と解釈し続ける設計にはしない。
+移行後の新規作成・日時変更・当日予約作成では、必ず `seating_preference` を明示して保存する。
 
 ## バッティング防止設計
 
@@ -462,12 +512,23 @@ flowchart TD
 - `kkpay_slot_capacities` を追加する。
 - `kkpay_reservation_events` を追加する。
 - 既存インストールでも `dbDelta()` が走るようにする。
+- `event_payload` は `LONGTEXT` として作成し、JSON文字列を保存する。
+- 既存の `kkpay_accepted_dates` から `kkpay_slot_capacities` へ営業枠・席数を移行する。
+  - 既存値は `seating_preference = 'Bar'` として移行する。
+  - `Table` は初期値 `0` とし、管理画面で明示設定されるまで受付対象にしない。
+- 既存の `kkpay_reservations.seating_preference IS NULL` の行を `Bar` にバックフィルする。
+- 既存の `UNIQUE KEY email_date_slot (email, reservation_date, time_slot)` は維持する。
+  - 同一メール・同一日・同一時間枠では、`Table` と `Bar` の二重予約も禁止する。
+  - 将来この制約を変える場合は、`dbDelta()` ではなく明示的な `ALTER TABLE DROP INDEX` / `ADD UNIQUE KEY` を別途用意する。
+- `kkpay_cancellations` は既存の返金履歴用に残し、今回追加する `kkpay_reservation_events` は共通操作ログとして追加する。
 
 含めないもの:
 
 - 当日予約フォーム
 - 管理画面UI
 - プレミアム予約の挙動変更
+- `kkpay_accepted_dates` の削除
+- `kkpay_cancellations` の統合・廃止
 
 レビュー観点:
 
@@ -475,12 +536,21 @@ flowchart TD
 - `dbDelta()` で既存環境に安全に適用できるか
 - インデックスが残席計算・検索に足りているか
 - 予約データを物理削除しない前提になっているか
+- `kkpay_accepted_dates` から `kkpay_slot_capacities` への移行で、既存のBar席数が失われないか
+- `email_date_slot` UNIQUE制約を維持する判断が、業務ルールと一致しているか
+- `kkpay_cancellations` と `kkpay_reservation_events` の役割が重複していないか
+- `seating_preference` のバックフィル後に、NULLのまま残る有効予約がないか
+- `event_payload` が `LONGTEXT` のJSON文字列として一貫して扱われているか
 
 テスト観点:
 
 - 新規インストールでテーブルが作成される
 - 既存インストールで不足カラム・不足テーブルが追加される
 - 既存の通常予約・スペシャルプレミアム予約が壊れない
+- 既存の `kkpay_accepted_dates` のBar席数が `kkpay_slot_capacities` に移行される
+- `Table` 初期席数が意図せず受付可能にならない
+- 既存予約の `seating_preference` が `Bar` にバックフィルされる
+- 同一メール・同一日・同一時間枠の二重予約が引き続きDB制約で防止される
 
 ### PR 2: 共通空席ロックサービス
 

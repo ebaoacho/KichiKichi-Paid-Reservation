@@ -12,7 +12,7 @@
 
 | 対象 | パス |
 | --- | --- |
-| 既存当日予約プラグイン | `C:\xampp\htdocs\kichikichi\wp-content\plugins\kichikichi-reservation-system` （江畑の場合）|
+| 既存当日予約プラグイン | `kichikichi-reservation-system` |
 | メインファイル | `reservation-system.php` |
 | メインクラス | `includes/class-reservation-system.php` |
 | 予約フォーム | `templates/reservation-form.php` |
@@ -66,7 +66,7 @@
 - `{prefix}kichikichi_reservation_start`
 
 スケジュール登録は `strtotime('15:00:00')` を使っている。  
-これは運用上、日本時間0時相当のリセットとして扱われていた。
+これは、サーバー時刻がUTCである前提では日本時間0時相当のリセットとして扱われる。
 
 統合後は、当日予約データをリセットしない。  
 そのため、この日次削除仕様は踏襲しない。
@@ -102,6 +102,9 @@
 - `start_time` がない
 - `start_time` から3時間を超えている
 - 全時間枠が満席
+
+現行の `fully_check()` は、各時間枠について `Table` または `Bar` のどちらかに空きがあれば「まだ満席ではない」と判定する。  
+つまり、受付終了扱いになるのは、全時間枠で `Table` と `Bar` の両方が上限に達している場合である。
 
 3時間判定は `10800` 秒で行われている。
 
