@@ -13,6 +13,11 @@ $csv_url = add_query_arg( array(
     'filter_slot' => $filter_slot,
     'nonce'       => wp_create_nonce( 'kkpay_export' ),
 ), admin_url( 'admin-ajax.php' ) );
+$payment_status_labels = array(
+    'pending'  => '決済待ち',
+    'paid'     => '入金済み',
+    'refunded' => '返金済み',
+);
 ?>
 
 <form method="get" style="margin:20px 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -101,7 +106,7 @@ $csv_url = add_query_arg( array(
                             <td><?php echo esc_html( $row->email ); ?></td>
                             <td><?php echo (int) $row->number_of_people; ?>席</td>
                             <td>$<?php echo esc_html( number_format( (int) $row->amount ) ); ?></td>
-                            <td><?php echo esc_html( $row->payment_status ); ?></td>
+                            <td><?php echo esc_html( $payment_status_labels[ $row->payment_status ] ?? $row->payment_status ); ?></td>
                             <td><?php echo esc_html( $row->language ); ?></td>
                             <td><?php echo esc_html( $row->created_at ); ?></td>
                             <td><?php echo esc_html( $row->cancelled_at ?? '―' ); ?></td>

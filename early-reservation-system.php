@@ -2,7 +2,7 @@
 /**
  * Plugin Name: キチキチ 決済予約システム
  * Description: 営業カレンダー参照・Stripe決済対応の早期予約プラグイン
- * Version:     1.0.5
+ * Version:     1.0.7
  * Author:      Kaito HINO
  */
 
@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // ----------------------------------------------------------------
 // 定数
 // ----------------------------------------------------------------
-define( 'KKPAY_VERSION',            '1.0.5' );
+define( 'KKPAY_VERSION',            '1.0.7' );
 define( 'KKPAY_PLUGIN_DIR',         plugin_dir_path( __FILE__ ) );
 define( 'KKPAY_PLUGIN_URL',         plugin_dir_url( __FILE__ ) );
 define( 'KKPAY_AMOUNT',             13 );
@@ -24,6 +24,10 @@ define( 'KKPAY_MAX_PEOPLE',         4 );
 define( 'KKPAY_HOLD_MINUTES',       5 );
 define( 'KKPAY_ACCEPT_DAYS_BEFORE', 3 );
 define( 'KKPAY_ACCEPT_HOUR_JST',    13 );
+
+define( 'KKPAY_PREMIUM_AMOUNT',   32 );
+define( 'KKPAY_PREMIUM_CURRENCY', 'usd' );
+define( 'KKPAY_PREMIUM_MAX_PEOPLE', 8 );
 
 define( 'KKPAY_SLOT_TYPES', array(
     'slot_1' => 'lunch',
@@ -103,6 +107,7 @@ require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-hold-reposito
 require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-reservation-repository.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-cancellation-repository.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-accepted-dates-repository.php';
+require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-premium-reservation-repository.php';
 
 // Services（ビジネスロジック層）
 require_once KKPAY_PLUGIN_DIR . 'includes/Services/class-kkpay-calendar-service.php';
@@ -111,12 +116,14 @@ require_once KKPAY_PLUGIN_DIR . 'includes/Services/class-kkpay-reservation-servi
 require_once KKPAY_PLUGIN_DIR . 'includes/Services/class-kkpay-payment-service.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Services/class-kkpay-cancellation-service.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Services/class-kkpay-email-service.php';
+require_once KKPAY_PLUGIN_DIR . 'includes/Services/class-kkpay-premium-reservation-service.php';
 
 // Validators（バリデーション層）
 require_once KKPAY_PLUGIN_DIR . 'includes/Validators/class-kkpay-hold-validator.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Validators/class-kkpay-payment-validator.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Validators/class-kkpay-reservation-validator.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Validators/class-kkpay-cancellation-validator.php';
+require_once KKPAY_PLUGIN_DIR . 'includes/Validators/class-kkpay-premium-reservation-validator.php';
 
 // Controllers（リクエスト受付・レスポンス返却層）
 require_once KKPAY_PLUGIN_DIR . 'includes/Controllers/class-kkpay-hold-controller.php';
@@ -124,6 +131,7 @@ require_once KKPAY_PLUGIN_DIR . 'includes/Controllers/class-kkpay-payment-contro
 require_once KKPAY_PLUGIN_DIR . 'includes/Controllers/class-kkpay-reservation-controller.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Controllers/class-kkpay-cancellation-controller.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Controllers/class-kkpay-admin-controller.php';
+require_once KKPAY_PLUGIN_DIR . 'includes/Controllers/class-kkpay-premium-reservation-controller.php';
 
 // Supporting classes
 require_once KKPAY_PLUGIN_DIR . 'includes/class-kkpay-activator.php';
@@ -142,6 +150,8 @@ add_action( 'init', function () {
     add_shortcode( 'kkpay_reservation_form', 'kkpay_render_reservation_form' );
     add_shortcode( 'kkpay_payment_page',     'kkpay_render_payment_page' );
     add_shortcode( 'kkpay_my_reservation',   'kkpay_render_my_reservation' );
+    add_shortcode( 'kkpay_premium_payment',  'kkpay_render_premium_payment' );
+    add_shortcode( 'kkpay_premium_cancel',   'kkpay_render_premium_cancel' );
 } );
 
 function kkpay_render_reservation_form() {
@@ -162,6 +172,20 @@ function kkpay_render_my_reservation() {
     kkpay_enqueue_mypage_assets();
     ob_start();
     include KKPAY_PLUGIN_DIR . 'templates/my-reservation.php';
+    return ob_get_clean();
+}
+
+function kkpay_render_premium_payment() {
+    kkpay_enqueue_premium_payment_assets();
+    ob_start();
+    include KKPAY_PLUGIN_DIR . 'templates/premium-payment.php';
+    return ob_get_clean();
+}
+
+function kkpay_render_premium_cancel() {
+    kkpay_enqueue_premium_cancel_assets();
+    ob_start();
+    include KKPAY_PLUGIN_DIR . 'templates/premium-cancel.php';
     return ob_get_clean();
 }
 
@@ -203,9 +227,38 @@ function kkpay_enqueue_form_assets( $has_payment = false ) {
         'accept_hour_jst'    => KKPAY_ACCEPT_HOUR_JST,
         'accepted_dates_mode' => KKPAY_Accepted_Dates_Repository::has_any_records(),
         'accepted_dates'      => KKPAY_Accepted_Dates_Repository::get_enabled_dates_map(),
+        'bookable_dates'      => kkpay_get_bookable_dates_map(),
         'payment_page_url'   => kkpay_find_shortcode_page_url( 'kkpay_payment_page' ),
         'messages'           => KKPAY_MESSAGES,
     ) );
+}
+
+function kkpay_get_bookable_dates_map() {
+    $tz     = new DateTimeZone( 'Asia/Tokyo' );
+    $today  = new DateTimeImmutable( 'today', $tz );
+    $days   = KKPAY_ACCEPT_DAYS_BEFORE;
+    $result = array();
+
+    for ( $i = 0; $i <= $days; $i++ ) {
+        $date = $today->modify( '+' . $i . ' days' )->format( 'Y-m-d' );
+        if ( ! KKPAY_Calendar_Service::is_accepting_reservations( $date ) ) {
+            continue;
+        }
+
+        $slot_keys = KKPAY_Calendar_Service::get_available_slot_keys( $date );
+        if ( empty( $slot_keys ) ) {
+            continue;
+        }
+
+        foreach ( KKPAY_Reservation_Service::build_slot_list( $date, $slot_keys, 'en' ) as $slot ) {
+            if ( ! empty( $slot['available'] ) ) {
+                $result[ $date ] = true;
+                break;
+            }
+        }
+    }
+
+    return $result;
 }
 
 // フロントエンドアセット
@@ -217,16 +270,23 @@ function kkpay_enqueue_assets() {
     }
     $content = $post->post_content;
 
-    $has_form    = has_shortcode( $content, 'kkpay_reservation_form' );
-    $has_payment = has_shortcode( $content, 'kkpay_payment_page' );
-    $has_mypage  = has_shortcode( $content, 'kkpay_my_reservation' );
+    $has_form            = has_shortcode( $content, 'kkpay_reservation_form' );
+    $has_payment         = has_shortcode( $content, 'kkpay_payment_page' );
+    $has_mypage          = has_shortcode( $content, 'kkpay_my_reservation' );
+    $has_premium_payment = has_shortcode( $content, 'kkpay_premium_payment' );
+    $has_premium_cancel  = has_shortcode( $content, 'kkpay_premium_cancel' );
 
     if ( $has_form || $has_payment ) {
         kkpay_enqueue_form_assets( $has_payment );
     }
-
     if ( $has_mypage ) {
         kkpay_enqueue_mypage_assets();
+    }
+    if ( $has_premium_payment ) {
+        kkpay_enqueue_premium_payment_assets();
+    }
+    if ( $has_premium_cancel ) {
+        kkpay_enqueue_premium_cancel_assets();
     }
 }
 
@@ -242,14 +302,40 @@ function kkpay_enqueue_mypage_assets() {
     ) );
 }
 
+function kkpay_enqueue_premium_payment_assets() {
+    wp_enqueue_style( 'kkpay-form', KKPAY_PLUGIN_URL . 'assets/css/kkpay-form.css', array(), KKPAY_VERSION );
+    wp_enqueue_script( 'stripe-js', 'https://js.stripe.com/v3/', array(), null, true );
+    wp_enqueue_script( 'kkpay-premium', KKPAY_PLUGIN_URL . 'assets/js/kkpay-premium.js', array( 'jquery', 'stripe-js' ), KKPAY_VERSION, true );
+    wp_localize_script( 'kkpay-premium', 'kkpay_premium', array(
+        'ajax_url'   => admin_url( 'admin-ajax.php' ),
+        'nonce'      => wp_create_nonce( 'kkpay_nonce' ),
+        'stripe_pk'  => KKPAY_Stripe_Config::publishable_key(),
+        'unit_amount'=> KKPAY_PREMIUM_AMOUNT,
+        'currency'   => KKPAY_PREMIUM_CURRENCY,
+        'max_people' => KKPAY_PREMIUM_MAX_PEOPLE,
+    ) );
+}
+
+function kkpay_enqueue_premium_cancel_assets() {
+    wp_enqueue_style( 'kkpay-form', KKPAY_PLUGIN_URL . 'assets/css/kkpay-form.css', array(), KKPAY_VERSION );
+    wp_enqueue_script( 'kkpay-premium-cancel', KKPAY_PLUGIN_URL . 'assets/js/kkpay-premium-cancel.js', array( 'jquery' ), KKPAY_VERSION, true );
+    wp_localize_script( 'kkpay-premium-cancel', 'kkpay_premium_cancel', array(
+        'ajax_url' => admin_url( 'admin-ajax.php' ),
+        'nonce'    => wp_create_nonce( 'kkpay_nonce' ),
+    ) );
+}
+
 // AJAX ハンドラ登録（公開エンドポイント）
 $kkpay_public_actions = array(
-    'kkpay_get_available_slots'   => array( 'KKPAY_Reservation_Controller',   'ajax_get_available_slots' ),
-    'kkpay_create_hold'           => array( 'KKPAY_Hold_Controller',           'ajax_create_hold' ),
-    'kkpay_create_payment_intent' => array( 'KKPAY_Payment_Controller',        'ajax_create_payment_intent' ),
-    'kkpay_confirm_reservation'   => array( 'KKPAY_Payment_Controller',        'ajax_confirm_reservation' ),
-    'kkpay_check_reservation'     => array( 'KKPAY_Reservation_Controller',   'ajax_check_reservation' ),
-    'kkpay_cancel_reservation'    => array( 'KKPAY_Cancellation_Controller',   'ajax_cancel_reservation' ),
+    'kkpay_get_available_slots'            => array( 'KKPAY_Reservation_Controller',          'ajax_get_available_slots' ),
+    'kkpay_create_hold'                    => array( 'KKPAY_Hold_Controller',                 'ajax_create_hold' ),
+    'kkpay_create_payment_intent'          => array( 'KKPAY_Payment_Controller',              'ajax_create_payment_intent' ),
+    'kkpay_confirm_reservation'            => array( 'KKPAY_Payment_Controller',              'ajax_confirm_reservation' ),
+    'kkpay_check_reservation'              => array( 'KKPAY_Reservation_Controller',          'ajax_check_reservation' ),
+    'kkpay_cancel_reservation'             => array( 'KKPAY_Cancellation_Controller',         'ajax_cancel_reservation' ),
+    'kkpay_premium_create_payment_intent'  => array( 'KKPAY_Premium_Reservation_Controller', 'ajax_create_payment_intent' ),
+    'kkpay_premium_confirm_payment'        => array( 'KKPAY_Premium_Reservation_Controller', 'ajax_confirm_payment' ),
+    'kkpay_premium_cancel_reservation'     => array( 'KKPAY_Premium_Reservation_Controller', 'ajax_cancel_reservation' ),
 );
 
 foreach ( $kkpay_public_actions as $action => $callback ) {
@@ -258,9 +344,13 @@ foreach ( $kkpay_public_actions as $action => $callback ) {
 }
 
 // 管理画面専用 AJAX
-add_action( 'wp_ajax_kkpay_load_admin_list',   array( 'KKPAY_Admin_Controller', 'ajax_load_admin_list' ) );
-add_action( 'wp_ajax_kkpay_export_csv',        array( 'KKPAY_Admin_Controller', 'ajax_export_csv' ) );
-add_action( 'wp_ajax_kkpay_save_slot_capacity', array( 'KKPAY_Admin_Controller', 'ajax_save_slot_capacity' ) );
+add_action( 'wp_ajax_kkpay_load_admin_list',              array( 'KKPAY_Admin_Controller',             'ajax_load_admin_list' ) );
+add_action( 'wp_ajax_kkpay_export_csv',                   array( 'KKPAY_Admin_Controller',             'ajax_export_csv' ) );
+add_action( 'wp_ajax_kkpay_save_slot_capacity',           array( 'KKPAY_Admin_Controller',             'ajax_save_slot_capacity' ) );
+add_action( 'wp_ajax_kkpay_premium_issue_payment_link',   array( 'KKPAY_Premium_Reservation_Controller', 'ajax_issue_payment_link' ) );
+add_action( 'wp_ajax_kkpay_premium_schedule_reservation', array( 'KKPAY_Premium_Reservation_Controller', 'ajax_schedule_reservation' ) );
+add_action( 'wp_ajax_kkpay_premium_issue_cancel_link',    array( 'KKPAY_Premium_Reservation_Controller', 'ajax_issue_cancel_link' ) );
+add_action( 'wp_ajax_kkpay_premium_export_csv',           array( 'KKPAY_Premium_Reservation_Controller', 'ajax_export_csv' ) );
 
 // Stripe Webhook（REST API）
 add_action( 'rest_api_init', function () {

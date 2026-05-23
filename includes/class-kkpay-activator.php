@@ -100,11 +100,46 @@ class KKPAY_Activator {
             KEY reservation_date (reservation_date)
         ) {$charset_collate};";
 
+        $premium_table = $wpdb->prefix . 'kkpay_premium_reservations';
+        $sql_premium   = "CREATE TABLE {$premium_table} (
+            id                         BIGINT UNSIGNED  NOT NULL AUTO_INCREMENT,
+            payment_token              VARCHAR(64)      NOT NULL,
+            payment_token_expires_at   DATETIME         NOT NULL,
+            payment_token_used_at      DATETIME         NULL DEFAULT NULL,
+            cancel_token               VARCHAR(64)      NULL DEFAULT NULL,
+            cancel_token_used_at       DATETIME         NULL DEFAULT NULL,
+            reservation_id             BIGINT UNSIGNED  NULL DEFAULT NULL,
+            reservation_date           DATE             NULL DEFAULT NULL,
+            time_slot                  VARCHAR(20)      NULL DEFAULT NULL,
+            language                   VARCHAR(10)      NOT NULL DEFAULT 'en',
+            name                       VARCHAR(100)     NULL DEFAULT NULL,
+            email                      VARCHAR(100)     NULL DEFAULT NULL,
+            stripe_payment_intent_id   VARCHAR(100)     NULL DEFAULT NULL,
+            stripe_charge_id           VARCHAR(100)     NULL DEFAULT NULL,
+            stripe_refund_id           VARCHAR(100)     NULL DEFAULT NULL,
+            payment_status             VARCHAR(20)      NOT NULL DEFAULT 'unpaid',
+            status                     VARCHAR(30)      NOT NULL DEFAULT 'link_issued',
+            amount                     INT UNSIGNED     NOT NULL DEFAULT 32,
+            number_of_people           TINYINT UNSIGNED NOT NULL DEFAULT 1,
+            currency                   VARCHAR(3)       NOT NULL DEFAULT 'usd',
+            cancelled_at               DATETIME         NULL DEFAULT NULL,
+            created_at                 DATETIME         NOT NULL,
+            updated_at                 DATETIME         NOT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY payment_token (payment_token),
+            UNIQUE KEY cancel_token (cancel_token),
+            UNIQUE KEY payment_intent (stripe_payment_intent_id),
+            KEY status (status),
+            KEY reservation_id (reservation_id),
+            KEY reservation_date_slot (reservation_date, time_slot)
+        ) {$charset_collate};";
+
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         dbDelta( $sql_holds );
         dbDelta( $sql_reservations );
         dbDelta( $sql_cancellations );
         dbDelta( $sql_accepted_dates );
+        dbDelta( $sql_premium );
     }
 
     private static function schedule_cron() {

@@ -34,6 +34,12 @@ class KKPAY_Admin_Controller {
 
         $out = fopen( 'php://output', 'w' );
         fputcsv( $out, array( '予約ID', '日付', 'スロット', '名前', 'メール', '席数', '金額', '決済ステータス', '言語', '作成日時', 'キャンセル日時' ) );
+        $payment_status_labels = array(
+            'pending'  => '決済待ち',
+            'paid'     => '入金済み',
+            'refunded' => '返金済み',
+            'unpaid'   => '未入金',
+        );
 
         foreach ( $results as $row ) {
             fputcsv( $out, array(
@@ -44,7 +50,7 @@ class KKPAY_Admin_Controller {
                 $row['email'],
                 $row['number_of_people'],
                 $row['amount'],
-                $row['payment_status'],
+                $payment_status_labels[ $row['payment_status'] ] ?? $row['payment_status'],
                 $row['language'],
                 $row['created_at'],
                 $row['cancelled_at'] ?? '',
@@ -75,7 +81,11 @@ class KKPAY_Admin_Controller {
                 continue;
             }
 
-            $valid_slots = KKPAY_Calendar_Service::get_open_slot_keys_for_date( $date );
+            $calendar = KKPAY_Calendar_Repository::find_by_date( $date );
+            $valid_slots = $calendar
+                ? KKPAY_Calendar_Service::get_open_slot_keys_for_date( $date )
+                : array_keys( KKPAY_SLOT_TYPES );
+
             foreach ( $valid_slots as $slot ) {
                 if ( array_key_exists( $slot, $slots ) ) {
                     KKPAY_Accepted_Dates_Repository::upsert_slot( $date, $slot, (int) $slots[ $slot ] );

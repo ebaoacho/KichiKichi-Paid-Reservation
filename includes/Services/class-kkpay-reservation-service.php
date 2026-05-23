@@ -90,6 +90,113 @@ class KKPAY_Reservation_Service {
     }
 
     /**
+     * プレミアム予約から通常予約レコードを作成し、予約 ID を返す
+     * 日時確定時に呼び出す。人数はプレミアム決済時に選択した席数を使う。
+     *
+     * @param object $premium KKPAY_Premium_Reservation_Repository::find_by_id() の戻り値
+     * @param string $date    予約日 (YYYY-MM-DD)
+     * @param string $slot    スロットキー
+     * @return int|WP_Error
+     */
+    public static function create_from_premium( $premium, $date, $slot ) {
+        global $wpdb;
+
+        $tz  = new DateTimeZone( 'Asia/Tokyo' );
+        $now = new DateTimeImmutable( 'now', $tz );
+
+        $wpdb->query( 'START TRANSACTION' );
+
+        $confirmed = KKPAY_Reservation_Repository::sum_people_for_slot_with_lock( $date, $slot );
+        if ( KKPAY_Reservation_Repository::exists_by_email_date_slot_with_lock( $premium->email, $date, $slot ) ) {
+            $wpdb->query( 'ROLLBACK' );
+            return new WP_Error( 'duplicate_reservation', kkpay_msg( 'duplicate_reservation', $premium->language ) );
+        }
+
+        $held     = KKPAY_Hold_Repository::sum_people_for_slot_with_lock( $date, $slot );
+        $capacity = KKPAY_Accepted_Dates_Repository::get_slot_capacity( $date, $slot );
+        $people = max( 1, (int) $premium->number_of_people );
+        if ( ( $confirmed + $held + $people ) > $capacity ) {
+            $wpdb->query( 'ROLLBACK' );
+            return new WP_Error( 'capacity_exceeded', kkpay_msg( 'capacity_exceeded', $premium->language ) );
+        }
+
+        $id = KKPAY_Reservation_Repository::insert( array(
+            'hold_id'                  => null,
+            'reservation_date'         => $date,
+            'time_slot'                => $slot,
+            'name'                     => $premium->name,
+            'email'                    => $premium->email,
+            'language'                 => $premium->language,
+            'stripe_payment_intent_id' => $premium->stripe_payment_intent_id,
+            'stripe_charge_id'         => $premium->stripe_charge_id,
+            'payment_status'           => 'paid',
+            'amount'                   => (int) $premium->amount,
+            'number_of_people'         => $people,
+            'created_at'               => $now->format( 'Y-m-d H:i:s' ),
+        ) );
+
+        if ( $id === false ) {
+            $existing = KKPAY_Reservation_Repository::find_by_payment_intent( $premium->stripe_payment_intent_id );
+            if ( $existing ) {
+                if ( $existing->reservation_date !== $date || $existing->time_slot !== $slot ) {
+                    $wpdb->query( 'ROLLBACK' );
+                    return new WP_Error( 'already_scheduled', 'Reservation is already scheduled.' );
+                }
+                $wpdb->query( 'COMMIT' );
+                return $existing->id;
+            }
+            $wpdb->query( 'ROLLBACK' );
+            return new WP_Error( 'db_error', 'Failed to create reservation record.' );
+        }
+
+        $wpdb->query( 'COMMIT' );
+
+        return $id;
+    }
+
+    public static function update_from_premium( $premium, $date, $slot ) {
+        global $wpdb;
+
+        $wpdb->query( 'START TRANSACTION' );
+
+        $reservation = KKPAY_Reservation_Repository::find_by_id_for_update( (int) $premium->reservation_id );
+        if ( ! $reservation ) {
+            $wpdb->query( 'ROLLBACK' );
+            return new WP_Error( 'not_found', 'Reservation record not found.' );
+        }
+        if ( $reservation->cancelled_at !== null ) {
+            $wpdb->query( 'ROLLBACK' );
+            return new WP_Error( 'cancelled', 'Reservation is already cancelled.' );
+        }
+        if ( KKPAY_Reservation_Repository::exists_by_email_date_slot_excluding_id_with_lock( $premium->email, $date, $slot, (int) $reservation->id ) ) {
+            $wpdb->query( 'ROLLBACK' );
+            return new WP_Error( 'duplicate_reservation', kkpay_msg( 'duplicate_reservation', $premium->language ) );
+        }
+
+        $people    = max( 1, (int) $reservation->number_of_people );
+        $confirmed = KKPAY_Reservation_Repository::sum_people_for_slot_with_lock( $date, $slot );
+        if ( $reservation->reservation_date === $date && $reservation->time_slot === $slot ) {
+            $confirmed -= $people;
+        }
+        $held     = KKPAY_Hold_Repository::sum_people_for_slot_with_lock( $date, $slot );
+        $capacity = KKPAY_Accepted_Dates_Repository::get_slot_capacity( $date, $slot );
+
+        if ( ( $confirmed + $held + $people ) > $capacity ) {
+            $wpdb->query( 'ROLLBACK' );
+            return new WP_Error( 'capacity_exceeded', kkpay_msg( 'capacity_exceeded', $premium->language ) );
+        }
+
+        $updated = KKPAY_Reservation_Repository::update_schedule( (int) $reservation->id, $date, $slot );
+        if ( $updated === false ) {
+            $wpdb->query( 'ROLLBACK' );
+            return new WP_Error( 'db_error', 'Failed to update reservation schedule.' );
+        }
+
+        $wpdb->query( 'COMMIT' );
+        return (int) $reservation->id;
+    }
+
+    /**
      * 予約照会レスポンス用のデータ配列を構築して返す
      * キャンセル可否・期限の計算を含む
      */

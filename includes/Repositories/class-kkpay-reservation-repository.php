@@ -21,6 +21,14 @@ class KKPAY_Reservation_Repository {
         ) );
     }
 
+    public static function find_by_id_for_update( $id ) {
+        global $wpdb;
+        return $wpdb->get_row( $wpdb->prepare(
+            'SELECT * FROM ' . self::table() . ' WHERE id = %d LIMIT 1 FOR UPDATE',
+            (int) $id
+        ) );
+    }
+
     public static function find_by_email( $email ) {
         global $wpdb;
         return $wpdb->get_row( $wpdb->prepare(
@@ -80,6 +88,20 @@ class KKPAY_Reservation_Repository {
         );
     }
 
+    public static function update_schedule( $id, $date, $slot ) {
+        global $wpdb;
+        return $wpdb->update(
+            self::table(),
+            array(
+                'reservation_date' => $date,
+                'time_slot'        => $slot,
+            ),
+            array( 'id' => (int) $id ),
+            array( '%s', '%s' ),
+            array( '%d' )
+        );
+    }
+
     /** 指定スロットの確定済み合計人数（残席表示用、ロックなし） */
     public static function sum_people_for_slot( $date, $slot ) {
         global $wpdb;
@@ -114,6 +136,20 @@ class KKPAY_Reservation_Repository {
              LIMIT 1
              FOR UPDATE',
             $email, $date, $slot
+        ) );
+    }
+
+    public static function exists_by_email_date_slot_excluding_id_with_lock( $email, $date, $slot, $exclude_id ) {
+        global $wpdb;
+        return (bool) $wpdb->get_var( $wpdb->prepare(
+            'SELECT id FROM ' . self::table() . '
+             WHERE email = %s AND reservation_date = %s AND time_slot = %s AND id <> %d
+             LIMIT 1
+             FOR UPDATE',
+            $email,
+            $date,
+            $slot,
+            (int) $exclude_id
         ) );
     }
 
