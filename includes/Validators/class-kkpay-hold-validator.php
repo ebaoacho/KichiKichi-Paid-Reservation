@@ -32,11 +32,14 @@ class KKPAY_Hold_Validator {
         if ( ! self::is_english_name( $name ) ) {
             return new WP_Error( 'invalid_name', kkpay_msg( 'invalid_name', $lang ) );
         }
-        if ( $num < 1 || $num > KKPAY_MAX_PEOPLE ) {
+        if ( $num < 1 ) {
             return new WP_Error( 'invalid_people', kkpay_msg( 'max_people_exceeded', $lang ) );
         }
         if ( ! array_key_exists( $slot, KKPAY_SLOT_TYPES ) ) {
             return new WP_Error( 'invalid_slot', kkpay_msg( 'server_error', $lang ) );
+        }
+        if ( $num > KKPAY_Reservation_Service::get_remaining_capacity( $date, $slot ) ) {
+            return new WP_Error( 'invalid_people', kkpay_msg( 'max_people_exceeded', $lang ) );
         }
 
         return array(

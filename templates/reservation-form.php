@@ -31,9 +31,6 @@
         <label class="kkpay-label kkpay-i18n" id="lbl-people">席数 / Number of Seats</label>
         <select id="kkpay-people" class="kkpay-select">
             <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
         </select>
     </div>
 

@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 <div id="kkpay-seat-capacity" style="margin-top:20px;">
     <p>
-        各営業日・時間帯の予約可能席数を設定します。カレンダープラグインで営業日に設定されている日程のみ表示されます。<br>
+        各日付・時間帯の予約可能席数を設定します。カレンダー登録済みの日は営業フラグを反映し、未登録の日は全時間帯を設定できます。<br>
         設定した席数はホールド作成時・予約確定時のチェックに即時反映されます。
     </p>
     <div style="display:flex;gap:8px;align-items:center;margin:16px 0;flex-wrap:wrap;">
@@ -30,10 +30,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                 <th style="width:36px;">曜日</th>
                 <?php foreach ( $slot_keys as $slot ) : ?>
                     <th style="font-size:11px;line-height:1.4;">
-                        <?php echo esc_html( $slot ); ?><br>
-                        <span style="font-weight:normal;color:#555;">
-                            <?php echo esc_html( KKPAY_SLOT_LABELS['ja'][ $slot ] ?? $slot ); ?>
-                        </span>
+                        <?php echo esc_html( KKPAY_SLOT_LABELS['ja'][ $slot ] ?? $slot ); ?>
                     </th>
                 <?php endforeach; ?>
             </tr>
@@ -43,7 +40,7 @@ if ( ! defined( 'ABSPATH' ) ) {
             $days_output = 0;
             $dow_labels  = array( '日', '月', '火', '水', '木', '金', '土' );
 
-            for ( $i = 0; $i <= 90; $i++ ) :
+            for ( $i = 0; $i <= $capacity_days; $i++ ) :
                 $date     = $today->modify( '+' . $i . ' days' )->format( 'Y-m-d' );
                 $calendar = KKPAY_Calendar_Repository::find_by_date( $date );
 
@@ -54,6 +51,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                             $open_slots[] = $slot;
                         }
                     }
+                } else {
+                    $open_slots = $slot_keys;
                 }
 
                 if ( empty( $open_slots ) ) {
@@ -92,7 +91,7 @@ if ( ! defined( 'ABSPATH' ) ) {
             <?php if ( $days_output === 0 ) : ?>
                 <tr>
                     <td colspan="<?php echo count( $slot_keys ) + 2; ?>" style="padding:16px;">
-                        今後90日間に営業日が登録されていません。カレンダープラグインを確認してください。
+                        今日から2か月後の月末までに営業日が登録されていません。カレンダープラグインを確認してください。
                     </td>
                 </tr>
             <?php endif; ?>

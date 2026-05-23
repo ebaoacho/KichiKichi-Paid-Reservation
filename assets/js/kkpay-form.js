@@ -206,7 +206,6 @@
         var $submitSec = $('#kkpay-submit-section');
         var $submitBtn = $('#kkpay-submit-btn');
         var $msg      = $('#kkpay-form-message');
-        var maxPeople = $peopleSel.find('option').length || 1;
         var selectedSlotRemaining = 0;
 
         $langSel.on('change', function () {
@@ -253,6 +252,7 @@
                 var isOpen = kkpay.accepted_dates_mode
                     ? !!(kkpay.accepted_dates && kkpay.accepted_dates[dateStr])
                     : now_jst >= openFrom;
+                var isBookable = !!(kkpay.bookable_dates && kkpay.bookable_dates[dateStr]);
 
                 var $btn = $('<button type="button" class="kkpay-date-btn"></button>');
                 $btn.attr('data-date', dateStr);
@@ -263,6 +263,9 @@
                 if (!isOpen) {
                     $btn.addClass('not-open').prop('disabled', true)
                         .attr('title', t('notYetOpen'));
+                } else if (!isBookable) {
+                    $btn.addClass('not-open').prop('disabled', true)
+                        .attr('title', t('fullyBooked'));
                 }
 
                 if (selectedDate === dateStr) {
@@ -340,7 +343,7 @@
         }
 
         function renderPeopleOptions(remaining) {
-            var limit = Math.min(maxPeople, remaining);
+            var limit = parseInt(remaining, 10);
             var current = parseInt($peopleSel.val(), 10);
 
             if (isNaN(limit) || limit < 1) {
@@ -423,8 +426,7 @@
                 return;
             }
             if (email !== emailC) {
-                showMessage($msg, msg('server_error'), 'error');
-                $msg.text('Email addresses do not match. / メールアドレスが一致しません。').show();
+                showMessage($msg, 'Email addresses do not match. / メールアドレスが一致しません。', 'error');
                 return;
             }
             if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -519,7 +521,7 @@
         $('#lbl-card').text(t('card') || 'Card Details');
         $('#lbl-cancel-policy-pay').text(t('cancel_policy'));
 
-        // カウントダウン開始
+        // 暫定カウントダウン。PaymentIntent 作成後にサーバー側の実残秒数で補正する。
         $countdown.show();
         startCountdown();
 
@@ -602,10 +604,15 @@
             var people           = parseInt(res.data.number_of_people, 10);
             var unitAmount       = parseInt(res.data.unit_amount, 10);
             var amount           = parseInt(res.data.amount, 10);
+            var expiresInSeconds = parseInt(res.data.expires_in_seconds, 10);
 
             if (isNaN(people) || people < 1) people = 1;
             if (isNaN(unitAmount)) unitAmount = parseInt(kkpay.amount, 10) || 0;
             if (isNaN(amount)) amount = people * unitAmount;
+            if (!isNaN(expiresInSeconds) && expiresInSeconds >= 0) {
+                secondsLeft = expiresInSeconds;
+                renderCountdown();
+            }
 
             // サマリ表示
             var summaryHtml = '';
@@ -652,9 +659,12 @@
                         }, function (cres) {
                             if (!cres.success) {
                                 // 支払い済みだが予約確定エラー（サポートへ誘導）
-                                showMessage($msg, cres.data.message + ' (Payment ID: ' + paymentIntentId + ')', 'error');
+                                showMessage(
+                                    $msg,
+                                    (cres.data.message || msg('server_error')) + ' Payment succeeded, but reservation confirmation failed. Please contact support with Payment ID: ' + paymentIntentId,
+                                    'error'
+                                );
                                 $paySection.hide();
-                                $successSec.show();
                                 return;
                             }
 

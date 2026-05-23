@@ -32,6 +32,10 @@ class KKPAY_Payment_Controller {
 
         $number_of_people = (int) $hold->number_of_people;
         $amount           = KKPAY_Reservation_Service::calculate_amount( $number_of_people );
+        $tz               = new DateTimeZone( 'Asia/Tokyo' );
+        $now              = new DateTimeImmutable( 'now', $tz );
+        $expires_at       = new DateTimeImmutable( $hold->expires_at, $tz );
+        $expires_in       = max( 0, $expires_at->getTimestamp() - $now->getTimestamp() );
 
         wp_send_json_success( array(
             'client_secret'     => $pi['client_secret'],
@@ -40,6 +44,7 @@ class KKPAY_Payment_Controller {
             'unit_amount'       => KKPAY_AMOUNT,
             'amount'            => $amount,
             'currency'          => KKPAY_CURRENCY,
+            'expires_in_seconds' => (int) $expires_in,
         ) );
     }
 
@@ -94,9 +99,19 @@ class KKPAY_Payment_Controller {
         $object = $event['data']['object'] ?? array();
 
         if ( $type === 'payment_intent.succeeded' ) {
-            KKPAY_Payment_Service::handle_payment_intent_succeeded( $object );
+            if ( ( $object['metadata']['type'] ?? '' ) === 'premium_reservation' ) {
+                KKPAY_Premium_Reservation_Service::handle_webhook_payment_intent_succeeded( $object );
+            } else {
+                KKPAY_Payment_Service::handle_payment_intent_succeeded( $object );
+            }
         } elseif ( $type === 'charge.refunded' ) {
-            KKPAY_Payment_Service::handle_charge_refunded( $object );
+            $pi_id      = $object['payment_intent'] ?? '';
+            $is_premium = $pi_id && KKPAY_Premium_Reservation_Repository::find_by_payment_intent( $pi_id );
+            if ( $is_premium ) {
+                KKPAY_Premium_Reservation_Service::handle_webhook_charge_refunded( $object );
+            } else {
+                KKPAY_Payment_Service::handle_charge_refunded( $object );
+            }
         }
 
         return new WP_REST_Response( array( 'received' => true ), 200 );
