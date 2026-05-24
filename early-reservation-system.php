@@ -2,7 +2,7 @@
 /**
  * Plugin Name: キチキチ 決済予約システム
  * Description: 営業カレンダー参照・Stripe決済対応の早期予約プラグイン
- * Version:     1.0.6
+ * Version:     1.1.0
  * Author:      Acho Systems
  */
 
@@ -97,8 +97,13 @@ require_once KKPAY_PLUGIN_DIR . 'includes/Infrastructure/class-kkpay-stripe-conf
 require_once KKPAY_PLUGIN_DIR . 'includes/Infrastructure/class-kkpay-email-config.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Infrastructure/class-kkpay-stripe-client.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Infrastructure/class-kkpay-dev-mailer.php';
+require_once KKPAY_PLUGIN_DIR . 'includes/Infrastructure/class-kkpay-smtp-mailer.php';
 if ( KKPAY_Dev_Mailer::is_enabled() ) {
+    // ローカル開発モード: Mercury SMTP に転送（KKPAY_DEV_MAIL=true のとき）
     KKPAY_Dev_Mailer::register();
+} elseif ( KKPAY_Smtp_Mailer::is_configured() ) {
+    // SMTP設定が .env にある場合: XServer 等の本番 SMTP を使用
+    KKPAY_Smtp_Mailer::register();
 }
 
 // Repositories（DB通信層）
