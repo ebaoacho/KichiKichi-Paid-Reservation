@@ -14,6 +14,12 @@ This is a PHP WordPress plugin — no compilation, bundling, or package manager.
 
 All constants, global functions, `require_once` chains, and WordPress hook registrations (`add_action`, `add_shortcode`, `register_activation_hook`) live in `early-reservation-system.php`. When adding a new AJAX action or REST route, register it there.
 
+The `require_once` load order in the entry point follows dependency direction and must be respected when adding new files:
+
+```
+Infrastructure → Repositories → Services → Validators → Controllers → Supporting classes
+```
+
 ## Architecture
 
 The codebase is organized into four logical layers inside `includes/`:
@@ -42,6 +48,41 @@ User action → AJAX/REST → Controller → Validator → Service → Repositor
                                           EmailService → wp_mail
 ```
 
+## Coding Conventions
+
+Full reference: `doc/11_coding_conventions.md`.
+
+**PHP style:**
+- Indent with 4 spaces (no tabs).
+- Use `array()` syntax — never `[]` (WordPress coding standards).
+- Every PHP file must begin with `if ( ! defined( 'ABSPATH' ) ) { exit; }`.
+- No closing `?>` tag.
+
+**Naming:**
+- Files: `class-kkpay-{name}.php` (kebab-case).
+- Classes: `KKPAY_{Name}_Controller` / `_Service` / `_Repository` / `_Validator`.
+- Methods and variables: `snake_case`.
+- AJAX action names: `kkpay_{verb}_{noun}`.
+- Constants: `KKPAY_{UPPER_SNAKE}`.
+
+**Return value contract (Services and Repositories):**
+- Success → `stdClass`, `stdClass[]`, `int`, `string`, or `array` depending on what makes sense.
+- Failure → `WP_Error`. Never use `false` or `0` to signal an error.
+- `find_*` methods may return `null` when no record is found.
+
+**Controller error-check pattern:**
+```php
+$result = KKPAY_Foo_Service::method( ... );
+if ( is_wp_error( $result ) ) {
+    wp_send_json_error( array( 'message' => $result->get_error_message() ) );
+}
+wp_send_json_success( array( ... ) );
+```
+
+**User-facing error messages:** always use `kkpay_msg( $key, $lang )`. Never hard-code strings. New message keys require translations in all 5 languages in `includes/kkpay-messages.php`.
+
+**Git commit messages:** `{type}: {日本語一行説明}` — e.g. `feat: クーポンコード機能を追加`, `fix: キャンセル時の履歴記録が正しく動作しない不具合を修正`. Types: `feat`, `fix`, `refactor`, `docs`, `chore`.
+
 ## Environment Configuration
 
 Secrets are loaded from a `.env` file at the plugin root (`KKPAY_PLUGIN_DIR . '.env'`) via `KKPAY_Env_Loader`. Variables already set in the environment take precedence. Never commit real credentials; the `.env` file is gitignored.
@@ -60,11 +101,13 @@ Optional dev variable: `KKPAY_DEV_MAIL=true` — when set, `KKPAY_Dev_Mailer` re
 
 ## Shortcodes
 
-| Shortcode | Template | Assets loaded |
+| Shortcode | Template | Notes |
 | --- | --- | --- |
-| `[kkpay_reservation_form]` | `templates/reservation-form.php` | `kkpay-form.js`, `kkpay-form.css` |
-| `[kkpay_payment_page]` | `templates/payment-page.php` | above + `stripe-js` (v3) |
-| `[kkpay_my_reservation]` | `templates/my-reservation.php` | `kkpay-mypage.js`, `kkpay-mypage.css` |
+| `[kkpay_reservation_form]` | `templates/reservation-form.php` | Normal reservation form |
+| `[kkpay_payment_page]` | `templates/payment-page.php` | Payment step; loads Stripe.js |
+| `[kkpay_my_reservation]` | `templates/my-reservation.php` | Reservation lookup and cancel |
+| `[kkpay_premium_payment]` | `templates/premium-payment.php` | Special premium payment via token URL |
+| `[kkpay_premium_cancel]` | `templates/premium-cancel.php` | Special premium cancellation via token URL |
 
 ## Critical: Race Condition Prevention on Hold Creation
 
@@ -72,7 +115,7 @@ Optional dev variable: `KKPAY_DEV_MAIL=true` — when set, `KKPAY_Dev_Mailer` re
 
 ## Database Tables
 
-Four custom tables (prefix + `kkpay_holds`, `kkpay_reservations`, `kkpay_cancellations`, `kkpay_accepted_dates`) plus read-only access to the external `{prefix}calendar` table. Schema is in `class-kkpay-activator.php`.
+Custom tables (prefix + `kkpay_holds`, `kkpay_reservations`, `kkpay_cancellations`, `kkpay_accepted_dates`, `kkpay_premium_reservations`) plus read-only access to the external `{prefix}calendar` table. Schema is in `class-kkpay-activator.php`.
 
 Key constraints:
 
@@ -80,7 +123,9 @@ Key constraints:
 - `kkpay_holds.hold_token` is UNIQUE (64-char hex from `random_bytes(32)`).
 - `kkpay_accepted_dates` has `UNIQUE KEY (reservation_date, time_slot)`.
 
-The `kkpay_accepted_dates` table drives the **normal/premium mode switch** — see "Booking Modes" below. Planned special premium reservations add a fifth custom table, `kkpay_premium_reservations`. See `doc/12_special_premium_reservation_design.md` before implementation.
+`dbDelta()` is used for all table creation. Write `CREATE TABLE` (not `CREATE TABLE IF NOT EXISTS`) — `dbDelta()` handles existence checks internally.
+
+The `kkpay_accepted_dates` table drives the **normal/premium mode switch** — see "Booking Modes" below.
 
 ## Booking Modes
 
@@ -98,11 +143,12 @@ Capacity reads from `kkpay_accepted_dates` are not row-locked during customer ho
 - **PaymentIntent flow**: frontend calls `kkpay_create_payment_intent` → gets `client_secret` → Stripe.js confirms card → frontend calls `kkpay_confirm_reservation`.
 - **Webhook** (`POST /wp-json/kkpay/v1/webhook`): handles `payment_intent.succeeded` and external `charge.refunded` events. Signature verified with HMAC-SHA256, ±300s tolerance.
 - The webhook's `payment_intent.succeeded` handler is a **fallback** for when the user closes the browser before the confirm AJAX completes. Both paths share `KKPAY_Reservation_Service::create_from_hold()` and are idempotent.
+- Webhook handling branches on Stripe metadata `type=premium_reservation`; normal reservation PaymentIntents continue using the existing flow.
 - Secrets are read from the `.env` / environment variables. Never store Stripe secrets in `wp_options` or expose the secret key to the frontend.
 
 ## Multi-Language
 
-Five languages: `en`, `ja`, `ko`, `zh-CN`, `zh-TW`. All user-facing strings go through `kkpay_msg($key, $lang)` defined in `early-reservation-system.php`. The same `KKPAY_MESSAGES` constant is passed to JavaScript via `wp_localize_script`.
+Five languages: `en`, `ja`, `ko`, `zh-CN`, `zh-TW`. All user-facing strings go through `kkpay_msg($key, $lang)` defined in `includes/kkpay-messages.php`. The same `KKPAY_MESSAGES` constant is passed to JavaScript via `wp_localize_script`.
 
 Normal and special premium reservations validate names as ASCII/English-style names (`A-Z`, spaces, dot, apostrophe, hyphen).
 
@@ -120,7 +166,7 @@ Normal and special premium reservations validate names as ASCII/English-style na
 
 | Constant | Value | Meaning |
 | --- | --- | --- |
-| `KKPAY_AMOUNT` | 13 | Unit charge per seat (USD) |
+| `KKPAY_AMOUNT` | 13 | Unit charge per seat (USD) — normal reservations |
 | `KKPAY_CURRENCY` | `'usd'` | Stripe currency code |
 | `KKPAY_STRIPE_AMOUNT_MULTIPLIER` | 100 | Multiplier to convert to Stripe cents |
 | `KKPAY_MAX_CAPACITY` | 8 | Default max people per slot (confirmed + held) when no `accepted_dates` row |
@@ -128,10 +174,15 @@ Normal and special premium reservations validate names as ASCII/English-style na
 | `KKPAY_HOLD_MINUTES` | 5 | Hold expiration window |
 | `KKPAY_ACCEPT_DAYS_BEFORE` | 3 | Booking window (days ahead) |
 | `KKPAY_ACCEPT_HOUR_JST` | 13 | **Normal mode only.** Hour (JST) at which bookings open on the cutoff day. Ignored in premium mode. |
+| `KKPAY_PREMIUM_AMOUNT` | 32 | Unit charge per seat (USD) — special premium reservations |
+| `KKPAY_PREMIUM_CURRENCY` | `'usd'` | Stripe currency code for premium |
+| `KKPAY_PREMIUM_MAX_PEOPLE` | 8 | Max seats for special premium reservations |
 | `KKPAY_SLOT_TYPES` | array | Maps slot keys (`slot_1`–`slot_6`) to `'lunch'` or `'dinner'` |
 | `KKPAY_SLOT_LABELS` | array | Per-language display labels for each slot key |
 
 ## AJAX Actions
+
+All public AJAX calls use nonce `kkpay_nonce` (`check_ajax_referer( 'kkpay_nonce', 'nonce' )`). CSV export uses `kkpay_export`.
 
 Public (logged-in and anonymous):
 
@@ -143,6 +194,9 @@ Public (logged-in and anonymous):
 | `kkpay_confirm_reservation` | `KKPAY_Payment_Controller::ajax_confirm_reservation` |
 | `kkpay_check_reservation` | `KKPAY_Reservation_Controller::ajax_check_reservation` |
 | `kkpay_cancel_reservation` | `KKPAY_Cancellation_Controller::ajax_cancel_reservation` |
+| `kkpay_premium_create_payment_intent` | `KKPAY_Premium_Reservation_Controller::ajax_create_payment_intent` |
+| `kkpay_premium_confirm_payment` | `KKPAY_Premium_Reservation_Controller::ajax_confirm_payment` |
+| `kkpay_premium_cancel_reservation` | `KKPAY_Premium_Reservation_Controller::ajax_cancel_reservation` |
 
 Admin only (`manage_options`):
 
@@ -151,6 +205,10 @@ Admin only (`manage_options`):
 | `kkpay_load_admin_list` | `KKPAY_Admin_Controller::ajax_load_admin_list` |
 | `kkpay_export_csv` | `KKPAY_Admin_Controller::ajax_export_csv` |
 | `kkpay_save_slot_capacity` | `KKPAY_Admin_Controller::ajax_save_slot_capacity` |
+| `kkpay_premium_issue_payment_link` | `KKPAY_Premium_Reservation_Controller::ajax_issue_payment_link` |
+| `kkpay_premium_schedule_reservation` | `KKPAY_Premium_Reservation_Controller::ajax_schedule_reservation` |
+| `kkpay_premium_issue_cancel_link` | `KKPAY_Premium_Reservation_Controller::ajax_issue_cancel_link` |
+| `kkpay_premium_export_csv` | `KKPAY_Premium_Reservation_Controller::ajax_export_csv` |
 
 ## Operational Notes
 
@@ -171,35 +229,34 @@ Admin only (`manage_options`):
 
 スペシャルプレミアム予約では、通常予約の返金なしルールをそのまま適用しない。予約日の3日前までは Stripe Refund API で支払い済み全額を返金し、3日前を過ぎた場合は返金しない。
 
-## Planned Special Premium Reservations
+## Special Premium Reservations
 
-Design source: `doc/12_special_premium_reservation_design.md`.
+Design source: `doc/12_special_premium_reservation_design.md`. Implementation is complete.
 
 Core behavior:
-
-- Master issues a customer-specific tokenized payment link from a new admin tab.
+- Master issues a customer-specific tokenized payment link from the admin "スペシャルプレミアム予約" tab.
 - Payment link expires 24 hours after issue.
-- Customer page is a separate shortcode: `[kkpay_premium_payment]`.
-- Customer enters language, name, email, and seats. Premium price is USD 32 per seat, up to 8 seats.
-- After payment, master schedules the reservation date and slot in admin.
-- Premium reservation date scheduling/changing can be selected from today through one month later, using JST.
-- Seat-capacity admin settings are shown from today through the end of the month two months later.
-- Time slot must be one of existing `slot_1` through `slot_6`.
-- On scheduling, create a normal `kkpay_reservations` row and link it from `kkpay_premium_reservations.reservation_id`, so existing capacity calculations include the premium reservation.
-- Reflect premium reservations as the customer-selected `number_of_people`.
-- Master can change the reservation date/slot after scheduling. Changes keep the paid seat count, run capacity checks against the new slot while excluding the reservation's current seats, and send an automatic schedule-change email.
-- Master can issue a cancellation link only after scheduling.
-- Cancellation page is a separate shortcode: `[kkpay_premium_cancel]`.
-- Cancellation link has no expiry but is single-use.
+- Customer page: `[kkpay_premium_payment]`. Customer enters language, name, email, seats. Price: USD 32/seat, up to 8 seats.
+- After payment, master schedules the reservation date and slot in admin. Date range: today through one month later (JST).
+- On scheduling, a `kkpay_reservations` row is created and linked from `kkpay_premium_reservations.reservation_id`, so existing capacity calculations include it.
+- Master can change the date/slot after scheduling (capacity check excludes current seats; sends schedule-change email).
+- Cancellation link is issued only after scheduling; it has no expiry but is single-use.
+- Cancellation page: `[kkpay_premium_cancel]`.
 
-Implementation shape:
+## Planned: Same-Day Reservation Integration
 
-- Add `KKPAY_Premium_Reservation_Repository`, `KKPAY_Premium_Reservation_Service`, `KKPAY_Premium_Reservation_Controller`, and `KKPAY_Premium_Reservation_Validator`.
-- Add templates `templates/premium-payment.php`, `templates/premium-cancel.php`, and `templates/admin/premium-reservations-tab.php`.
-- Add frontend/admin JS as needed, likely `assets/js/kkpay-premium.js` and `assets/js/kkpay-admin-premium.js`.
-- Register all new `require_once`, shortcodes, AJAX actions, admin AJAX actions, and webhook branching in `early-reservation-system.php`.
-- Webhook handling must branch on Stripe metadata `type=premium_reservation`; normal reservation PaymentIntents must continue using the existing flow.
-- Premium payment completion, scheduling, cancellation, and refund decisions should live in the premium service, not in controllers.
+Design source: `doc/14_same_day_reservation_integration_design.md`.
+
+The goal is to unify same-day reservations (currently in the separate `kichikichi-reservation-system` plugin) with the paid reservation base, preventing double-booking across all reservation types. Existing UI/UX is preserved; only the internal storage and capacity logic changes.
+
+Key design decisions:
+- All reservation types (`same_day`, `premium`, `special_premium`) converge on `kkpay_reservations` with a `reservation_type` column.
+- A new `kkpay_slot_capacities` table (keyed on `capacity_date + time_slot + seating_preference`) replaces `kkpay_accepted_dates` as the source of truth for seat counts and replaces it as the `SELECT ... FOR UPDATE` lock target.
+- `seating_preference` values: `Table` (same-day only) or `Bar` (premium and special premium, fixed).
+- Same-day cancellation sets `status = cancelled` instead of deleting the row.
+- A new `kkpay_reservation_events` audit log table tracks all state changes.
+
+Implementation is split across PRs (PR 0–9); see the design doc for the full breakdown. No code for this feature exists yet.
 
 ## Timezone
 

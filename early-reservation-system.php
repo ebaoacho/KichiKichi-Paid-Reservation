@@ -107,6 +107,8 @@ require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-hold-reposito
 require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-reservation-repository.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-cancellation-repository.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-accepted-dates-repository.php';
+require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-slot-capacity-repository.php';
+require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-reservation-event-repository.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-premium-reservation-repository.php';
 
 // Services（ビジネスロジック層）
