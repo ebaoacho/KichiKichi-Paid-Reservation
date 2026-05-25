@@ -92,7 +92,14 @@ require_once KKPAY_PLUGIN_DIR . 'includes/kkpay-messages.php';
 
 // Infrastructure
 require_once KKPAY_PLUGIN_DIR . 'includes/Infrastructure/class-kkpay-env-loader.php';
-KKPAY_Env_Loader::load( KKPAY_PLUGIN_DIR . '.env' );
+
+// .kkpay.env の探索順:
+//   1. WordPress ルートの1つ上（本番: public_html の外 = HTTP 非公開）
+//   2. プラグインディレクトリ内の .env（ローカル開発用フォールバック）
+$_kkpay_env_outside = dirname( rtrim( ABSPATH, '/\\' ) ) . DIRECTORY_SEPARATOR . '.kkpay.env';
+$_kkpay_env_plugin  = KKPAY_PLUGIN_DIR . '.env';
+KKPAY_Env_Loader::load( is_readable( $_kkpay_env_outside ) ? $_kkpay_env_outside : $_kkpay_env_plugin );
+unset( $_kkpay_env_outside, $_kkpay_env_plugin );
 require_once KKPAY_PLUGIN_DIR . 'includes/Infrastructure/class-kkpay-stripe-config.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Infrastructure/class-kkpay-email-config.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Infrastructure/class-kkpay-stripe-client.php';
