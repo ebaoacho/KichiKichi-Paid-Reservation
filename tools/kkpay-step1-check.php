@@ -56,6 +56,7 @@ function kkpay_table_exists( $table ) {
 
 function kkpay_columns( $table ) {
     global $wpdb;
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- DESCRIBE does not accept table-name placeholders; table names are derived from $wpdb->prefix.
     $rows = $wpdb->get_results( "DESCRIBE {$table}", ARRAY_A );
     $columns = array();
     foreach ( $rows as $row ) {
@@ -66,6 +67,7 @@ function kkpay_columns( $table ) {
 
 function kkpay_index_columns( $table, $index_name ) {
     global $wpdb;
+    // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is derived from $wpdb->prefix; identifiers cannot use placeholders.
     $rows = $wpdb->get_results( $wpdb->prepare(
         "SHOW INDEX FROM {$table} WHERE Key_name = %s",
         $index_name
@@ -153,6 +155,7 @@ if ( kkpay_table_exists( $reservations_table ) ) {
     );
     kkpay_check_true( $cancelled_mismatch === 0, 'cancelled reservations have status=cancelled', "rows: {$cancelled_mismatch}" );
 
+    // Step 1 invariant: later same-day reservation steps may add more non-cancelled statuses.
     $active_mismatch = kkpay_count(
         "SELECT COUNT(*) FROM {$reservations_table}
          WHERE cancelled_at IS NULL AND status <> 'active'"
@@ -164,6 +167,21 @@ if ( kkpay_table_exists( $reservations_table ) ) {
          WHERE email IS NOT NULL AND email_hash <> SHA2(email, 256)"
     );
     kkpay_check_true( $email_hash_mismatch === 0, 'email_hash matches SHA2(email, 256)', "rows: {$email_hash_mismatch}" );
+
+    $col_info = $wpdb->get_row( $wpdb->prepare(
+        "SHOW COLUMNS FROM {$reservations_table} WHERE Field = %s",
+        'stripe_payment_intent_id'
+    ), ARRAY_A );
+    kkpay_check_true(
+        $col_info && $col_info['Null'] === 'YES',
+        'reservations.stripe_payment_intent_id is nullable',
+        $col_info ? "Null={$col_info['Null']}, Type={$col_info['Type']}" : 'column not found'
+    );
+    kkpay_check_true(
+        $col_info && strpos( $col_info['Type'], 'varchar(255)' ) !== false,
+        'reservations.stripe_payment_intent_id is VARCHAR(255)',
+        $col_info ? "actual: {$col_info['Type']}" : 'column not found'
+    );
 }
 
 if ( kkpay_table_exists( $capacities_table ) ) {
@@ -205,6 +223,7 @@ if ( kkpay_table_exists( $accepted_table ) && kkpay_table_exists( $capacities_ta
     );
     kkpay_check_true( $bar_missing === 0, 'accepted_dates rows have migrated Bar capacity rows', "rows: {$bar_missing}" );
 
+    // Migration-time check: this can fail after admins intentionally edit kkpay_slot_capacities.
     $bar_mismatch = kkpay_count(
         "SELECT COUNT(*)
          FROM {$accepted_table} ad

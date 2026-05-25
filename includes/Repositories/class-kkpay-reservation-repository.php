@@ -48,7 +48,7 @@ class KKPAY_Reservation_Repository {
         ) );
     }
 
-    /** 予約レコードを挿入し、挿入した ID を返す（失敗時は false） */
+    /** 予約レコードを挿入し、挿入した ID を返す（失敗時は WP_Error） */
     public static function insert( array $data ) {
         global $wpdb;
 
@@ -56,7 +56,6 @@ class KKPAY_Reservation_Repository {
         $email      = $data['email'] ?? '';
         $data       = array_merge(
             array(
-                'reservation_type'   => 'premium',
                 'status'             => 'active',
                 'seating_preference' => 'Bar',
                 'email_hash'         => $email !== '' ? hash( 'sha256', $email ) : null,
@@ -76,7 +75,15 @@ class KKPAY_Reservation_Repository {
             $data,
             $formats
         );
-        return $inserted ? $wpdb->insert_id : false;
+
+        if ( $inserted ) {
+            return (int) $wpdb->insert_id;
+        }
+
+        return new WP_Error(
+            'db_insert_failed',
+            'kkpay_reservations insert failed: ' . $wpdb->last_error
+        );
     }
 
     private static function format_for_column( $column ) {

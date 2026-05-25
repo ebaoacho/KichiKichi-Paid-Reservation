@@ -55,7 +55,7 @@ class KKPAY_Reservation_Event_Repository {
 
         foreach ( $rows as $row ) {
             $decoded = json_decode( $row->event_payload, true );
-            $row->payload = is_array( $decoded ) ? $decoded : array();
+            $row->event_payload = is_array( $decoded ) ? $decoded : array();
         }
 
         return $rows;

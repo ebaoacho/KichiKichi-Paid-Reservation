@@ -11,7 +11,7 @@ class KKPAY_Activator {
 
     public static function activate() {
         self::create_tables();
-        self::migrate_data();
+        self::maybe_migrate_step1();
         self::schedule_cron();
         update_option( 'kkpay_db_version', KKPAY_VERSION );
     }
@@ -24,12 +24,17 @@ class KKPAY_Activator {
     }
 
     public static function maybe_upgrade() {
-        if ( get_option( 'kkpay_db_version' ) !== KKPAY_VERSION || self::schema_is_missing() ) {
-            self::create_tables();
-            self::migrate_data();
-            self::schedule_cron();
-            update_option( 'kkpay_db_version', KKPAY_VERSION );
+        $version_matches   = get_option( 'kkpay_db_version' ) === KKPAY_VERSION;
+        $schema_is_missing = self::schema_is_missing();
+
+        if ( $version_matches && ! $schema_is_missing ) {
+            return;
         }
+
+        self::create_tables();
+        self::maybe_migrate_step1( $schema_is_missing );
+        self::schedule_cron();
+        update_option( 'kkpay_db_version', KKPAY_VERSION );
     }
 
     private static function schema_is_missing() {
@@ -52,7 +57,87 @@ class KKPAY_Activator {
             }
         }
 
+        $required_reservation_columns = array(
+            'reservation_type',
+            'status',
+            'seating_preference',
+            'email_hash',
+            'currency',
+            'cancel_reason',
+            'created_ip_hash',
+            'user_agent_hash',
+            'admin_note',
+            'updated_at',
+        );
+        if ( ! self::table_has_columns( $wpdb->prefix . 'kkpay_reservations', $required_reservation_columns ) ) {
+            return true;
+        }
+
+        if ( ! self::column_is_nullable( $wpdb->prefix . 'kkpay_reservations', 'stripe_payment_intent_id' ) ) {
+            return true;
+        }
+
+        $required_slot_capacity_columns = array(
+            'capacity_date',
+            'time_slot',
+            'seating_preference',
+            'capacity',
+            'enabled',
+            'created_at',
+            'updated_at',
+        );
+        if ( ! self::table_has_columns( $wpdb->prefix . 'kkpay_slot_capacities', $required_slot_capacity_columns ) ) {
+            return true;
+        }
+
+        $required_reservation_event_columns = array(
+            'reservation_id',
+            'event_type',
+            'actor_type',
+            'actor_id',
+            'event_payload',
+            'ip_hash',
+            'user_agent_hash',
+            'created_at',
+        );
+        if ( ! self::table_has_columns( $wpdb->prefix . 'kkpay_reservation_events', $required_reservation_event_columns ) ) {
+            return true;
+        }
+
         return false;
+    }
+
+    private static function table_has_columns( $table, array $required_columns ) {
+        global $wpdb;
+
+        // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Table name is derived from $wpdb->prefix; identifiers cannot use placeholders.
+        $rows = $wpdb->get_results( "DESCRIBE {$table}", ARRAY_A );
+        if ( ! $rows ) {
+            return false;
+        }
+
+        $existing_columns = array();
+        foreach ( $rows as $row ) {
+            $existing_columns[] = $row['Field'];
+        }
+
+        foreach ( $required_columns as $column ) {
+            if ( ! in_array( $column, $existing_columns, true ) ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static function column_is_nullable( $table, $column ) {
+        global $wpdb;
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is derived from $wpdb->prefix; identifiers cannot use placeholders.
+        $row = $wpdb->get_row( $wpdb->prepare(
+            "SHOW COLUMNS FROM {$table} WHERE Field = %s",
+            $column
+        ), ARRAY_A );
+        return $row && $row['Null'] === 'YES';
     }
 
     public static function create_tables() {
@@ -82,7 +167,7 @@ class KKPAY_Activator {
         $sql_reservations   = "CREATE TABLE {$reservations_table} (
             id                        BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             hold_id                   BIGINT UNSIGNED DEFAULT NULL,
-            reservation_type          VARCHAR(30)     DEFAULT 'premium',
+            reservation_type          VARCHAR(30)     DEFAULT NULL,
             status                    VARCHAR(30)     DEFAULT 'active',
             reservation_date          DATE            NOT NULL,
             time_slot                 VARCHAR(20)     NOT NULL,
@@ -91,7 +176,7 @@ class KKPAY_Activator {
             email                     VARCHAR(100)    NOT NULL,
             email_hash                CHAR(64)        DEFAULT NULL,
             language                  VARCHAR(10)     NOT NULL DEFAULT 'en',
-            stripe_payment_intent_id  VARCHAR(100)    NOT NULL,
+            stripe_payment_intent_id  VARCHAR(255)    NULL DEFAULT NULL,
             stripe_charge_id          VARCHAR(100)    DEFAULT NULL,
             payment_status            VARCHAR(20)     NOT NULL DEFAULT 'pending',
             amount                    INT UNSIGNED    NOT NULL,
@@ -213,6 +298,20 @@ class KKPAY_Activator {
         dbDelta( $sql_premium );
         dbDelta( $sql_slot_capacities );
         dbDelta( $sql_reservation_events );
+
+        self::normalize_schema_defaults();
+    }
+
+    private static function normalize_schema_defaults() {
+        global $wpdb;
+
+        // dbDelta() does not reliably alter existing column definitions (nullability, size, defaults).
+        // Apply explicit ALTER TABLE so prior-release installs converge to the current schema.
+        $reservations_table = $wpdb->prefix . 'kkpay_reservations';
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is derived from $wpdb->prefix; identifiers cannot use placeholders.
+        $wpdb->query( "ALTER TABLE {$reservations_table} MODIFY reservation_type VARCHAR(30) DEFAULT NULL" );
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        $wpdb->query( "ALTER TABLE {$reservations_table} MODIFY stripe_payment_intent_id VARCHAR(255) NULL DEFAULT NULL" );
     }
 
     private static function migrate_data() {
@@ -252,6 +351,15 @@ class KKPAY_Activator {
              SELECT reservation_date, time_slot, 'Table', 0, 0, NOW(), NOW()
              FROM {$accepted_dates_table}"
         );
+    }
+
+    private static function maybe_migrate_step1( $force = false ) {
+        if ( ! $force && get_option( 'kkpay_migration_step1_done' ) ) {
+            return;
+        }
+
+        self::migrate_data();
+        update_option( 'kkpay_migration_step1_done', '1' );
     }
 
     private static function schedule_cron() {

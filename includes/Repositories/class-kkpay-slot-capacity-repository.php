@@ -44,7 +44,7 @@ class KKPAY_Slot_Capacity_Repository {
         $capacity = max( 0, (int) $capacity );
         $enabled  = (int) (bool) $enabled;
 
-        return $wpdb->query( $wpdb->prepare(
+        $result = $wpdb->query( $wpdb->prepare(
             'INSERT INTO ' . self::table() . '
                 (capacity_date, time_slot, seating_preference, capacity, enabled, created_at, updated_at)
              VALUES (%s, %s, %s, %d, %d, %s, %s)
@@ -60,6 +60,15 @@ class KKPAY_Slot_Capacity_Repository {
             $now,
             $now
         ) );
+
+        if ( $result !== false ) {
+            return $result;
+        }
+
+        return new WP_Error(
+            'db_upsert_failed',
+            'kkpay_slot_capacities upsert failed: ' . $wpdb->last_error
+        );
     }
 
     public static function get_by_date_range( $from, $to ) {
