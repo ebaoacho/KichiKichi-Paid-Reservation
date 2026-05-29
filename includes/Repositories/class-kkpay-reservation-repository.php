@@ -48,15 +48,53 @@ class KKPAY_Reservation_Repository {
         ) );
     }
 
-    /** 予約レコードを挿入し、挿入した ID を返す（失敗時は false） */
+    /** 予約レコードを挿入し、挿入した ID を返す（失敗時は WP_Error） */
     public static function insert( array $data ) {
         global $wpdb;
+
+        $created_at = $data['created_at'] ?? current_time( 'mysql' );
+        $email      = $data['email'] ?? '';
+        $data       = array_merge(
+            array(
+                'status'             => 'active',
+                'seating_preference' => 'Bar',
+                'email_hash'         => $email !== '' ? hash( 'sha256', $email ) : null,
+                'currency'           => defined( 'KKPAY_CURRENCY' ) ? KKPAY_CURRENCY : 'usd',
+                'updated_at'         => $created_at,
+            ),
+            $data
+        );
+
+        $formats = array();
+        foreach ( array_keys( $data ) as $column ) {
+            $formats[] = self::format_for_column( $column );
+        }
+
         $inserted = $wpdb->insert(
             self::table(),
             $data,
-            array( '%d', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s' )
+            $formats
         );
-        return $inserted ? $wpdb->insert_id : false;
+
+        if ( $inserted ) {
+            return (int) $wpdb->insert_id;
+        }
+
+        return new WP_Error(
+            'db_insert_failed',
+            'kkpay_reservations insert failed: ' . $wpdb->last_error
+        );
+    }
+
+    private static function format_for_column( $column ) {
+        // Add future integer columns here so dynamic inserts keep correct wpdb formats.
+        $integer_columns = array(
+            'hold_id',
+            'amount',
+            'number_of_people',
+        );
+
+        return in_array( $column, $integer_columns, true ) ? '%d' : '%s';
     }
 
     public static function update_payment_status( $id, $status, $charge_id = null ) {
@@ -81,9 +119,11 @@ class KKPAY_Reservation_Repository {
             array(
                 'cancelled_at'   => $cancelled_at,
                 'payment_status' => $payment_status,
+                'status'         => 'cancelled',
+                'updated_at'     => $cancelled_at,
             ),
             array( 'id' => (int) $id ),
-            array( '%s', '%s' ),
+            array( '%s', '%s', '%s', '%s' ),
             array( '%d' )
         );
     }
