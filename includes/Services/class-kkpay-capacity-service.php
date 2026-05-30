@@ -15,6 +15,32 @@ class KKPAY_Capacity_Service {
     public static function check_available_for_update( $date, $slot, $seating_preference, $people ) {
         $people = max( 1, (int) $people );
 
+        return self::check_available_with_confirmed_count(
+            $date,
+            $slot,
+            $seating_preference,
+            $people,
+            null
+        );
+    }
+
+    /**
+     * 日時変更時に、自分自身の予約人数を除外して空席を確認する。
+     * 必ずオープン中のトランザクション内で呼ぶこと。
+     */
+    public static function check_available_for_update_excluding_reservation( $date, $slot, $seating_preference, $people, $reservation_id ) {
+        $people = max( 1, (int) $people );
+
+        return self::check_available_with_confirmed_count(
+            $date,
+            $slot,
+            $seating_preference,
+            $people,
+            (int) $reservation_id
+        );
+    }
+
+    private static function check_available_with_confirmed_count( $date, $slot, $seating_preference, $people, $exclude_reservation_id ) {
         if ( ! in_array( $seating_preference, array( 'Table', 'Bar' ), true ) ) {
             return new WP_Error( 'invalid_seating_preference', 'Invalid seating preference.' );
         }
@@ -36,11 +62,21 @@ class KKPAY_Capacity_Service {
             return new WP_Error( 'slot_unavailable', 'This slot is not available.' );
         }
 
-        $confirmed = KKPAY_Reservation_Repository::sum_active_people_for_slot_and_seat(
-            $date,
-            $slot,
-            $seating_preference
-        );
+        if ( $exclude_reservation_id === null ) {
+            $confirmed = KKPAY_Reservation_Repository::sum_active_people_for_slot_and_seat(
+                $date,
+                $slot,
+                $seating_preference
+            );
+        } else {
+            $confirmed = KKPAY_Reservation_Repository::sum_active_people_for_slot_and_seat_excluding_id(
+                $date,
+                $slot,
+                $seating_preference,
+                (int) $exclude_reservation_id
+            );
+        }
+
         $held      = self::sum_held_people_for_slot_and_seat( $date, $slot, $seating_preference );
         $remaining = max( 0, $capacity - $confirmed - $held );
 

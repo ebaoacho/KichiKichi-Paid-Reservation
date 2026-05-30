@@ -135,9 +135,10 @@ class KKPAY_Reservation_Repository {
             array(
                 'reservation_date' => $date,
                 'time_slot'        => $slot,
+                'updated_at'       => current_time( 'mysql' ),
             ),
             array( 'id' => (int) $id ),
-            array( '%s', '%s' ),
+            array( '%s', '%s', '%s' ),
             array( '%d' )
         );
     }
@@ -166,7 +167,7 @@ class KKPAY_Reservation_Repository {
         ) );
     }
 
-    /** Sum active reservation people for the shared capacity check. Requires the Step 1 schema. */
+    /** 共通空席チェック用に、Step 1 スキーマ適用後の active 予約人数を集計する。 */
     public static function sum_active_people_for_slot_and_seat( $date, $slot, $seating_preference ) {
         global $wpdb;
         return (int) $wpdb->get_var( $wpdb->prepare(
@@ -183,8 +184,26 @@ class KKPAY_Reservation_Repository {
         ) );
     }
 
-    /** 管理画面リスト・CSV エクスポート用の一覧取得 */
-    /** Check duplicate reservation with FOR UPDATE inside an open transaction. */
+    /** 日時変更時の共通空席チェック用に、自分自身を除外して active 予約人数を集計する。 */
+    public static function sum_active_people_for_slot_and_seat_excluding_id( $date, $slot, $seating_preference, $exclude_id ) {
+        global $wpdb;
+        return (int) $wpdb->get_var( $wpdb->prepare(
+            'SELECT COALESCE(SUM(number_of_people), 0) FROM ' . self::table() . '
+             WHERE reservation_date = %s
+               AND time_slot = %s
+               AND seating_preference = %s
+               AND status = %s
+               AND cancelled_at IS NULL
+               AND id <> %d',
+            $date,
+            $slot,
+            $seating_preference,
+            'active',
+            (int) $exclude_id
+        ) );
+    }
+
+    /** オープン中のトランザクション内で重複予約を確認し、該当行をロックする。 */
     public static function exists_by_email_date_slot_with_lock( $email, $date, $slot ) {
         global $wpdb;
         return (bool) $wpdb->get_var( $wpdb->prepare(
@@ -196,6 +215,7 @@ class KKPAY_Reservation_Repository {
         ) );
     }
 
+    /** オープン中のトランザクション内で、自分自身を除外して重複予約を確認する。 */
     public static function exists_by_email_date_slot_excluding_id_with_lock( $email, $date, $slot, $exclude_id ) {
         global $wpdb;
         return (bool) $wpdb->get_var( $wpdb->prepare(
@@ -232,7 +252,7 @@ class KKPAY_Reservation_Repository {
         return $result;
     }
 
-    /** Admin list for CSV export. */
+    /** 管理画面リスト用の一覧取得。 */
     public static function get_list( $filter_date = '', $filter_slot = '' ) {
         global $wpdb;
         $where  = 'WHERE 1=1';

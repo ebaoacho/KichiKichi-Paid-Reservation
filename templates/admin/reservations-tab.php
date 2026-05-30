@@ -86,7 +86,7 @@ $payment_status_labels = array(
             <table class="wp-list-table widefat striped">
                 <thead>
                     <tr>
-                        <th>ID</th><th>名前</th><th>メール</th><th>席数</th>
+                        <th>ID</th><th>予約種別</th><th>席種</th><th>名前</th><th>メール</th><th>席数</th>
                         <th>金額</th><th>決済ステータス</th><th>言語</th>
                         <th>作成日時</th><th>キャンセル日時</th>
                     </tr>
@@ -102,6 +102,8 @@ $payment_status_labels = array(
                         ?>
                         <tr>
                             <td><?php echo (int) $row->id; ?></td>
+                            <td><?php echo esc_html( $row->reservation_type ?? '' ); ?></td>
+                            <td><?php echo esc_html( $row->seating_preference ?? '' ); ?></td>
                             <td><?php echo esc_html( $row->name ); ?></td>
                             <td><?php echo esc_html( $row->email ); ?></td>
                             <td><?php echo (int) $row->number_of_people; ?>席</td>
