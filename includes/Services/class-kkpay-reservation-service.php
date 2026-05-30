@@ -65,6 +65,7 @@ class KKPAY_Reservation_Service {
 
         $id = KKPAY_Reservation_Repository::insert( array(
             'hold_id'                  => (int) $hold->id,
+            'reservation_type'         => 'premium',
             'reservation_date'         => $hold->reservation_date,
             'time_slot'                => $hold->time_slot,
             'name'                     => $hold->name,
@@ -78,12 +79,12 @@ class KKPAY_Reservation_Service {
             'created_at'               => $now->format( 'Y-m-d H:i:s' ),
         ) );
 
-        if ( $id === false ) {
+        if ( is_wp_error( $id ) ) {
             $existing = KKPAY_Reservation_Repository::find_by_payment_intent( $pi_id );
             if ( $existing ) {
                 return $existing->id;
             }
-            return new WP_Error( 'duplicate', kkpay_msg( 'duplicate_reservation', $hold->language ) );
+            return new WP_Error( 'db_error', kkpay_msg( 'duplicate_reservation', $hold->language ) );
         }
 
         return $id;
@@ -122,6 +123,7 @@ class KKPAY_Reservation_Service {
 
         $id = KKPAY_Reservation_Repository::insert( array(
             'hold_id'                  => null,
+            'reservation_type'         => 'special_premium',
             'reservation_date'         => $date,
             'time_slot'                => $slot,
             'name'                     => $premium->name,
@@ -135,7 +137,7 @@ class KKPAY_Reservation_Service {
             'created_at'               => $now->format( 'Y-m-d H:i:s' ),
         ) );
 
-        if ( $id === false ) {
+        if ( is_wp_error( $id ) ) {
             $existing = KKPAY_Reservation_Repository::find_by_payment_intent( $premium->stripe_payment_intent_id );
             if ( $existing ) {
                 if ( $existing->reservation_date !== $date || $existing->time_slot !== $slot ) {
@@ -146,7 +148,7 @@ class KKPAY_Reservation_Service {
                 return $existing->id;
             }
             $wpdb->query( 'ROLLBACK' );
-            return new WP_Error( 'db_error', 'Failed to create reservation record.' );
+            return $id;
         }
 
         $wpdb->query( 'COMMIT' );
