@@ -166,6 +166,23 @@ class KKPAY_Reservation_Repository {
         ) );
     }
 
+    /** Sum active reservation people for the shared capacity check. Requires the Step 1 schema. */
+    public static function sum_active_people_for_slot_and_seat( $date, $slot, $seating_preference ) {
+        global $wpdb;
+        return (int) $wpdb->get_var( $wpdb->prepare(
+            'SELECT COALESCE(SUM(number_of_people), 0) FROM ' . self::table() . '
+             WHERE reservation_date = %s
+               AND time_slot = %s
+               AND seating_preference = %s
+               AND status = %s
+               AND cancelled_at IS NULL',
+            $date,
+            $slot,
+            $seating_preference,
+            'active'
+        ) );
+    }
+
     /** 管理画面リスト・CSV エクスポート用の一覧取得 */
     /** Check duplicate reservation with FOR UPDATE inside an open transaction. */
     public static function exists_by_email_date_slot_with_lock( $email, $date, $slot ) {

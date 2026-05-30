@@ -113,6 +113,7 @@ require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-premium-reser
 
 // Services（ビジネスロジック層）
 require_once KKPAY_PLUGIN_DIR . 'includes/Services/class-kkpay-calendar-service.php';
+require_once KKPAY_PLUGIN_DIR . 'includes/Services/class-kkpay-capacity-service.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Services/class-kkpay-hold-service.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Services/class-kkpay-reservation-service.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Services/class-kkpay-payment-service.php';
