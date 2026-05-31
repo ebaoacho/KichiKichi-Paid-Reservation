@@ -196,9 +196,12 @@ Stripe 決済は、ブラウザの確定処理と Webhook の両方から同じ 
 - Step 1 確認スクリプト
 - `kkpay_slot_capacities` をロック対象にした共通空席ロックサービス
 - Step 2 確認スクリプト
+- プレミアム予約・スペシャルプレミアム予約の `Bar` 固定化
+- プレミアム予約・スペシャルプレミアム予約の日時確定・日時変更を共通空席ロックサービスへ接続
+- 予約作成・日時変更・キャンセル時の `kkpay_reservation_events` への監査ログ記録
+- Step 3 確認スクリプト
 
-次の Step では、プレミアム予約とスペシャルプレミアム予約の日時確定・日時変更処理を共通空席ロックサービスへ接続します。
-イベントログへの書き込みは、予約作成・日時変更・キャンセルの既存フローを共通サービスへ接続する Step 3 以降で実装します。
+次の Step では、当日予約 API を追加し、既存当日予約 UI を置き換える前にサーバー側の共通予約処理を用意します。
 
 ## 主要フロー
 
@@ -285,11 +288,12 @@ Webhook signing secret を `KKPAY_STRIPE_WEBHOOK_SECRET` に設定します。
 ## 確認スクリプト
 
 Step 1 のスキーマ確認用に、読み取り専用スクリプトを用意しています。
-Step 2 の確認は Step 1 のDBマイグレーションが適用済みであることを前提にしています。
+Step 2 / Step 3 の確認は Step 1 のDBマイグレーションが適用済みであることを前提にしています。
 
 ```powershell
 C:\xampp\php\php.exe tools\kkpay-step1-check.php C:\xampp\htdocs\kichikichi\wp-load.php
 C:\xampp\php\php.exe tools\kkpay-step2-check.php C:\xampp\htdocs\kichikichi\wp-load.php
+C:\xampp\php\php.exe tools\kkpay-step3-check.php C:\xampp\htdocs\kichikichi\wp-load.php
 ```
 
 期待結果:
@@ -316,9 +320,13 @@ C:\xampp\php\php.exe -l includes\Repositories\class-kkpay-reservation-repository
 C:\xampp\php\php.exe -l includes\Repositories\class-kkpay-slot-capacity-repository.php
 C:\xampp\php\php.exe -l includes\Repositories\class-kkpay-reservation-event-repository.php
 C:\xampp\php\php.exe -l includes\Services\class-kkpay-capacity-service.php
+C:\xampp\php\php.exe -l includes\Services\class-kkpay-hold-service.php
 C:\xampp\php\php.exe -l includes\Services\class-kkpay-reservation-service.php
+C:\xampp\php\php.exe -l includes\Services\class-kkpay-cancellation-service.php
+C:\xampp\php\php.exe -l includes\Services\class-kkpay-premium-reservation-service.php
 C:\xampp\php\php.exe -l tools\kkpay-step1-check.php
 C:\xampp\php\php.exe -l tools\kkpay-step2-check.php
+C:\xampp\php\php.exe -l tools\kkpay-step3-check.php
 ```
 
 ## 運用上の注意

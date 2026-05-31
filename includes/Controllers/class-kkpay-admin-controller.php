@@ -33,7 +33,7 @@ class KKPAY_Admin_Controller {
         echo "\xEF\xBB\xBF";
 
         $out = fopen( 'php://output', 'w' );
-        fputcsv( $out, array( '予約ID', '日付', 'スロット', '名前', 'メール', '席数', '金額', '決済ステータス', '言語', '作成日時', 'キャンセル日時' ) );
+        fputcsv( $out, array( '予約ID', '予約種別', '席種', '日付', 'スロット', '名前', 'メール', '席数', '金額', '決済ステータス', '言語', '作成日時', 'キャンセル日時' ) );
         $payment_status_labels = array(
             'pending'  => '決済待ち',
             'paid'     => '入金済み',
@@ -44,6 +44,8 @@ class KKPAY_Admin_Controller {
         foreach ( $results as $row ) {
             fputcsv( $out, array(
                 $row['id'],
+                $row['reservation_type'] ?? '',
+                $row['seating_preference'] ?? '',
                 $row['reservation_date'],
                 KKPAY_SLOT_LABELS['ja'][ $row['time_slot'] ] ?? $row['time_slot'],
                 $row['name'],
@@ -62,6 +64,8 @@ class KKPAY_Admin_Controller {
     }
 
     public static function ajax_save_slot_capacity() {
+        global $wpdb;
+
         check_ajax_referer( 'kkpay_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_send_json_error( array( 'message' => 'Unauthorized' ) );
@@ -72,6 +76,8 @@ class KKPAY_Admin_Controller {
         if ( ! is_array( $dates ) ) {
             wp_send_json_error( array( 'message' => 'Invalid data' ) );
         }
+
+        $wpdb->query( 'START TRANSACTION' );
 
         foreach ( $dates as $row ) {
             $date  = sanitize_text_field( $row['date'] ?? '' );
@@ -88,10 +94,25 @@ class KKPAY_Admin_Controller {
 
             foreach ( $valid_slots as $slot ) {
                 if ( array_key_exists( $slot, $slots ) ) {
-                    KKPAY_Accepted_Dates_Repository::upsert_slot( $date, $slot, (int) $slots[ $slot ] );
+                    $capacity = (int) $slots[ $slot ];
+                    $accepted_result = KKPAY_Accepted_Dates_Repository::upsert_slot( $date, $slot, $capacity );
+                    if ( $accepted_result === false ) {
+                        $wpdb->query( 'ROLLBACK' );
+                        error_log( '[KKPAY] Accepted dates capacity save failed. date=' . $date . ' slot=' . $slot . ' message=' . $wpdb->last_error );
+                        wp_send_json_error( array( 'message' => 'Save failed' ) );
+                    }
+
+                    $slot_capacity_result = KKPAY_Slot_Capacity_Repository::upsert( $date, $slot, 'Bar', $capacity, $capacity > 0 ? 1 : 0 );
+                    if ( is_wp_error( $slot_capacity_result ) ) {
+                        $wpdb->query( 'ROLLBACK' );
+                        error_log( '[KKPAY] Slot capacity save failed. date=' . $date . ' slot=' . $slot . ' message=' . $slot_capacity_result->get_error_message() );
+                        wp_send_json_error( array( 'message' => 'Save failed' ) );
+                    }
                 }
             }
         }
+
+        $wpdb->query( 'COMMIT' );
 
         wp_send_json_success( array( 'message' => 'Saved' ) );
     }

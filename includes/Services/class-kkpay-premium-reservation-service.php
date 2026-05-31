@@ -303,6 +303,7 @@ class KKPAY_Premium_Reservation_Service {
             return new WP_Error( 'not_scheduled', kkpay_msg( 'server_error', $premium->language ?? 'en' ) );
         }
 
+        // 返金対象判定: 予約日の3日前まで
         $is_refundable = self::is_refundable( $premium->reservation_date, $now );
 
         // 通常予約テーブルのキャンセル
@@ -323,7 +324,28 @@ class KKPAY_Premium_Reservation_Service {
             return new WP_Error( 'cancel_failed', kkpay_msg( 'server_error', $premium->language ?? 'en' ) );
         }
 
-        // 返金対象判定: 予約日の3日前まで
+        $event_id = KKPAY_Reservation_Event_Repository::insert(
+            (int) $premium->reservation_id,
+            'reservation_cancelled',
+            'customer',
+            array(
+                'source'             => 'special_premium_cancel',
+                'reservation_type'   => 'special_premium',
+                'reservation_date'   => $premium->reservation_date,
+                'time_slot'          => $premium->time_slot,
+                'seating_preference' => 'Bar',
+                'number_of_people'   => (int) $premium->number_of_people,
+                'cancelled_at'       => $now_str,
+                'refund_status'      => $is_refundable ? 'pending_check' : 'none',
+                'refund_amount'      => 0,
+            )
+        );
+        if ( is_wp_error( $event_id ) ) {
+            // 監査ログが残らないキャンセルを防ぐため、Step 1 のイベントテーブルが使えない場合は処理全体を止める。
+            $wpdb->query( 'ROLLBACK' );
+            return new WP_Error( 'cancel_failed', kkpay_msg( 'server_error', $premium->language ?? 'en' ) );
+        }
+
         $wpdb->query( 'COMMIT' );
 
         $refund_id      = null;

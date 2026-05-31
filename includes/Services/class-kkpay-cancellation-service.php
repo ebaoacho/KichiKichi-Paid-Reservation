@@ -44,6 +44,29 @@ class KKPAY_Cancellation_Service {
             return new WP_Error( 'cancel_failed', kkpay_msg( 'server_error', $lang ) );
         }
 
+        $event_id = KKPAY_Reservation_Event_Repository::insert(
+            (int) $reservation->id,
+            'reservation_cancelled',
+            'customer',
+            array(
+                'source'             => 'premium_cancel',
+                'reservation_type'   => $reservation->reservation_type ?: 'premium',
+                'reservation_date'   => $reservation->reservation_date,
+                'time_slot'          => $reservation->time_slot,
+                'seating_preference' => $reservation->seating_preference ?: 'Bar',
+                'number_of_people'   => (int) $reservation->number_of_people,
+                'cancelled_at'       => $cancelled_at,
+                'refund_status'      => $refund_status,
+                'refund_amount'      => $refund_amount,
+            )
+        );
+        if ( is_wp_error( $event_id ) ) {
+            // 監査ログが残らないキャンセルを防ぐため、Step 1 のイベントテーブルが使えない場合は処理全体を止める。
+            $wpdb->query( 'ROLLBACK' );
+            error_log( '[KKPAY] Reservation event insert failed for reservation_id=' . (int) $reservation->id . ' message=' . $event_id->get_error_message() );
+            return new WP_Error( 'cancel_failed', kkpay_msg( 'server_error', $lang ) );
+        }
+
         $wpdb->query( 'COMMIT' );
 
         KKPAY_Email_Service::send_cancellation_confirmation(

@@ -172,7 +172,7 @@ UNIQUE KEY date_slot_seat (capacity_date, time_slot, seating_preference)
 | --- | --- | --- |
 | `id` | BIGINT UNSIGNED | 主キー |
 | `reservation_id` | BIGINT UNSIGNED | 対象予約ID |
-| `event_type` | VARCHAR(50) | `created`, `scheduled`, `changed`, `cancelled`, `refunded`, `no_show`, `masked` など |
+| `event_type` | VARCHAR(50) | `reservation_created`, `reservation_rescheduled`, `reservation_cancelled`, `reservation_refunded`, `reservation_no_show`, `reservation_masked` など |
 | `actor_type` | VARCHAR(20) | `customer`, `admin`, `system`, `stripe` |
 | `actor_id` | BIGINT UNSIGNED NULL | 管理者ユーザーIDなど |
 | `event_payload` | LONGTEXT | JSON文字列として保存する操作内容 |
@@ -209,7 +209,7 @@ PR 1では次の方針で移行する。
 
 - `kkpay_cancellations`: 既存の有料予約・プレミアム予約のキャンセル返金履歴を保持する。
 - `kkpay_reservation_events`: 全予約タイプ共通の操作履歴を保持する。
-- 当日予約のキャンセルは返金を伴わないため、`kkpay_cancellations` には書かず、`kkpay_reservation_events` に `cancelled` イベントを記録する。
+- 当日予約のキャンセルは返金を伴わないため、`kkpay_cancellations` には書かず、`kkpay_reservation_events` に `reservation_cancelled` イベントを記録する。
 
 将来的に `kkpay_cancellations` を `kkpay_reservation_events` に統合する場合は、`refund_status`、`refund_amount`、`stripe_refund_id` の移行設計を別PRで扱う。
 

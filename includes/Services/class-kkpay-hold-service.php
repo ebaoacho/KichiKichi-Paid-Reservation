@@ -22,19 +22,16 @@ class KKPAY_Hold_Service {
 
         $wpdb->query( 'START TRANSACTION' );
 
-        $confirmed = KKPAY_Reservation_Repository::sum_people_for_slot_with_lock( $date, $slot );
-
         if ( KKPAY_Reservation_Repository::exists_by_email_date_slot_with_lock( $email, $date, $slot ) ) {
             $wpdb->query( 'ROLLBACK' );
             return new WP_Error( 'duplicate_reservation', kkpay_msg( 'duplicate_reservation', $lang ) );
         }
 
-        $held      = KKPAY_Hold_Repository::sum_people_for_slot_with_lock( $date, $slot );
-        $capacity  = KKPAY_Accepted_Dates_Repository::get_slot_capacity( $date, $slot );
-
-        if ( ( $confirmed + $held + $num ) > $capacity ) {
+        $capacity_check = KKPAY_Capacity_Service::check_available_for_update( $date, $slot, 'Bar', $num );
+        if ( is_wp_error( $capacity_check ) ) {
             $wpdb->query( 'ROLLBACK' );
-            return new WP_Error( 'capacity_exceeded', kkpay_msg( 'capacity_exceeded', $lang ) );
+            error_log( '[KKPAY] Hold capacity check failed. code=' . $capacity_check->get_error_code() . ' date=' . $date . ' slot=' . $slot );
+            return new WP_Error( $capacity_check->get_error_code(), kkpay_msg( 'capacity_exceeded', $lang ) );
         }
 
         $hold_token = bin2hex( random_bytes( 32 ) );

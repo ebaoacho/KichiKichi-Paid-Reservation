@@ -48,9 +48,16 @@ class KKPAY_Reservation_Service {
      * 確定済み＋有効ホールド中の人数を MAX_CAPACITY から引いた値
      */
     public static function get_remaining_capacity( $date, $slot ) {
-        $confirmed = KKPAY_Reservation_Repository::sum_people_for_slot( $date, $slot );
+        $capacity_row = KKPAY_Slot_Capacity_Repository::find( $date, $slot, 'Bar' );
+        if ( ! $capacity_row || (int) $capacity_row->enabled !== 1 ) {
+            return 0;
+        }
+
+        $confirmed = KKPAY_Reservation_Repository::sum_active_people_for_slot_and_seat( $date, $slot, 'Bar' );
+        // kkpay_holds にはまだ seating_preference カラムがないため、表示用残席でも既存 hold は Bar hold として扱う。
+        // 当日予約の Table hold を導入する際は、席種別の hold 集計に置き換えること。
         $held      = KKPAY_Hold_Repository::sum_people_for_slot( $date, $slot );
-        $capacity  = KKPAY_Accepted_Dates_Repository::get_slot_capacity( $date, $slot );
+        $capacity  = max( 0, (int) $capacity_row->capacity );
 
         return max( 0, $capacity - $confirmed - $held );
     }
@@ -60,12 +67,18 @@ class KKPAY_Reservation_Service {
      * UNIQUE KEY 違反（同一 payment_intent_id）は既存レコードの ID を返して冪等性を保証する
      */
     public static function create_from_hold( $hold, $pi_id, $charge_id, $status ) {
+        global $wpdb;
+
         $tz  = new DateTimeZone( 'Asia/Tokyo' );
         $now = new DateTimeImmutable( 'now', $tz );
+
+        $wpdb->query( 'START TRANSACTION' );
 
         $id = KKPAY_Reservation_Repository::insert( array(
             'hold_id'                  => (int) $hold->id,
             'reservation_type'         => 'premium',
+            'status'                   => 'active',
+            'seating_preference'       => 'Bar',
             'reservation_date'         => $hold->reservation_date,
             'time_slot'                => $hold->time_slot,
             'name'                     => $hold->name,
@@ -82,10 +95,33 @@ class KKPAY_Reservation_Service {
         if ( is_wp_error( $id ) ) {
             $existing = KKPAY_Reservation_Repository::find_by_payment_intent( $pi_id );
             if ( $existing ) {
+                $wpdb->query( 'ROLLBACK' );
                 return $existing->id;
             }
+            $wpdb->query( 'ROLLBACK' );
             return new WP_Error( 'db_error', kkpay_msg( 'duplicate_reservation', $hold->language ) );
         }
+
+        $event_id = KKPAY_Reservation_Event_Repository::insert(
+            $id,
+            'reservation_created',
+            'customer',
+            array(
+                'source'             => 'premium_hold',
+                'reservation_type'   => 'premium',
+                'reservation_date'   => $hold->reservation_date,
+                'time_slot'          => $hold->time_slot,
+                'seating_preference' => 'Bar',
+                'number_of_people'   => (int) $hold->number_of_people,
+                'payment_intent_id'  => $pi_id,
+            )
+        );
+        if ( is_wp_error( $event_id ) ) {
+            $wpdb->query( 'ROLLBACK' );
+            return new WP_Error( 'db_error', kkpay_msg( 'server_error', $hold->language ) );
+        }
+
+        $wpdb->query( 'COMMIT' );
 
         return $id;
     }
@@ -107,23 +143,24 @@ class KKPAY_Reservation_Service {
 
         $wpdb->query( 'START TRANSACTION' );
 
-        $confirmed = KKPAY_Reservation_Repository::sum_people_for_slot_with_lock( $date, $slot );
         if ( KKPAY_Reservation_Repository::exists_by_email_date_slot_with_lock( $premium->email, $date, $slot ) ) {
             $wpdb->query( 'ROLLBACK' );
             return new WP_Error( 'duplicate_reservation', kkpay_msg( 'duplicate_reservation', $premium->language ) );
         }
 
-        $held     = KKPAY_Hold_Repository::sum_people_for_slot_with_lock( $date, $slot );
-        $capacity = KKPAY_Accepted_Dates_Repository::get_slot_capacity( $date, $slot );
         $people = max( 1, (int) $premium->number_of_people );
-        if ( ( $confirmed + $held + $people ) > $capacity ) {
+        $capacity_check = KKPAY_Capacity_Service::check_available_for_update( $date, $slot, 'Bar', $people );
+        if ( is_wp_error( $capacity_check ) ) {
             $wpdb->query( 'ROLLBACK' );
-            return new WP_Error( 'capacity_exceeded', kkpay_msg( 'capacity_exceeded', $premium->language ) );
+            error_log( '[KKPAY] Special premium capacity check failed. code=' . $capacity_check->get_error_code() . ' date=' . $date . ' slot=' . $slot );
+            return new WP_Error( $capacity_check->get_error_code(), kkpay_msg( 'capacity_exceeded', $premium->language ) );
         }
 
         $id = KKPAY_Reservation_Repository::insert( array(
             'hold_id'                  => null,
             'reservation_type'         => 'special_premium',
+            'status'                   => 'active',
+            'seating_preference'       => 'Bar',
             'reservation_date'         => $date,
             'time_slot'                => $slot,
             'name'                     => $premium->name,
@@ -151,6 +188,26 @@ class KKPAY_Reservation_Service {
             return $id;
         }
 
+        $event_id = KKPAY_Reservation_Event_Repository::insert(
+            $id,
+            'reservation_created',
+            'admin',
+            array(
+                'source'             => 'special_premium_schedule',
+                'reservation_type'   => 'special_premium',
+                'reservation_date'   => $date,
+                'time_slot'          => $slot,
+                'seating_preference' => 'Bar',
+                'number_of_people'   => $people,
+                'capacity_check'     => $capacity_check,
+            )
+        );
+        if ( is_wp_error( $event_id ) ) {
+            $wpdb->query( 'ROLLBACK' );
+            error_log( '[KKPAY] Reservation event insert failed for reservation_id=' . (int) $id . ' message=' . $event_id->get_error_message() );
+            return new WP_Error( 'db_error', kkpay_msg( 'server_error', $premium->language ) );
+        }
+
         $wpdb->query( 'COMMIT' );
 
         return $id;
@@ -175,23 +232,51 @@ class KKPAY_Reservation_Service {
             return new WP_Error( 'duplicate_reservation', kkpay_msg( 'duplicate_reservation', $premium->language ) );
         }
 
-        $people    = max( 1, (int) $reservation->number_of_people );
-        $confirmed = KKPAY_Reservation_Repository::sum_people_for_slot_with_lock( $date, $slot );
-        if ( $reservation->reservation_date === $date && $reservation->time_slot === $slot ) {
-            $confirmed -= $people;
-        }
-        $held     = KKPAY_Hold_Repository::sum_people_for_slot_with_lock( $date, $slot );
-        $capacity = KKPAY_Accepted_Dates_Repository::get_slot_capacity( $date, $slot );
-
-        if ( ( $confirmed + $held + $people ) > $capacity ) {
+        $people         = max( 1, (int) $reservation->number_of_people );
+        $capacity_check = KKPAY_Capacity_Service::check_available_for_update_excluding_reservation(
+            $date,
+            $slot,
+            'Bar',
+            $people,
+            (int) $reservation->id
+        );
+        if ( is_wp_error( $capacity_check ) ) {
             $wpdb->query( 'ROLLBACK' );
-            return new WP_Error( 'capacity_exceeded', kkpay_msg( 'capacity_exceeded', $premium->language ) );
+            error_log( '[KKPAY] Special premium reschedule capacity check failed. code=' . $capacity_check->get_error_code() . ' reservation_id=' . (int) $reservation->id . ' date=' . $date . ' slot=' . $slot );
+            return new WP_Error( $capacity_check->get_error_code(), kkpay_msg( 'capacity_exceeded', $premium->language ) );
         }
 
         $updated = KKPAY_Reservation_Repository::update_schedule( (int) $reservation->id, $date, $slot );
         if ( $updated === false ) {
             $wpdb->query( 'ROLLBACK' );
             return new WP_Error( 'db_error', 'Failed to update reservation schedule.' );
+        }
+
+        $event_id = KKPAY_Reservation_Event_Repository::insert(
+            (int) $reservation->id,
+            'reservation_rescheduled',
+            'admin',
+            array(
+                'source'             => 'special_premium_schedule_change',
+                'reservation_type'   => $reservation->reservation_type ?: 'special_premium',
+                'from'               => array(
+                    'reservation_date'   => $reservation->reservation_date,
+                    'time_slot'          => $reservation->time_slot,
+                    'seating_preference' => $reservation->seating_preference ?: 'Bar',
+                ),
+                'to'                 => array(
+                    'reservation_date'   => $date,
+                    'time_slot'          => $slot,
+                    'seating_preference' => 'Bar',
+                ),
+                'number_of_people'   => $people,
+                'capacity_check'     => $capacity_check,
+            )
+        );
+        if ( is_wp_error( $event_id ) ) {
+            $wpdb->query( 'ROLLBACK' );
+            error_log( '[KKPAY] Reservation event insert failed for reservation_id=' . (int) $reservation->id . ' message=' . $event_id->get_error_message() );
+            return new WP_Error( 'db_error', kkpay_msg( 'server_error', $premium->language ) );
         }
 
         $wpdb->query( 'COMMIT' );
@@ -226,4 +311,5 @@ class KKPAY_Reservation_Service {
             'language'         => $reservation->language,
         );
     }
+
 }
