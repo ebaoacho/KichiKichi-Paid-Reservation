@@ -90,6 +90,11 @@ WordPress AJAX / REST API
 - Repositories → なし（`$wpdb` のみ）
 - Infrastructure → なし（`wp_remote_request` のみ）
 
+例外として、以下の横断的な共通 Service は他の Service から呼び出せます。
+
+- `KKPAY_Capacity_Service`: 複数の予約種別から使う空席ロックサービスです。予約作成・日時変更など、同一トランザクション内で `kkpay_slot_capacities` の行ロックを共有する必要がある場合に限り呼び出せます。
+- `KKPAY_Calendar_Service`: 営業日・営業枠判定を一元化するサービスです。予約種別ごとの Service が、当日の受付可能スロットを判定する場合に限り呼び出せます。
+
 **下の層が上の層を呼ぶことは禁止** です（循環依存の防止）。
 
 ---

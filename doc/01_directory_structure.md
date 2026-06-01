@@ -27,40 +27,63 @@ KichiKichi-Paid-Reservation/
 │   │   └── class-kkpay-stripe-client.php
 │   │
 │   ├── Repositories/                   DB 通信層（$wpdb のみを使う）
+│   │   ├── class-kkpay-accepted-dates-repository.php
 │   │   ├── class-kkpay-calendar-repository.php
 │   │   ├── class-kkpay-cancellation-repository.php
 │   │   ├── class-kkpay-hold-repository.php
-│   │   └── class-kkpay-reservation-repository.php
+│   │   ├── class-kkpay-premium-reservation-repository.php
+│   │   ├── class-kkpay-reservation-event-repository.php
+│   │   ├── class-kkpay-reservation-repository.php
+│   │   └── class-kkpay-slot-capacity-repository.php
 │   │
 │   ├── Services/                       ビジネスロジック層
 │   │   ├── class-kkpay-calendar-service.php
 │   │   ├── class-kkpay-cancellation-service.php
+│   │   ├── class-kkpay-capacity-service.php
 │   │   ├── class-kkpay-email-service.php
 │   │   ├── class-kkpay-hold-service.php
 │   │   ├── class-kkpay-payment-service.php
-│   │   └── class-kkpay-reservation-service.php
+│   │   ├── class-kkpay-premium-reservation-service.php
+│   │   ├── class-kkpay-reservation-service.php
+│   │   └── class-kkpay-same-day-reservation-service.php
 │   │
 │   ├── Validators/                     バリデーション層（$_POST の入口）
 │   │   ├── class-kkpay-cancellation-validator.php
 │   │   ├── class-kkpay-hold-validator.php
 │   │   ├── class-kkpay-payment-validator.php
-│   │   └── class-kkpay-reservation-validator.php
+│   │   ├── class-kkpay-premium-reservation-validator.php
+│   │   ├── class-kkpay-reservation-validator.php
+│   │   └── class-kkpay-same-day-reservation-validator.php
 │   │
 │   ├── Controllers/                    リクエスト受付・レスポンス返却層
 │   │   ├── class-kkpay-admin-controller.php
 │   │   ├── class-kkpay-cancellation-controller.php
 │   │   ├── class-kkpay-hold-controller.php
 │   │   ├── class-kkpay-payment-controller.php
-│   │   └── class-kkpay-reservation-controller.php
+│   │   ├── class-kkpay-premium-reservation-controller.php
+│   │   ├── class-kkpay-reservation-controller.php
+│   │   └── class-kkpay-same-day-reservation-controller.php
 │   │
 │   ├── class-kkpay-activator.php       DB テーブル作成・Cron スケジュール登録
 │   ├── class-kkpay-admin.php           管理画面 UI レンダリング
 │   └── class-kkpay-cron.php            WP-Cron：期限切れホールドの定期削除
 │
 ├── templates/                          ショートコードが出力する HTML テンプレート
+│   ├── admin/
+│   │   ├── premium-reservations-tab.php
+│   │   ├── reservations-tab.php
+│   │   └── seat-capacity-tab.php
 │   ├── reservation-form.php            予約フォーム（ステップ 1）
 │   ├── payment-page.php                決済ページ（ステップ 2）
-│   └── my-reservation.php             予約照会・キャンセルページ
+│   ├── my-reservation.php              予約照会・キャンセルページ
+│   ├── premium-payment.php             スペシャルプレミアム決済ページ
+│   └── premium-cancel.php              スペシャルプレミアムキャンセルページ
+│
+├── tools/                              読み取り専用の確認スクリプト
+│   ├── kkpay-step1-check.php
+│   ├── kkpay-step2-check.php
+│   ├── kkpay-step3-check.php
+│   └── kkpay-step4-check.php
 │
 └── assets/
     ├── css/
