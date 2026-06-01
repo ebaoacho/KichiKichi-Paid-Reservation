@@ -48,6 +48,45 @@ class KKPAY_Reservation_Repository {
         ) );
     }
 
+    public static function find_active_same_day_by_email( $email, $date ) {
+        global $wpdb;
+        return $wpdb->get_row( $wpdb->prepare(
+            'SELECT * FROM ' . self::table() . '
+             WHERE reservation_type = %s
+               AND email = %s
+               AND reservation_date = %s
+               AND status = %s
+               AND cancelled_at IS NULL
+             ORDER BY created_at DESC, id DESC
+             LIMIT 1',
+            'same_day',
+            $email,
+            $date,
+            'active'
+        ) );
+    }
+
+    public static function find_active_same_day_by_email_for_update( $email, $date ) {
+        global $wpdb;
+        // email_date_slot UNIQUE KEY の先頭列 (email, reservation_date) を使い、当日1メール1予約をロックする。
+        // ただし active 行が存在しない場合はロック対象がないため、同一メール・同日・別スロットの同時作成は完全には防げない。
+        return $wpdb->get_row( $wpdb->prepare(
+            'SELECT * FROM ' . self::table() . '
+             WHERE reservation_type = %s
+               AND email = %s
+               AND reservation_date = %s
+               AND status = %s
+               AND cancelled_at IS NULL
+             ORDER BY created_at DESC, id DESC
+             LIMIT 1
+             FOR UPDATE',
+            'same_day',
+            $email,
+            $date,
+            'active'
+        ) );
+    }
+
     /** 予約レコードを挿入し、挿入した ID を返す（失敗時は WP_Error） */
     public static function insert( array $data ) {
         global $wpdb;
@@ -109,6 +148,7 @@ class KKPAY_Reservation_Repository {
     /**
      * 予約をキャンセル済みに更新する。
      * 成功時は更新行数（int）、失敗時は false を返す。
+     * 既存呼び出し元との互換性維持のため、現時点では WP_Error ではなく $wpdb->update() の戻り値を返す例外メソッド。
      *
      * @return int|false
      */

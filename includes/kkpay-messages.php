@@ -81,6 +81,13 @@ define( 'KKPAY_MESSAGES', array(
         'zh-CN' => '预约已取消。概不退款。',
         'zh-TW' => '預約已取消。概不退款。',
     ),
+    'same_day_cancel_success' => array(
+        'en'    => 'Your same-day reservation has been cancelled.',
+        'ja'    => '当日予約をキャンセルしました。',
+        'ko'    => '당일 예약이 취소되었습니다.',
+        'zh-CN' => '当日预约已取消。',
+        'zh-TW' => '當日預約已取消。',
+    ),
     'max_people_exceeded' => array(
         'en'    => 'Maximum 4 people per reservation.',
         'ja'    => '1予約あたり最大4名までです。',
@@ -94,6 +101,20 @@ define( 'KKPAY_MESSAGES', array(
         'ko'    => '이 이메일, 날짜, 시간대의 예약이 이미 존재합니다.',
         'zh-CN' => '该邮箱、日期和时间段的预约已存在。',
         'zh-TW' => '該電子郵件、日期和時間段的預約已存在。',
+    ),
+    'invalid_email' => array(
+        'en'    => 'Please enter a valid email address.',
+        'ja'    => '有効なメールアドレスを入力してください。',
+        'ko'    => '유효한 이메일 주소를 입력해주세요.',
+        'zh-CN' => '请输入有效的电子邮箱地址。',
+        'zh-TW' => '請輸入有效的電子郵件地址。',
+    ),
+    'email_mismatch' => array(
+        'en'    => 'Email addresses do not match.',
+        'ja'    => 'メールアドレスが一致しません。',
+        'ko'    => '이메일 주소가 일치하지 않습니다.',
+        'zh-CN' => '两次输入的电子邮箱地址不一致。',
+        'zh-TW' => '兩次輸入的電子郵件地址不一致。',
     ),
     'server_error' => array(
         'en'    => 'A server error occurred. Please try again later.',

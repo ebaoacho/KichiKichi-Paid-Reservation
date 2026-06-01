@@ -120,6 +120,7 @@ require_once KKPAY_PLUGIN_DIR . 'includes/Services/class-kkpay-payment-service.p
 require_once KKPAY_PLUGIN_DIR . 'includes/Services/class-kkpay-cancellation-service.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Services/class-kkpay-email-service.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Services/class-kkpay-premium-reservation-service.php';
+require_once KKPAY_PLUGIN_DIR . 'includes/Services/class-kkpay-same-day-reservation-service.php';
 
 // Validators（バリデーション層）
 require_once KKPAY_PLUGIN_DIR . 'includes/Validators/class-kkpay-hold-validator.php';
@@ -127,6 +128,7 @@ require_once KKPAY_PLUGIN_DIR . 'includes/Validators/class-kkpay-payment-validat
 require_once KKPAY_PLUGIN_DIR . 'includes/Validators/class-kkpay-reservation-validator.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Validators/class-kkpay-cancellation-validator.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Validators/class-kkpay-premium-reservation-validator.php';
+require_once KKPAY_PLUGIN_DIR . 'includes/Validators/class-kkpay-same-day-reservation-validator.php';
 
 // Controllers（リクエスト受付・レスポンス返却層）
 require_once KKPAY_PLUGIN_DIR . 'includes/Controllers/class-kkpay-hold-controller.php';
@@ -135,6 +137,7 @@ require_once KKPAY_PLUGIN_DIR . 'includes/Controllers/class-kkpay-reservation-co
 require_once KKPAY_PLUGIN_DIR . 'includes/Controllers/class-kkpay-cancellation-controller.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Controllers/class-kkpay-admin-controller.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Controllers/class-kkpay-premium-reservation-controller.php';
+require_once KKPAY_PLUGIN_DIR . 'includes/Controllers/class-kkpay-same-day-reservation-controller.php';
 
 // Supporting classes
 require_once KKPAY_PLUGIN_DIR . 'includes/class-kkpay-activator.php';
@@ -339,6 +342,11 @@ $kkpay_public_actions = array(
     'kkpay_premium_create_payment_intent'  => array( 'KKPAY_Premium_Reservation_Controller', 'ajax_create_payment_intent' ),
     'kkpay_premium_confirm_payment'        => array( 'KKPAY_Premium_Reservation_Controller', 'ajax_confirm_payment' ),
     'kkpay_premium_cancel_reservation'     => array( 'KKPAY_Premium_Reservation_Controller', 'ajax_cancel_reservation' ),
+    'kkpay_same_day_status'                => array( 'KKPAY_Same_Day_Reservation_Controller', 'ajax_status' ),
+    'kkpay_same_day_available_slots'       => array( 'KKPAY_Same_Day_Reservation_Controller', 'ajax_available_slots' ),
+    'kkpay_same_day_create'                => array( 'KKPAY_Same_Day_Reservation_Controller', 'ajax_create' ),
+    'kkpay_same_day_find'                  => array( 'KKPAY_Same_Day_Reservation_Controller', 'ajax_find' ),
+    'kkpay_same_day_cancel'                => array( 'KKPAY_Same_Day_Reservation_Controller', 'ajax_cancel' ),
 );
 
 foreach ( $kkpay_public_actions as $action => $callback ) {
@@ -354,6 +362,8 @@ add_action( 'wp_ajax_kkpay_premium_issue_payment_link',   array( 'KKPAY_Premium_
 add_action( 'wp_ajax_kkpay_premium_schedule_reservation', array( 'KKPAY_Premium_Reservation_Controller', 'ajax_schedule_reservation' ) );
 add_action( 'wp_ajax_kkpay_premium_issue_cancel_link',    array( 'KKPAY_Premium_Reservation_Controller', 'ajax_issue_cancel_link' ) );
 add_action( 'wp_ajax_kkpay_premium_export_csv',           array( 'KKPAY_Premium_Reservation_Controller', 'ajax_export_csv' ) );
+add_action( 'wp_ajax_kkpay_same_day_start',               array( 'KKPAY_Same_Day_Reservation_Controller', 'ajax_start' ) );
+add_action( 'wp_ajax_kkpay_same_day_stop',                array( 'KKPAY_Same_Day_Reservation_Controller', 'ajax_stop' ) );
 
 // Stripe Webhook（REST API）
 add_action( 'rest_api_init', function () {

@@ -200,8 +200,16 @@ Stripe 決済は、ブラウザの確定処理と Webhook の両方から同じ 
 - プレミアム予約・スペシャルプレミアム予約の日時確定・日時変更を共通空席ロックサービスへ接続
 - 予約作成・日時変更・キャンセル時の `kkpay_reservation_events` への監査ログ記録
 - Step 3 確認スクリプト
+- 当日予約 API の Service / Validator / Controller 追加
+- 当日予約の受付開始・停止、空き枠取得、作成、確認、キャンセル API 追加
+- 当日予約作成・キャンセル時の `kkpay_reservation_events` への監査ログ記録
+- Step 4 確認スクリプト
 
-次の Step では、当日予約 API を追加し、既存当日予約 UI を置き換える前にサーバー側の共通予約処理を用意します。
+Step 4 の当日予約作成では、同じメール・同じ日付に既存の active 行がある場合は `FOR UPDATE` でロックします。active 行がまだ存在しない場合、同じメール・同じ日付・別スロットへの完全な同時二重作成は行ロックだけでは防げないため、実運用上は低頻度の制約として扱い、同一スロットの最終防御は `email_date_slot` UNIQUE KEY に委ねます。
+
+また、`doc/01_directory_structure.md` は Step 4 で追加したファイルだけでなく、Step 1〜3 で実態と乖離していた既存の追加ファイルも合わせて反映しています。
+
+次の Step では、既存当日予約 UI の見え方を踏襲したフォームを追加し、Step 4 の API へ接続します。
 
 ## 主要フロー
 
@@ -288,12 +296,13 @@ Webhook signing secret を `KKPAY_STRIPE_WEBHOOK_SECRET` に設定します。
 ## 確認スクリプト
 
 Step 1 のスキーマ確認用に、読み取り専用スクリプトを用意しています。
-Step 2 / Step 3 の確認は Step 1 のDBマイグレーションが適用済みであることを前提にしています。
+Step 2 / Step 3 / Step 4 の確認は Step 1 のDBマイグレーションが適用済みであることを前提にしています。
 
 ```powershell
 C:\xampp\php\php.exe tools\kkpay-step1-check.php C:\xampp\htdocs\kichikichi\wp-load.php
 C:\xampp\php\php.exe tools\kkpay-step2-check.php C:\xampp\htdocs\kichikichi\wp-load.php
 C:\xampp\php\php.exe tools\kkpay-step3-check.php C:\xampp\htdocs\kichikichi\wp-load.php
+C:\xampp\php\php.exe tools\kkpay-step4-check.php C:\xampp\htdocs\kichikichi\wp-load.php
 ```
 
 期待結果:
@@ -324,9 +333,13 @@ C:\xampp\php\php.exe -l includes\Services\class-kkpay-hold-service.php
 C:\xampp\php\php.exe -l includes\Services\class-kkpay-reservation-service.php
 C:\xampp\php\php.exe -l includes\Services\class-kkpay-cancellation-service.php
 C:\xampp\php\php.exe -l includes\Services\class-kkpay-premium-reservation-service.php
+C:\xampp\php\php.exe -l includes\Services\class-kkpay-same-day-reservation-service.php
+C:\xampp\php\php.exe -l includes\Validators\class-kkpay-same-day-reservation-validator.php
+C:\xampp\php\php.exe -l includes\Controllers\class-kkpay-same-day-reservation-controller.php
 C:\xampp\php\php.exe -l tools\kkpay-step1-check.php
 C:\xampp\php\php.exe -l tools\kkpay-step2-check.php
 C:\xampp\php\php.exe -l tools\kkpay-step3-check.php
+C:\xampp\php\php.exe -l tools\kkpay-step4-check.php
 ```
 
 ## 運用上の注意
