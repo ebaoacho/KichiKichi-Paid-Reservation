@@ -211,6 +211,7 @@ Stripe 決済は、ブラウザの確定処理と Webhook の両方から同じ 
 - 既存当日予約フォームに近い入力順のテンプレート追加
 - 人数・席種別に応じて Step 4 API から空き時間枠を取得するフロント JS 追加
 - Step 5 確認スクリプト
+- Step 7 管理画面の当日予約一覧タブと確認スクリプト
 
 Step 5 のフォーム固有文言（入力必須、メール不一致、スロット未選択など）は `assets/js/kkpay-same-day.js` の `LABELS` で管理します。サーバー由来のエラーメッセージは `KKPAY_MESSAGES` を優先し、JS 固有文言だけ `LABELS` にフォールバックします。
 
@@ -220,7 +221,7 @@ Step 6 の当日予約確認は、現行仕様に合わせてメールアドレ�
 
 また、`doc/01_directory_structure.md` は Step 4 で追加したファイルだけでなく、Step 1〜3 で実態と乖離していた既存の追加ファイルも合わせて反映しています。
 
-次の Step では、管理画面に当日予約タブを追加し、`same_day` 予約を管理画面から確認できるようにします。
+次の Step では、席数設定・営業日カレンダーを共通席数テーブルへ接続します。
 
 ## 主要フロー
 
@@ -308,7 +309,7 @@ Webhook signing secret を `KKPAY_STRIPE_WEBHOOK_SECRET` に設定します。
 
 Step 1 のスキーマ確認用に、読み取り専用スクリプトを用意しています。
 Step 2 / Step 3 / Step 4 / Step 6 の確認は Step 1 のDBマイグレーションが適用済みであることを前提にしています。
-Step 5 の確認スクリプトはファイルと登録内容の静的確認のみで、DB接続は不要です。
+Step 5 / Step 7 の確認スクリプトはファイルと登録内容の静的確認のみで、DB接続は不要です。
 
 ```powershell
 C:\xampp\php\php.exe tools\kkpay-step1-check.php C:\xampp\htdocs\kichikichi\wp-load.php
@@ -317,6 +318,7 @@ C:\xampp\php\php.exe tools\kkpay-step3-check.php C:\xampp\htdocs\kichikichi\wp-l
 C:\xampp\php\php.exe tools\kkpay-step4-check.php C:\xampp\htdocs\kichikichi\wp-load.php
 C:\xampp\php\php.exe tools\kkpay-step5-check.php
 C:\xampp\php\php.exe tools\kkpay-step6-check.php
+C:\xampp\php\php.exe tools\kkpay-step7-check.php
 ```
 
 期待結果:
@@ -352,13 +354,16 @@ C:\xampp\php\php.exe -l includes\Validators\class-kkpay-same-day-reservation-val
 C:\xampp\php\php.exe -l includes\Controllers\class-kkpay-same-day-reservation-controller.php
 C:\xampp\php\php.exe -l templates\same-day-confirmation.php
 C:\xampp\php\php.exe -l templates\same-day-reservation-form.php
+C:\xampp\php\php.exe -l templates\admin\same-day-reservations-tab.php
 C:\xampp\php\php.exe -l tools\kkpay-step1-check.php
 C:\xampp\php\php.exe -l tools\kkpay-step2-check.php
 C:\xampp\php\php.exe -l tools\kkpay-step3-check.php
 C:\xampp\php\php.exe -l tools\kkpay-step4-check.php
 C:\xampp\php\php.exe -l tools\kkpay-step5-check.php
 C:\xampp\php\php.exe -l tools\kkpay-step6-check.php
+C:\xampp\php\php.exe -l tools\kkpay-step7-check.php
 node --check assets\js\kkpay-same-day.js
+node --check assets\js\kkpay-admin-same-day.js
 node --check assets\js\kkpay-same-day-confirmation.js
 ```
 
