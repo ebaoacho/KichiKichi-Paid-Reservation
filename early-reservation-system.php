@@ -158,6 +158,7 @@ add_action( 'init', function () {
     add_shortcode( 'kkpay_my_reservation',   'kkpay_render_my_reservation' );
     add_shortcode( 'kkpay_premium_payment',  'kkpay_render_premium_payment' );
     add_shortcode( 'kkpay_premium_cancel',   'kkpay_render_premium_cancel' );
+    add_shortcode( 'kkpay_same_day_confirmation', 'kkpay_render_same_day_confirmation' );
 } );
 
 function kkpay_render_reservation_form() {
@@ -192,6 +193,13 @@ function kkpay_render_premium_cancel() {
     kkpay_enqueue_premium_cancel_assets();
     ob_start();
     include KKPAY_PLUGIN_DIR . 'templates/premium-cancel.php';
+    return ob_get_clean();
+}
+
+function kkpay_render_same_day_confirmation() {
+    kkpay_enqueue_same_day_confirmation_assets();
+    ob_start();
+    include KKPAY_PLUGIN_DIR . 'templates/same-day-confirmation.php';
     return ob_get_clean();
 }
 
@@ -281,6 +289,7 @@ function kkpay_enqueue_assets() {
     $has_mypage          = has_shortcode( $content, 'kkpay_my_reservation' );
     $has_premium_payment = has_shortcode( $content, 'kkpay_premium_payment' );
     $has_premium_cancel  = has_shortcode( $content, 'kkpay_premium_cancel' );
+    $has_same_day_confirmation = has_shortcode( $content, 'kkpay_same_day_confirmation' );
 
     if ( $has_form || $has_payment ) {
         kkpay_enqueue_form_assets( $has_payment );
@@ -293,6 +302,9 @@ function kkpay_enqueue_assets() {
     }
     if ( $has_premium_cancel ) {
         kkpay_enqueue_premium_cancel_assets();
+    }
+    if ( $has_same_day_confirmation ) {
+        kkpay_enqueue_same_day_confirmation_assets();
     }
 }
 
@@ -328,6 +340,18 @@ function kkpay_enqueue_premium_cancel_assets() {
     wp_localize_script( 'kkpay-premium-cancel', 'kkpay_premium_cancel', array(
         'ajax_url' => admin_url( 'admin-ajax.php' ),
         'nonce'    => wp_create_nonce( 'kkpay_nonce' ),
+    ) );
+}
+
+function kkpay_enqueue_same_day_confirmation_assets() {
+    wp_enqueue_style( 'kkpay-form', KKPAY_PLUGIN_URL . 'assets/css/kkpay-form.css', array(), KKPAY_VERSION );
+    wp_enqueue_style( 'kkpay-same-day-confirmation', KKPAY_PLUGIN_URL . 'assets/css/kkpay-same-day-confirmation.css', array( 'kkpay-form' ), KKPAY_VERSION );
+    wp_enqueue_script( 'kkpay-same-day-confirmation', KKPAY_PLUGIN_URL . 'assets/js/kkpay-same-day-confirmation.js', array( 'jquery' ), KKPAY_VERSION, true );
+    wp_localize_script( 'kkpay-same-day-confirmation', 'kkpay_same_day_confirmation', array(
+        'ajax_url'    => admin_url( 'admin-ajax.php' ),
+        'nonce'       => wp_create_nonce( 'kkpay_nonce' ),
+        'slot_labels' => KKPAY_SLOT_LABELS,
+        'messages'    => KKPAY_MESSAGES,
     ) );
 }
 

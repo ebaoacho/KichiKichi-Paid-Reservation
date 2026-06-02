@@ -240,7 +240,8 @@ class KKPAY_Same_Day_Reservation_Service {
         $wpdb->query( 'COMMIT' );
 
         return array(
-            'message' => kkpay_msg( 'same_day_cancel_success', $lang ),
+            'message'      => kkpay_msg( 'same_day_cancel_success', $lang ),
+            'cancelled_at' => $cancelled_at,
         );
     }
 
