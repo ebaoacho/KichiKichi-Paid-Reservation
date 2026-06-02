@@ -204,12 +204,18 @@ Stripe 決済は、ブラウザの確定処理と Webhook の両方から同じ 
 - 当日予約の受付開始・停止、空き枠取得、作成、確認、キャンセル API 追加
 - 当日予約作成・キャンセル時の `kkpay_reservation_events` への監査ログ記録
 - Step 4 確認スクリプト
+- `[kkpay_same_day_reservation_form]` ショートコード追加
+- 既存当日予約フォームに近い入力順のテンプレート追加
+- 人数・席種別に応じて Step 4 API から空き時間枠を取得するフロント JS 追加
+- Step 5 確認スクリプト
+
+Step 5 のフォーム固有文言（入力必須、メール不一致、スロット未選択など）は `assets/js/kkpay-same-day.js` の `LABELS` で管理します。サーバー由来のエラーメッセージは `KKPAY_MESSAGES` を優先し、JS 固有文言だけ `LABELS` にフォールバックします。
 
 Step 4 の当日予約作成では、同じメール・同じ日付に既存の active 行がある場合は `FOR UPDATE` でロックします。active 行がまだ存在しない場合、同じメール・同じ日付・別スロットへの完全な同時二重作成は行ロックだけでは防げないため、実運用上は低頻度の制約として扱い、同一スロットの最終防御は `email_date_slot` UNIQUE KEY に委ねます。
 
 また、`doc/01_directory_structure.md` は Step 4 で追加したファイルだけでなく、Step 1〜3 で実態と乖離していた既存の追加ファイルも合わせて反映しています。
 
-次の Step では、既存当日予約 UI の見え方を踏襲したフォームを追加し、Step 4 の API へ接続します。
+次の Step では、当日予約の確認・キャンセルページを追加し、既存の確認導線を新しい予約台帳へ接続します。
 
 ## 主要フロー
 
@@ -285,24 +291,25 @@ Webhook signing secret を `KKPAY_STRIPE_WEBHOOK_SECRET` に設定します。
 | `[kkpay_reservation_form]` | プレミアム予約フォーム |
 | `[kkpay_payment_page]` | Stripe 決済ページ |
 | `[kkpay_my_reservation]` | 予約確認・キャンセル |
+| `[kkpay_same_day_reservation_form]` | 当日予約フォーム |
 
 今後の当日予約統合では、以下の shortcode を追加する予定です。
 
 | Shortcode | 用途 |
 | --- | --- |
-| `[kkpay_same_day_reservation_form]` | 当日予約フォーム |
 | `[kkpay_same_day_confirmation]` | 当日予約確認・キャンセル |
 
 ## 確認スクリプト
 
 Step 1 のスキーマ確認用に、読み取り専用スクリプトを用意しています。
-Step 2 / Step 3 / Step 4 の確認は Step 1 のDBマイグレーションが適用済みであることを前提にしています。
+Step 2 / Step 3 / Step 4 の確認は Step 1 のDBマイグレーションが適用済みであることを前提にしています。Step 5 の確認スクリプトはファイルと登録内容の静的確認のみで、DB接続は不要です。
 
 ```powershell
 C:\xampp\php\php.exe tools\kkpay-step1-check.php C:\xampp\htdocs\kichikichi\wp-load.php
 C:\xampp\php\php.exe tools\kkpay-step2-check.php C:\xampp\htdocs\kichikichi\wp-load.php
 C:\xampp\php\php.exe tools\kkpay-step3-check.php C:\xampp\htdocs\kichikichi\wp-load.php
 C:\xampp\php\php.exe tools\kkpay-step4-check.php C:\xampp\htdocs\kichikichi\wp-load.php
+C:\xampp\php\php.exe tools\kkpay-step5-check.php
 ```
 
 期待結果:
@@ -336,10 +343,12 @@ C:\xampp\php\php.exe -l includes\Services\class-kkpay-premium-reservation-servic
 C:\xampp\php\php.exe -l includes\Services\class-kkpay-same-day-reservation-service.php
 C:\xampp\php\php.exe -l includes\Validators\class-kkpay-same-day-reservation-validator.php
 C:\xampp\php\php.exe -l includes\Controllers\class-kkpay-same-day-reservation-controller.php
+C:\xampp\php\php.exe -l templates\same-day-reservation-form.php
 C:\xampp\php\php.exe -l tools\kkpay-step1-check.php
 C:\xampp\php\php.exe -l tools\kkpay-step2-check.php
 C:\xampp\php\php.exe -l tools\kkpay-step3-check.php
 C:\xampp\php\php.exe -l tools\kkpay-step4-check.php
+C:\xampp\php\php.exe -l tools\kkpay-step5-check.php
 ```
 
 ## 運用上の注意

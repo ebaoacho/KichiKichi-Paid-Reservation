@@ -1,0 +1,101 @@
+/* Same-day reservation form */
+
+.kkpay-same-day-wrap {
+    max-width: 620px;
+}
+
+.kkpay-same-day-status {
+    margin-bottom: 20px;
+    padding: 12px 16px;
+    border-radius: var(--kkpay-radius);
+    border: 1px solid var(--kkpay-border);
+    background: var(--kkpay-bg);
+    color: var(--kkpay-muted);
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.kkpay-same-day-status.is-open {
+    background: var(--kkpay-yellow-light);
+    border-color: var(--kkpay-yellow);
+    color: #7a5800;
+}
+
+.kkpay-same-day-status.is-closed {
+    background: var(--kkpay-red-light);
+    border-color: rgba(200, 16, 46, 0.28);
+    color: var(--kkpay-red-dark);
+}
+
+.kkpay-same-day-status.is-loading {
+    background: var(--kkpay-bg);
+    border-color: var(--kkpay-border);
+    color: var(--kkpay-muted);
+}
+
+.kkpay-same-day-check-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    line-height: 1.55;
+    color: var(--kkpay-text);
+    font-size: 0.94rem;
+}
+
+.kkpay-same-day-check-row input {
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    flex: 0 0 auto;
+    accent-color: var(--kkpay-red);
+}
+
+.kkpay-same-day-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.kkpay-same-day-slot-list {
+    min-height: 48px;
+}
+
+.kkpay-same-day-slot-list.is-loading {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border: 1.5px dashed var(--kkpay-border);
+    border-radius: var(--kkpay-radius);
+    color: var(--kkpay-muted);
+}
+
+.kkpay-same-day-slot {
+    width: 100%;
+    text-align: left;
+    color: var(--kkpay-text);
+}
+
+.kkpay-same-day-slot.selected {
+    border-color: var(--kkpay-red);
+    background: var(--kkpay-red-light);
+    color: var(--kkpay-red);
+}
+
+.kkpay-same-day-empty {
+    padding: 14px 16px;
+    border: 1.5px dashed var(--kkpay-border);
+    border-radius: var(--kkpay-radius);
+    color: var(--kkpay-muted);
+    background: var(--kkpay-bg);
+    line-height: 1.5;
+}
+
+#kkpay-same-day-submit {
+    margin-top: 6px;
+}
+
+@media (max-width: 560px) {
+    .kkpay-same-day-grid {
+        grid-template-columns: 1fr;
+    }
+}
