@@ -6,6 +6,7 @@
  *   php tools/kkpay-step5-check.php
  *
  * This script is read-only and does not load WordPress.
+ * AJAX action registration is covered by the Step 4 smoke check.
  */
 
 if ( PHP_SAPI !== 'cli' ) {

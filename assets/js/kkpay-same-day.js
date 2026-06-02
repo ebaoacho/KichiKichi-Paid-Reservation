@@ -436,8 +436,16 @@
         }
     });
 
-    $people.on('change', refreshSlots);
-    $seat.on('change', refreshSlots);
+    $people.on('change', function () {
+        if (isAccepting) {
+            refreshSlots();
+        }
+    });
+    $seat.on('change', function () {
+        if (isAccepting) {
+            refreshSlots();
+        }
+    });
 
     $slots.on('click', '.kkpay-same-day-slot', function () {
         hideMessage();

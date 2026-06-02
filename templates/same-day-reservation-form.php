@@ -56,7 +56,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
     <div class="kkpay-field">
         <label class="kkpay-label" id="kkpay-same-day-lbl-slot">Time slot</label>
-        <div id="kkpay-same-day-slot-list" class="kkpay-same-day-slot-list"></div>
+        <div id="kkpay-same-day-slot-list" class="kkpay-same-day-slot-list" role="group" aria-labelledby="kkpay-same-day-lbl-slot"></div>
     </div>
 
     <div class="kkpay-field">

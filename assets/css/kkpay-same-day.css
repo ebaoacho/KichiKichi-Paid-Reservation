@@ -1,5 +1,3 @@
-/* Same-day reservation form */
-
 .kkpay-same-day-wrap {
     max-width: 620px;
 }
@@ -79,6 +77,14 @@
     border-color: var(--kkpay-red);
     background: var(--kkpay-red-light);
     color: var(--kkpay-red);
+}
+
+.kkpay-slot-remaining {
+    display: block;
+    margin-top: 4px;
+    color: var(--kkpay-muted);
+    font-size: 0.9rem;
+    font-weight: 500;
 }
 
 .kkpay-same-day-empty {
