@@ -207,6 +207,12 @@ Stripe 決済は、ブラウザの確定処理と Webhook の両方から同じ 
 - 当日予約確認・キャンセルページ用 shortcode `[kkpay_same_day_confirmation]` 追加
 - 当日予約確認・キャンセルページ用テンプレート / JS / CSS 追加
 - Step 6 確認スクリプト
+- `[kkpay_same_day_reservation_form]` ショートコード追加
+- 既存当日予約フォームに近い入力順のテンプレート追加
+- 人数・席種別に応じて Step 4 API から空き時間枠を取得するフロント JS 追加
+- Step 5 確認スクリプト
+
+Step 5 のフォーム固有文言（入力必須、メール不一致、スロット未選択など）は `assets/js/kkpay-same-day.js` の `LABELS` で管理します。サーバー由来のエラーメッセージは `KKPAY_MESSAGES` を優先し、JS 固有文言だけ `LABELS` にフォールバックします。
 
 Step 4 の当日予約作成では、同じメール・同じ日付に既存の active 行がある場合は `FOR UPDATE` でロックします。active 行がまだ存在しない場合、同じメール・同じ日付・別スロットへの完全な同時二重作成は行ロックだけでは防げないため、実運用上は低頻度の制約として扱い、同一スロットの最終防御は `email_date_slot` UNIQUE KEY に委ねます。
 
@@ -290,24 +296,26 @@ Webhook signing secret を `KKPAY_STRIPE_WEBHOOK_SECRET` に設定します。
 | `[kkpay_reservation_form]` | プレミアム予約フォーム |
 | `[kkpay_payment_page]` | Stripe 決済ページ |
 | `[kkpay_my_reservation]` | 予約確認・キャンセル |
+| `[kkpay_same_day_reservation_form]` | 当日予約フォーム |
 
 当日予約統合では、以下の shortcode を段階的に追加します。
 
 | Shortcode | 用途 |
 | --- | --- |
-| `[kkpay_same_day_reservation_form]` | 当日予約フォーム |
 | `[kkpay_same_day_confirmation]` | 当日予約確認・キャンセル |
 
 ## 確認スクリプト
 
 Step 1 のスキーマ確認用に、読み取り専用スクリプトを用意しています。
 Step 2 / Step 3 / Step 4 / Step 6 の確認は Step 1 のDBマイグレーションが適用済みであることを前提にしています。
+Step 5 の確認スクリプトはファイルと登録内容の静的確認のみで、DB接続は不要です。
 
 ```powershell
 C:\xampp\php\php.exe tools\kkpay-step1-check.php C:\xampp\htdocs\kichikichi\wp-load.php
 C:\xampp\php\php.exe tools\kkpay-step2-check.php C:\xampp\htdocs\kichikichi\wp-load.php
 C:\xampp\php\php.exe tools\kkpay-step3-check.php C:\xampp\htdocs\kichikichi\wp-load.php
 C:\xampp\php\php.exe tools\kkpay-step4-check.php C:\xampp\htdocs\kichikichi\wp-load.php
+C:\xampp\php\php.exe tools\kkpay-step5-check.php
 C:\xampp\php\php.exe tools\kkpay-step6-check.php
 ```
 
@@ -343,11 +351,14 @@ C:\xampp\php\php.exe -l includes\Services\class-kkpay-same-day-reservation-servi
 C:\xampp\php\php.exe -l includes\Validators\class-kkpay-same-day-reservation-validator.php
 C:\xampp\php\php.exe -l includes\Controllers\class-kkpay-same-day-reservation-controller.php
 C:\xampp\php\php.exe -l templates\same-day-confirmation.php
+C:\xampp\php\php.exe -l templates\same-day-reservation-form.php
 C:\xampp\php\php.exe -l tools\kkpay-step1-check.php
 C:\xampp\php\php.exe -l tools\kkpay-step2-check.php
 C:\xampp\php\php.exe -l tools\kkpay-step3-check.php
 C:\xampp\php\php.exe -l tools\kkpay-step4-check.php
+C:\xampp\php\php.exe -l tools\kkpay-step5-check.php
 C:\xampp\php\php.exe -l tools\kkpay-step6-check.php
+node --check assets\js\kkpay-same-day.js
 node --check assets\js\kkpay-same-day-confirmation.js
 ```
 
