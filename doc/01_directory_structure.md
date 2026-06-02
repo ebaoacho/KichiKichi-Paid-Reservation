@@ -77,21 +77,25 @@ KichiKichi-Paid-Reservation/
 │   ├── payment-page.php                決済ページ（ステップ 2）
 │   ├── my-reservation.php              予約照会・キャンセルページ
 │   ├── premium-payment.php             スペシャルプレミアム決済ページ
-│   └── premium-cancel.php              スペシャルプレミアムキャンセルページ
+│   ├── premium-cancel.php              スペシャルプレミアムキャンセルページ
+│   └── same-day-reservation-form.php   当日予約フォーム
 │
 ├── tools/                              読み取り専用の確認スクリプト
 │   ├── kkpay-step1-check.php
 │   ├── kkpay-step2-check.php
 │   ├── kkpay-step3-check.php
-│   └── kkpay-step4-check.php
+│   ├── kkpay-step4-check.php
+│   └── kkpay-step5-check.php
 │
 └── assets/
     ├── css/
     │   ├── kkpay-form.css              フォーム・決済ページのスタイル
-    │   └── kkpay-mypage.css            照会・キャンセルページのスタイル
+    │   ├── kkpay-mypage.css            照会・キャンセルページのスタイル
+    │   └── kkpay-same-day.css          当日予約フォームのスタイル
     └── js/
         ├── kkpay-form.js               予約フォーム・決済の JS ロジック
-        └── kkpay-mypage.js             照会・キャンセルの JS ロジック
+        ├── kkpay-mypage.js             照会・キャンセルの JS ロジック
+        └── kkpay-same-day.js           当日予約フォームの JS ロジック
 ```
 
 ---
