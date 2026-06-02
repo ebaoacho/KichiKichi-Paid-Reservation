@@ -36,6 +36,8 @@ class KKPAY_Admin {
             // 管理画面は日本語運用のため、時間枠ラベルも日本語固定にする。
             'slot_labels'    => KKPAY_SLOT_LABELS['ja'],
         ) );
+
+        wp_enqueue_script( 'kkpay-admin-same-day', KKPAY_PLUGIN_URL . 'assets/js/kkpay-admin-same-day.js', array( 'jquery' ), KKPAY_VERSION, true );
     }
 
     public static function render_page() {
@@ -54,12 +56,16 @@ class KKPAY_Admin {
                    href="<?php echo esc_url( admin_url( 'admin.php?page=kkpay-settings&tab=seat_capacity' ) ); ?>">席数設定</a>
                 <a class="nav-tab <?php echo $active_tab === 'premium_reservations' ? 'nav-tab-active' : ''; ?>"
                    href="<?php echo esc_url( admin_url( 'admin.php?page=kkpay-settings&tab=premium_reservations' ) ); ?>">スペシャルプレミアム予約</a>
+                <a class="nav-tab <?php echo $active_tab === 'same_day_reservations' ? 'nav-tab-active' : ''; ?>"
+                   href="<?php echo esc_url( admin_url( 'admin.php?page=kkpay-settings&tab=same_day_reservations' ) ); ?>">当日予約</a>
             </h2>
             <?php
             if ( $active_tab === 'seat_capacity' ) {
                 self::render_seat_capacity_tab();
             } elseif ( $active_tab === 'premium_reservations' ) {
                 self::render_premium_reservations_tab();
+            } elseif ( $active_tab === 'same_day_reservations' ) {
+                self::render_same_day_reservations_tab();
             } else {
                 self::render_reservations_tab();
             }
@@ -79,6 +85,17 @@ class KKPAY_Admin {
         $filter_name = sanitize_text_field( $_GET['premium_name'] ?? '' );
         $results     = KKPAY_Premium_Reservation_Repository::get_list( $filter_name );
         include KKPAY_PLUGIN_DIR . 'templates/admin/premium-reservations-tab.php';
+    }
+
+    public static function render_same_day_reservations_tab() {
+        $tz          = new DateTimeZone( 'Asia/Tokyo' );
+        $today       = new DateTimeImmutable( 'today', $tz );
+        $raw_date    = sanitize_text_field( wp_unslash( $_GET['same_day_date'] ?? '' ) );
+        $filter_date = preg_match( '/^\d{4}-\d{2}-\d{2}$/', $raw_date ) ? $raw_date : $today->format( 'Y-m-d' );
+        $filter_slot = sanitize_text_field( wp_unslash( $_GET['same_day_slot'] ?? '' ) );
+        $results     = KKPAY_Reservation_Repository::get_same_day_admin_list( $filter_date, $filter_slot );
+
+        include KKPAY_PLUGIN_DIR . 'templates/admin/same-day-reservations-tab.php';
     }
 
     public static function render_seat_capacity_tab() {

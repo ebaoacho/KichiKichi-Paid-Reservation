@@ -292,6 +292,23 @@ class KKPAY_Reservation_Repository {
         return $result;
     }
 
+    /** 管理画面の当日予約一覧取得用。 */
+    public static function get_same_day_admin_list( $filter_date, $filter_slot = '' ) {
+        global $wpdb;
+        $where  = 'WHERE reservation_type = %s AND reservation_date = %s';
+        $params = array( 'same_day', $filter_date );
+
+        if ( $filter_slot && array_key_exists( $filter_slot, KKPAY_SLOT_TYPES ) ) {
+            $where   .= ' AND time_slot = %s';
+            $params[] = $filter_slot;
+        }
+
+        $query = 'SELECT * FROM ' . self::table() . " {$where}
+             ORDER BY time_slot ASC, seating_preference ASC, created_at ASC, id ASC";
+
+        return $wpdb->get_results( $wpdb->prepare( $query, ...$params ) );
+    }
+
     /** 管理画面リスト用の一覧取得。 */
     public static function get_list( $filter_date = '', $filter_slot = '' ) {
         global $wpdb;
