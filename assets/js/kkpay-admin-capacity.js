@@ -2,9 +2,12 @@ jQuery(function ($) {
     var maxCapacity = kkpay_admin_cap.maxCapacity;
 
     $('#kkpay-apply-bulk-cap').on('click', function () {
-        var cap = parseInt($('#kkpay-bulk-cap-val').val(), 10);
-        if (isNaN(cap) || cap < 0) cap = maxCapacity;
-        $('.kkpay-cap-row .kkpay-cap-input').val(cap);
+        var barCap = parseInt($('#kkpay-bulk-cap-bar').val(), 10);
+        var tableCap = parseInt($('#kkpay-bulk-cap-table').val(), 10);
+        if (isNaN(barCap) || barCap < 0) barCap = maxCapacity;
+        if (isNaN(tableCap) || tableCap < 0) tableCap = 0;
+        $('.kkpay-cap-row .kkpay-cap-input[data-seat="Bar"]').val(barCap);
+        $('.kkpay-cap-row .kkpay-cap-input[data-seat="Table"]').val(tableCap);
     });
 
     $('#kkpay-save-cap').on('click', function () {
@@ -13,7 +16,12 @@ jQuery(function ($) {
             var $row  = $(this);
             var slots = {};
             $row.find('.kkpay-cap-input').each(function () {
-                slots[$(this).data('slot')] = parseInt($(this).val(), 10) || 0;
+                var slot = $(this).data('slot');
+                var seat = $(this).data('seat');
+                if (!slots[slot]) {
+                    slots[slot] = {};
+                }
+                slots[slot][seat] = parseInt($(this).val(), 10) || 0;
             });
             if (Object.keys(slots).length > 0) {
                 dates.push({ date: $row.data('date'), slots: slots });

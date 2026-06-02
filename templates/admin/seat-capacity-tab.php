@@ -3,23 +3,30 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 // Variables provided by KKPAY_Admin::render_seat_capacity_tab():
-//   $today (DateTimeImmutable), $tz (DateTimeZone), $saved (array), $reserved (array), $slot_keys (array)
+//   $today, $tz, $saved, $reserved, $slot_keys, $seat_keys, $capacity_days
 ?>
 
 <div id="kkpay-seat-capacity" style="margin-top:20px;">
     <p>
-        各日付・時間帯の予約可能席数を設定します。カレンダー登録済みの日は営業フラグを反映し、未登録の日は全時間帯を設定できます。<br>
-        設定した席数はホールド作成時・予約確定時のチェックに即時反映されます。
+        各日付・時間帯の予約可能人数を Bar / Table 別に設定します。営業日カレンダー上で営業していない枠は予約不可として扱います。<br>
+        設定した人数は、当日予約・プレミアム予約・スペシャルプレミアム予約の共通空席チェックに反映されます。人数を0にした枠は予約不可になります。
     </p>
     <div style="display:flex;gap:8px;align-items:center;margin:16px 0;flex-wrap:wrap;">
         <label style="display:flex;align-items:center;gap:4px;">
-            一括設定する席数:
-            <input type="number" id="kkpay-bulk-cap-val" min="0" max="255"
+            Bar 一括設定:
+            <input type="number" id="kkpay-bulk-cap-bar" min="0" max="255"
                    value="<?php echo esc_attr( KKPAY_MAX_CAPACITY ); ?>"
                    style="width:72px;" />
-            席
+            名
         </label>
-        <button type="button" class="button" id="kkpay-apply-bulk-cap">表示中の全スロットに適用</button>
+        <label style="display:flex;align-items:center;gap:4px;">
+            Table 一括設定:
+            <input type="number" id="kkpay-bulk-cap-table" min="0" max="255"
+                   value="0"
+                   style="width:72px;" />
+            名
+        </label>
+        <button type="button" class="button" id="kkpay-apply-bulk-cap">表示中の Bar / Table に適用</button>
         <button type="button" class="button button-primary" id="kkpay-save-cap">保存する</button>
         <span id="kkpay-cap-message" style="margin-left:8px;font-weight:bold;"></span>
     </div>
@@ -68,21 +75,32 @@ if ( ! defined( 'ABSPATH' ) ) {
                     <td><?php echo esc_html( $date ); ?></td>
                     <td style="text-align:center;<?php echo esc_attr( $dow_style ); ?>"><?php echo esc_html( $dow_label ); ?></td>
                     <?php foreach ( $slot_keys as $slot ) : ?>
-                        <?php
-                        $is_open  = in_array( $slot, $open_slots, true );
-                        $capacity = $saved[ $date ][ $slot ] ?? KKPAY_MAX_CAPACITY;
-                        ?>
+                        <?php $is_open = in_array( $slot, $open_slots, true ); ?>
                         <td>
                             <?php if ( $is_open ) : ?>
-                                <?php $current = $reserved[ $date ][ $slot ] ?? 0; ?>
-                                <input type="number" class="kkpay-cap-input"
-                                       data-slot="<?php echo esc_attr( $slot ); ?>"
-                                       min="0" max="255"
-                                       value="<?php echo esc_attr( $capacity ); ?>"
-                                       style="width:64px;" /> 席<br>
-                                <span style="font-size:11px;color:#555;">予約中: <?php echo $current; ?>席</span>
+                                <?php foreach ( $seat_keys as $seat ) : ?>
+                                    <?php
+                                    $default_capacity = $seat === 'Bar' ? KKPAY_MAX_CAPACITY : 0;
+                                    $capacity_row     = $saved[ $date ][ $slot ][ $seat ] ?? null;
+                                    $capacity         = $capacity_row ? (int) $capacity_row['capacity'] : $default_capacity;
+                                    $current          = $reserved[ $date ][ $slot ][ $seat ] ?? 0;
+                                    ?>
+                                    <label style="display:block;margin-bottom:6px;">
+                                        <span style="display:inline-block;width:38px;"><?php echo esc_html( $seat ); ?></span>
+                                        <input type="number" class="kkpay-cap-input"
+                                               data-slot="<?php echo esc_attr( $slot ); ?>"
+                                               data-seat="<?php echo esc_attr( $seat ); ?>"
+                                               min="0" max="255"
+                                               value="<?php echo esc_attr( $capacity ); ?>"
+                                               style="width:64px;" />
+                                        名
+                                        <span style="display:block;font-size:11px;color:#555;margin-left:42px;">
+                                            予約中: <?php echo (int) $current; ?>名
+                                        </span>
+                                    </label>
+                                <?php endforeach; ?>
                             <?php else : ?>
-                                <span style="color:#bbb;">定休</span>
+                                <span style="color:#bbb;">休業</span>
                             <?php endif; ?>
                         </td>
                     <?php endforeach; ?>

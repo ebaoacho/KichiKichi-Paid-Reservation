@@ -94,20 +94,68 @@ class KKPAY_Admin_Controller {
 
             foreach ( $valid_slots as $slot ) {
                 if ( array_key_exists( $slot, $slots ) ) {
-                    $capacity = (int) $slots[ $slot ];
-                    $accepted_result = KKPAY_Accepted_Dates_Repository::upsert_slot( $date, $slot, $capacity );
-                    if ( $accepted_result === false ) {
-                        $wpdb->query( 'ROLLBACK' );
-                        error_log( '[KKPAY] Accepted dates capacity save failed. date=' . $date . ' slot=' . $slot . ' message=' . $wpdb->last_error );
-                        wp_send_json_error( array( 'message' => 'Save failed' ) );
+                    $seat_capacities = is_array( $slots[ $slot ] )
+                        ? $slots[ $slot ]
+                        : array( 'Bar' => $slots[ $slot ] );
+
+                    foreach ( array( 'Bar', 'Table' ) as $seat ) {
+                        if ( ! array_key_exists( $seat, $seat_capacities ) ) {
+                            continue;
+                        }
+
+                        $capacity = max( 0, (int) $seat_capacities[ $seat ] );
+                        $enabled  = $capacity > 0 ? 1 : 0;
+
+                        $slot_capacity_result = KKPAY_Slot_Capacity_Repository::upsert( $date, $slot, $seat, $capacity, $enabled );
+                        if ( is_wp_error( $slot_capacity_result ) ) {
+                            $wpdb->query( 'ROLLBACK' );
+                            error_log( '[KKPAY] Slot capacity save failed. date=' . $date . ' slot=' . $slot . ' seat=' . $seat . ' message=' . $slot_capacity_result->get_error_message() );
+                            wp_send_json_error( array( 'message' => 'Save failed' ) );
+                        }
                     }
 
-                    $slot_capacity_result = KKPAY_Slot_Capacity_Repository::upsert( $date, $slot, 'Bar', $capacity, $capacity > 0 ? 1 : 0 );
-                    if ( is_wp_error( $slot_capacity_result ) ) {
+                    if ( array_key_exists( 'Bar', $seat_capacities ) ) {
+                        $bar_capacity   = max( 0, (int) $seat_capacities['Bar'] );
+                        $accepted_result = KKPAY_Accepted_Dates_Repository::upsert_slot( $date, $slot, $bar_capacity, $bar_capacity > 0 ? 1 : 0 );
+                        if ( $accepted_result === false ) {
+                            $wpdb->query( 'ROLLBACK' );
+                            error_log( '[KKPAY] Accepted dates capacity save failed. date=' . $date . ' slot=' . $slot . ' message=' . $wpdb->last_error );
+                            wp_send_json_error( array( 'message' => 'Save failed' ) );
+                        }
+                    }
+                } else {
+                    // Missing open-slot payload means the admin UI did not submit that slot; disable it instead of leaving stale capacity.
+                    foreach ( array( 'Bar', 'Table' ) as $seat ) {
+                        $slot_capacity_result = KKPAY_Slot_Capacity_Repository::upsert( $date, $slot, $seat, 0, 0 );
+                        if ( is_wp_error( $slot_capacity_result ) ) {
+                            $wpdb->query( 'ROLLBACK' );
+                            error_log( '[KKPAY] Slot capacity disable failed. date=' . $date . ' slot=' . $slot . ' seat=' . $seat . ' message=' . $slot_capacity_result->get_error_message() );
+                            wp_send_json_error( array( 'message' => 'Save failed' ) );
+                        }
+                    }
+                    $accepted_result = KKPAY_Accepted_Dates_Repository::upsert_slot( $date, $slot, 0, 0 );
+                    if ( $accepted_result === false ) {
                         $wpdb->query( 'ROLLBACK' );
-                        error_log( '[KKPAY] Slot capacity save failed. date=' . $date . ' slot=' . $slot . ' message=' . $slot_capacity_result->get_error_message() );
+                        error_log( '[KKPAY] Accepted dates slot disable failed. date=' . $date . ' slot=' . $slot . ' message=' . $wpdb->last_error );
                         wp_send_json_error( array( 'message' => 'Save failed' ) );
                     }
+                }
+            }
+
+            foreach ( array_diff( array_keys( KKPAY_SLOT_TYPES ), $valid_slots ) as $closed_slot ) {
+                foreach ( array( 'Bar', 'Table' ) as $seat ) {
+                    $slot_capacity_result = KKPAY_Slot_Capacity_Repository::upsert( $date, $closed_slot, $seat, 0, 0 );
+                    if ( is_wp_error( $slot_capacity_result ) ) {
+                        $wpdb->query( 'ROLLBACK' );
+                        error_log( '[KKPAY] Closed slot capacity disable failed. date=' . $date . ' slot=' . $closed_slot . ' seat=' . $seat . ' message=' . $slot_capacity_result->get_error_message() );
+                        wp_send_json_error( array( 'message' => 'Save failed' ) );
+                    }
+                }
+                $accepted_result = KKPAY_Accepted_Dates_Repository::upsert_slot( $date, $closed_slot, 0, 0 );
+                if ( $accepted_result === false ) {
+                    $wpdb->query( 'ROLLBACK' );
+                    error_log( '[KKPAY] Accepted dates closed slot disable failed. date=' . $date . ' slot=' . $closed_slot . ' message=' . $wpdb->last_error );
+                    wp_send_json_error( array( 'message' => 'Save failed' ) );
                 }
             }
         }

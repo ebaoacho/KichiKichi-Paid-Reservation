@@ -106,14 +106,18 @@ class KKPAY_Admin {
         $to      = $to_date->format( 'Y-m-d' );
         $capacity_days = (int) $today->diff( $to_date )->format( '%a' );
 
-        $rows  = KKPAY_Accepted_Dates_Repository::get_capacity_range( $from, $to );
+        $rows  = KKPAY_Slot_Capacity_Repository::get_by_date_range( $from, $to );
         $saved = array();
         foreach ( $rows as $row ) {
-            $saved[ $row->reservation_date ][ $row->time_slot ] = (int) $row->capacity;
+            $saved[ $row->capacity_date ][ $row->time_slot ][ $row->seating_preference ] = array(
+                'capacity' => (int) $row->capacity,
+                'enabled'  => (int) $row->enabled,
+            );
         }
 
-        $reserved  = KKPAY_Reservation_Repository::sum_people_by_date_range( $from, $to );
+        $reserved  = KKPAY_Reservation_Repository::sum_active_people_by_date_range_and_seat( $from, $to );
         $slot_keys = array_keys( KKPAY_SLOT_TYPES );
+        $seat_keys = array( 'Bar', 'Table' );
 
         include KKPAY_PLUGIN_DIR . 'templates/admin/seat-capacity-tab.php';
     }

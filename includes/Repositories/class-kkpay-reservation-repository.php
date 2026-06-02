@@ -292,6 +292,33 @@ class KKPAY_Reservation_Repository {
         return $result;
     }
 
+    /** 管理画面の席数設定表示用に、active 予約人数を席種別で集計する。 */
+    public static function sum_active_people_by_date_range_and_seat( $from, $to ) {
+        global $wpdb;
+        $rows = $wpdb->get_results( $wpdb->prepare(
+            'SELECT reservation_date, time_slot, seating_preference, COALESCE(SUM(number_of_people), 0) AS total
+             FROM ' . self::table() . '
+             WHERE reservation_date BETWEEN %s AND %s
+               AND status = %s
+               AND cancelled_at IS NULL
+             GROUP BY reservation_date, time_slot, seating_preference',
+            $from,
+            $to,
+            'active'
+        ) );
+
+        $result = array();
+        foreach ( $rows as $row ) {
+            $seat = (string) $row->seating_preference;
+            if ( $seat === '' ) {
+                error_log( '[KKPAY] Active reservation has empty seating_preference. date=' . $row->reservation_date . ' slot=' . $row->time_slot );
+                continue;
+            }
+            $result[ $row->reservation_date ][ $row->time_slot ][ $seat ] = (int) $row->total;
+        }
+        return $result;
+    }
+
     /** 管理画面の当日予約一覧取得用。 */
     public static function get_same_day_admin_list( $filter_date, $filter_slot = '' ) {
         global $wpdb;

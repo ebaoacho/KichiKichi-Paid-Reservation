@@ -125,7 +125,7 @@ $wpdb->query( 'COMMIT' );
 | `find_by_date( $date )` | 指定日の `enabled = 1` スロット一覧を返す（スロット絞り込み用） |
 | `get_slot_capacity( $date, $slot )` | 指定スロットの席数上限を返す（なければ `KKPAY_MAX_CAPACITY`） |
 | `get_capacity_range( $from, $to )` | 期間内の全席数レコードを返す（管理画面表示用） |
-| `upsert_slot( $date, $slot, $capacity )` | 席数を登録・更新する（管理画面保存用） |
+| `upsert_slot( $date, $slot, $capacity, $enabled )` | 席数と enabled を登録・更新する（管理画面保存用） |
 
 > `has_any_records()` / `is_date_enabled()` / `find_by_date()` は `CalendarService` の分岐ロジックで使われます。  
 > `get_slot_capacity()` は `HoldService` と `ReservationService` から呼ばれ、プレミアムモードに関係なく常に参照されます。
