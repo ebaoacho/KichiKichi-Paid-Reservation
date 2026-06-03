@@ -814,7 +814,7 @@ seating_preference = Table または Bar
 
 変更対象:
 
-- 本番切り替え手順書
+- 本番切り替え手順書（`doc/18_same_day_production_cutover.md`）
 - 管理者向け確認手順
 - 必要であればFeature Flag
 

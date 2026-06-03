@@ -214,8 +214,12 @@ Stripe 決済は、ブラウザの確定処理と Webhook の両方から同じ 
 - Step 7 管理画面の当日予約一覧タブと確認スクリプト
 - 席数設定タブを `kkpay_slot_capacities` 正本に接続し、`Bar` / `Table` 別の席数設定に変更
 - Step 8 確認スクリプト
+- 当日予約の本番切り替え手順書 `doc/18_same_day_production_cutover.md` を追加
+- Step 9 確認スクリプト
 
 Step 8 の席数設定保存では、表示中の営業スロットを全件送信する設計です。表示対象の営業スロットが送信されなかった場合は、古い席数を残さず `capacity = 0` / `enabled = 0` として無効化します。
+
+Step 9 では、旧当日予約プラグインを停止せず、限定URLで新フォーム・確認ページを検証してからショートコードを差し替える手順を固定しています。問題が出た場合は、控えておいた旧ショートコードへ戻すことで切り戻します。
 
 Step 5 のフォーム固有文言（入力必須、メール不一致、スロット未選択など）は `assets/js/kkpay-same-day.js` の `LABELS` で管理します。サーバー由来のエラーメッセージは `KKPAY_MESSAGES` を優先し、JS 固有文言だけ `LABELS` にフォールバックします。
 
@@ -225,7 +229,7 @@ Step 6 の当日予約確認は、現行仕様に合わせてメールアドレ�
 
 また、`doc/01_directory_structure.md` は Step 4 で追加したファイルだけでなく、Step 1〜3 で実態と乖離していた既存の追加ファイルも合わせて反映しています。
 
-次の Step では、本番切り替え準備として旧当日予約導線との比較・切り戻し手順を整理します。
+本番切り替え前までは旧当日予約導線を停止せず、`doc/18_same_day_production_cutover.md` の手順に沿って限定URL確認、ショートコード差し替え、切り戻し準備を行います。
 
 ## 主要フロー
 
@@ -313,7 +317,7 @@ Webhook signing secret を `KKPAY_STRIPE_WEBHOOK_SECRET` に設定します。
 
 Step 1 のスキーマ確認用に、読み取り専用スクリプトを用意しています。
 Step 2 / Step 3 / Step 4 / Step 6 の確認は Step 1 のDBマイグレーションが適用済みであることを前提にしています。
-Step 5 / Step 7 / Step 8 の確認スクリプトはファイルと登録内容の静的確認のみで、DB接続は不要です。
+Step 5 / Step 7 / Step 8 / Step 9 の確認スクリプトはファイルと登録内容の静的確認のみで、DB接続は不要です。
 
 ```powershell
 C:\xampp\php\php.exe tools\kkpay-step1-check.php C:\xampp\htdocs\kichikichi\wp-load.php
@@ -324,6 +328,7 @@ C:\xampp\php\php.exe tools\kkpay-step5-check.php
 C:\xampp\php\php.exe tools\kkpay-step6-check.php
 C:\xampp\php\php.exe tools\kkpay-step7-check.php
 C:\xampp\php\php.exe tools\kkpay-step8-check.php
+C:\xampp\php\php.exe tools\kkpay-step9-check.php
 ```
 
 期待結果:
@@ -368,6 +373,7 @@ C:\xampp\php\php.exe -l tools\kkpay-step5-check.php
 C:\xampp\php\php.exe -l tools\kkpay-step6-check.php
 C:\xampp\php\php.exe -l tools\kkpay-step7-check.php
 C:\xampp\php\php.exe -l tools\kkpay-step8-check.php
+C:\xampp\php\php.exe -l tools\kkpay-step9-check.php
 node --check assets\js\kkpay-same-day.js
 node --check assets\js\kkpay-admin-capacity.js
 node --check assets\js\kkpay-admin-same-day.js
@@ -395,3 +401,4 @@ node --check assets\js\kkpay-same-day-confirmation.js
 | `doc/06_layer_infrastructure.md` | Infrastructure 層 |
 | `doc/14_same_day_reservation_integration_design.md` | 当日予約統合設計 |
 | `doc/15_same_day_reservation_current_spec.md` | 既存当日予約仕様 |
+| `doc/18_same_day_production_cutover.md` | 当日予約本番切り替え手順 |
