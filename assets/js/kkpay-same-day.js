@@ -220,12 +220,21 @@
         return value || $seat.find('option:selected').text();
     }
 
+    function maxPeopleForSeat() {
+        if ($seat.val() === 'Table') {
+            return parseInt(kkpay_same_day.table_max_people, 10) || 6;
+        }
+        return parseInt(kkpay_same_day.max_people, 10) || 8;
+    }
+
     function fillPeopleOptions() {
-        var max = parseInt(kkpay_same_day.max_people, 10) || 8;
+        var max = maxPeopleForSeat();
+        var current = parseInt($people.val(), 10) || 1;
         $people.empty();
         for (var i = 1; i <= max; i++) {
             $people.append($('<option></option>').val(i).text(i));
         }
+        $people.val(Math.min(current, max));
     }
 
     function slotLabel(slot) {
@@ -442,6 +451,7 @@
         }
     });
     $seat.on('change', function () {
+        fillPeopleOptions();
         if (isAccepting) {
             refreshSlots();
         }
