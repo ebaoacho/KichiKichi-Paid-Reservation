@@ -99,7 +99,8 @@ KichiKichi-Paid-Reservation/
 │   ├── kkpay-step6-check.php
 │   ├── kkpay-step7-check.php
 │   ├── kkpay-step8-check.php
-│   └── kkpay-step9-check.php
+│   ├── kkpay-step9-check.php
+│   └── kkpay-step10-check.php
 │
 └── assets/
     ├── css/
