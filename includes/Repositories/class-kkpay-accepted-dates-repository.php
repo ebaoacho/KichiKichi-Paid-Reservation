@@ -93,20 +93,22 @@ class KKPAY_Accepted_Dates_Repository {
     }
 
     /**
-     * 席数を upsert する。既存レコードは capacity のみ更新。
+     * 席数を upsert する。既存レコードは capacity と enabled を更新。
      */
-    public static function upsert_slot( $date, $slot, $capacity ) {
+    public static function upsert_slot( $date, $slot, $capacity, $enabled ) {
         global $wpdb;
         $now      = current_time( 'mysql' );
         $capacity = max( 0, (int) $capacity );
+        $enabled  = (int) (bool) $enabled;
 
         return $wpdb->query( $wpdb->prepare(
-            'INSERT INTO ' . self::table() . ' (reservation_date, time_slot, capacity, created_at, updated_at)
-             VALUES (%s, %s, %d, %s, %s)
-             ON DUPLICATE KEY UPDATE capacity = VALUES(capacity), updated_at = VALUES(updated_at)',
+            'INSERT INTO ' . self::table() . ' (reservation_date, time_slot, capacity, enabled, created_at, updated_at)
+             VALUES (%s, %s, %d, %d, %s, %s)
+             ON DUPLICATE KEY UPDATE capacity = VALUES(capacity), enabled = VALUES(enabled), updated_at = VALUES(updated_at)',
             $date,
             $slot,
             $capacity,
+            $enabled,
             $now,
             $now
         ) );
