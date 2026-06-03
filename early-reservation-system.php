@@ -160,6 +160,7 @@ add_action( 'init', function () {
     add_shortcode( 'kkpay_premium_cancel',   'kkpay_render_premium_cancel' );
     add_shortcode( 'kkpay_same_day_confirmation', 'kkpay_render_same_day_confirmation' );
     add_shortcode( 'kkpay_same_day_reservation_form', 'kkpay_render_same_day_reservation_form' );
+    add_shortcode( 'kkpay_customer_calendar', 'kkpay_render_customer_calendar' );
 } );
 
 function kkpay_render_reservation_form() {
@@ -207,6 +208,25 @@ function kkpay_render_same_day_confirmation() {
 function kkpay_render_same_day_reservation_form() {
     ob_start();
     include KKPAY_PLUGIN_DIR . 'templates/same-day-reservation-form.php';
+    return ob_get_clean();
+}
+
+function kkpay_render_customer_calendar() {
+    $tz            = new DateTimeZone( 'Asia/Tokyo' );
+    $today         = new DateTimeImmutable( 'today', $tz );
+    $calendar_from = new DateTimeImmutable( $today->format( 'Y-m-01' ), $tz );
+    $calendar_to   = $calendar_from
+        ->modify( '+2 months' )
+        ->modify( 'last day of this month' );
+    $calendar_days = KKPAY_Calendar_Service::get_public_calendar_days(
+        $calendar_from->format( 'Y-m-d' ),
+        $calendar_to->format( 'Y-m-d' )
+    );
+    $calendar_lang = sanitize_text_field( wp_unslash( $_GET['lang'] ?? 'en' ) );
+    $calendar_lang = in_array( $calendar_lang, array( 'en', 'ja', 'ko', 'zh-CN', 'zh-TW' ), true ) ? $calendar_lang : 'en';
+
+    ob_start();
+    include KKPAY_PLUGIN_DIR . 'templates/customer-calendar.php';
     return ob_get_clean();
 }
 
@@ -298,6 +318,7 @@ function kkpay_enqueue_assets() {
     $has_premium_cancel  = has_shortcode( $content, 'kkpay_premium_cancel' );
     $has_same_day_confirmation = has_shortcode( $content, 'kkpay_same_day_confirmation' );
     $has_same_day        = has_shortcode( $content, 'kkpay_same_day_reservation_form' );
+    $has_customer_calendar = has_shortcode( $content, 'kkpay_customer_calendar' );
 
     if ( $has_form || $has_payment ) {
         kkpay_enqueue_form_assets( $has_payment );
@@ -316,6 +337,9 @@ function kkpay_enqueue_assets() {
     }
     if ( $has_same_day ) {
         kkpay_enqueue_same_day_assets();
+    }
+    if ( $has_customer_calendar ) {
+        kkpay_enqueue_customer_calendar_assets();
     }
 }
 
@@ -377,6 +401,11 @@ function kkpay_enqueue_same_day_assets() {
         'messages'    => KKPAY_MESSAGES,
         'max_people'  => KKPAY_MAX_CAPACITY,
     ) );
+}
+
+function kkpay_enqueue_customer_calendar_assets() {
+    wp_enqueue_style( 'kkpay-form', KKPAY_PLUGIN_URL . 'assets/css/kkpay-form.css', array(), KKPAY_VERSION );
+    wp_enqueue_style( 'kkpay-customer-calendar', KKPAY_PLUGIN_URL . 'assets/css/kkpay-customer-calendar.css', array( 'kkpay-form' ), KKPAY_VERSION );
 }
 
 // AJAX ハンドラ登録（公開エンドポイント）
