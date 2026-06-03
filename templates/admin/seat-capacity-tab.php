@@ -14,12 +14,12 @@ if ( ! defined( 'ABSPATH' ) ) {
         </div>
         <div class="kkpay-seat-capacity__bulk">
             <label>
-                <span>Bar</span>
-                <input type="number" id="kkpay-bulk-cap-bar" min="0" max="255" value="<?php echo esc_attr( KKPAY_MAX_CAPACITY ); ?>" />
+                <span>カウンター</span>
+                <input type="number" id="kkpay-bulk-cap-bar" min="0" max="<?php echo esc_attr( KKPAY_MAX_CAPACITY ); ?>" value="<?php echo esc_attr( KKPAY_MAX_CAPACITY ); ?>" />
             </label>
             <label>
-                <span>Table</span>
-                <input type="number" id="kkpay-bulk-cap-table" min="0" max="255" value="0" />
+                <span>テーブル</span>
+                <input type="number" id="kkpay-bulk-cap-table" min="0" max="<?php echo esc_attr( KKPAY_TABLE_MAX_CAPACITY ); ?>" value="0" />
             </label>
             <button type="button" class="button" id="kkpay-apply-bulk-cap">表示中の営業枠に適用</button>
             <button type="button" class="button button-primary" id="kkpay-save-cap">保存する</button>
@@ -64,18 +64,26 @@ if ( ! defined( 'ABSPATH' ) ) {
                                 <?php foreach ( $seat_keys as $seat ) : ?>
                                     <?php
                                     $default_capacity = $seat === 'Bar' ? KKPAY_MAX_CAPACITY : 0;
+                                    $max_capacity     = $seat === 'Bar' ? KKPAY_MAX_CAPACITY : KKPAY_TABLE_MAX_CAPACITY;
                                     $capacity_row     = $saved[ $date ][ $slot ][ $seat ] ?? null;
                                     $capacity         = $capacity_row ? (int) $capacity_row['capacity'] : $default_capacity;
+                                    $capacity         = min( $max_capacity, max( 0, $capacity ) );
                                     $current          = $reserved[ $date ][ $slot ][ $seat ] ?? 0;
+                                    $seat_label       = $seat === 'Bar' ? 'カウンター' : 'テーブル';
+                                    $is_over_capacity = $current > $capacity;
                                     ?>
-                                    <label class="kkpay-seat-capacity__seat">
-                                        <span><?php echo esc_html( $seat ); ?></span>
+                                    <label class="kkpay-seat-capacity__seat <?php echo $is_over_capacity ? 'is-over-capacity' : ''; ?>">
+                                        <span><?php echo esc_html( $seat_label ); ?></span>
                                         <input type="number" class="kkpay-cap-input"
                                                data-slot="<?php echo esc_attr( $slot ); ?>"
                                                data-seat="<?php echo esc_attr( $seat ); ?>"
-                                               min="0" max="255"
+                                               min="0"
+                                               max="<?php echo esc_attr( $max_capacity ); ?>"
                                                value="<?php echo esc_attr( $capacity ); ?>" />
                                         <small>予約中: <?php echo (int) $current; ?>名</small>
+                                        <?php if ( $is_over_capacity ) : ?>
+                                            <em>上限超過</em>
+                                        <?php endif; ?>
                                     </label>
                                 <?php endforeach; ?>
                             </div>
@@ -220,6 +228,24 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 .kkpay-seat-capacity__seat span {
     font-weight: 700;
+}
+
+.kkpay-seat-capacity__seat.is-over-capacity {
+    padding: 6px;
+    background: #fcf0f1;
+    border-radius: 6px;
+}
+
+.kkpay-seat-capacity__seat.is-over-capacity small,
+.kkpay-seat-capacity__seat.is-over-capacity em {
+    color: #b32d2e;
+    font-weight: 700;
+}
+
+.kkpay-seat-capacity__seat em {
+    grid-column: 2 / -1;
+    font-style: normal;
+    font-size: 12px;
 }
 
 .kkpay-seat-capacity__empty {

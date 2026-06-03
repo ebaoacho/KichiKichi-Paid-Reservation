@@ -20,6 +20,7 @@ define( 'KKPAY_AMOUNT',             13 );
 define( 'KKPAY_CURRENCY',           'usd' );
 define( 'KKPAY_STRIPE_AMOUNT_MULTIPLIER', 100 );
 define( 'KKPAY_MAX_CAPACITY',       8 );
+define( 'KKPAY_TABLE_MAX_CAPACITY', 6 );
 define( 'KKPAY_MAX_PEOPLE',         4 );
 define( 'KKPAY_HOLD_MINUTES',       5 );
 define( 'KKPAY_ACCEPT_DAYS_BEFORE', 3 );
@@ -395,11 +396,12 @@ function kkpay_enqueue_same_day_assets() {
     wp_enqueue_style( 'kkpay-same-day', KKPAY_PLUGIN_URL . 'assets/css/kkpay-same-day.css', array( 'kkpay-form' ), KKPAY_VERSION );
     wp_enqueue_script( 'kkpay-same-day', KKPAY_PLUGIN_URL . 'assets/js/kkpay-same-day.js', array( 'jquery' ), KKPAY_VERSION, true );
     wp_localize_script( 'kkpay-same-day', 'kkpay_same_day', array(
-        'ajax_url'    => admin_url( 'admin-ajax.php' ),
-        'nonce'       => wp_create_nonce( 'kkpay_nonce' ),
-        'slot_labels' => KKPAY_SLOT_LABELS,
-        'messages'    => KKPAY_MESSAGES,
-        'max_people'  => KKPAY_MAX_CAPACITY,
+        'ajax_url'         => admin_url( 'admin-ajax.php' ),
+        'nonce'            => wp_create_nonce( 'kkpay_nonce' ),
+        'slot_labels'      => KKPAY_SLOT_LABELS,
+        'messages'         => KKPAY_MESSAGES,
+        'max_people'       => KKPAY_MAX_CAPACITY,
+        'table_max_people' => KKPAY_TABLE_MAX_CAPACITY,
     ) );
 }
 

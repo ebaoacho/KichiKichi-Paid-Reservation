@@ -84,8 +84,8 @@ if ( $controller !== false ) {
     kkpay_step11_check( strpos( $controller, 'current_user_can( \'manage_options\' )' ) !== false, 'calendar save requires manage_options capability' );
     kkpay_step11_check( strpos( $controller, 'checkdate' ) !== false, 'calendar save validates real calendar dates' );
     kkpay_step11_check( strpos( $controller, 'empty( $days )' ) !== false, 'calendar save skips empty payloads without opening a transaction' );
-    kkpay_step11_check( strpos( $controller, 'wp_send_json_success( array( \'message\' => \'Saved\' ) );' ) !== false && strpos( $controller, 'return;' ) !== false, 'calendar save explicitly returns after empty payload success' );
-    kkpay_step11_check( strpos( $controller, 'wp_send_json_error( array( \'message\' => \'Save failed\' ) );' ) !== false && strpos( $controller, 'return;' ) !== false, 'calendar save explicitly returns after error response' );
+    kkpay_step11_check( strpos( $controller, "self::admin_message( 'saved' )" ) !== false && strpos( $controller, 'return;' ) !== false, 'calendar save explicitly returns after empty payload success' );
+    kkpay_step11_check( strpos( $controller, "self::admin_message( 'save_failed' )" ) !== false && strpos( $controller, 'return;' ) !== false, 'calendar save explicitly returns after error response' );
 }
 
 if ( $entry !== false ) {

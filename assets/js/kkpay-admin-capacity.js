@@ -1,11 +1,18 @@
 jQuery(function ($) {
-    var maxCapacity = kkpay_admin_cap.maxCapacity;
+    var barMaxCapacity = parseInt(kkpay_admin_cap.barMaxCapacity || kkpay_admin_cap.maxCapacity, 10) || 8;
+    var tableMaxCapacity = parseInt(kkpay_admin_cap.tableMaxCapacity, 10) || 6;
+
+    function clampCapacity(value, max, fallback) {
+        var capacity = parseInt(value, 10);
+        if (isNaN(capacity) || capacity < 0) {
+            return fallback;
+        }
+        return Math.min(capacity, max);
+    }
 
     $('#kkpay-apply-bulk-cap').on('click', function () {
-        var barCap = parseInt($('#kkpay-bulk-cap-bar').val(), 10);
-        var tableCap = parseInt($('#kkpay-bulk-cap-table').val(), 10);
-        if (isNaN(barCap) || barCap < 0) barCap = maxCapacity;
-        if (isNaN(tableCap) || tableCap < 0) tableCap = 0;
+        var barCap = clampCapacity($('#kkpay-bulk-cap-bar').val(), barMaxCapacity, barMaxCapacity);
+        var tableCap = clampCapacity($('#kkpay-bulk-cap-table').val(), tableMaxCapacity, 0);
         $('.kkpay-cap-row .kkpay-cap-input[data-seat="Bar"]').val(barCap);
         $('.kkpay-cap-row .kkpay-cap-input[data-seat="Table"]').val(tableCap);
     });
@@ -22,7 +29,7 @@ jQuery(function ($) {
                 if (!slots[slot]) {
                     slots[slot] = {};
                 }
-                slots[slot][seat] = parseInt($(this).val(), 10) || 0;
+                slots[slot][seat] = clampCapacity($(this).val(), seat === 'Table' ? tableMaxCapacity : barMaxCapacity, 0);
             });
             if (Object.keys(slots).length > 0 || closed) {
                 dates.push({ date: $row.data('date'), slots: slots });

@@ -8,7 +8,8 @@ class KKPAY_Admin_Controller {
     public static function ajax_load_admin_list() {
         check_ajax_referer( 'kkpay_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( array( 'message' => 'Unauthorized' ) );
+            wp_send_json_error( array( 'message' => self::admin_message( 'unauthorized' ) ) );
+            return;
         }
 
         ob_start();
@@ -21,7 +22,7 @@ class KKPAY_Admin_Controller {
     public static function ajax_export_csv() {
         check_ajax_referer( 'kkpay_export', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( 'Unauthorized' );
+            wp_die( self::admin_message( 'unauthorized' ) );
         }
 
         $filter_date = sanitize_text_field( $_GET['filter_date'] ?? '' );
@@ -68,13 +69,15 @@ class KKPAY_Admin_Controller {
 
         check_ajax_referer( 'kkpay_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( array( 'message' => 'Unauthorized' ) );
+            wp_send_json_error( array( 'message' => self::admin_message( 'unauthorized' ) ) );
+            return;
         }
 
         $raw   = wp_unslash( $_POST['dates'] ?? '[]' );
         $dates = json_decode( $raw, true );
         if ( ! is_array( $dates ) ) {
-            wp_send_json_error( array( 'message' => 'Invalid data' ) );
+            wp_send_json_error( array( 'message' => self::admin_message( 'invalid_data' ) ) );
+            return;
         }
 
         $wpdb->query( 'START TRANSACTION' );
@@ -103,24 +106,26 @@ class KKPAY_Admin_Controller {
                             continue;
                         }
 
-                        $capacity = max( 0, (int) $seat_capacities[ $seat ] );
+                        $capacity = min( self::max_capacity_for_seat( $seat ), max( 0, (int) $seat_capacities[ $seat ] ) );
                         $enabled  = $capacity > 0 ? 1 : 0;
 
                         $slot_capacity_result = KKPAY_Slot_Capacity_Repository::upsert( $date, $slot, $seat, $capacity, $enabled );
                         if ( is_wp_error( $slot_capacity_result ) ) {
                             $wpdb->query( 'ROLLBACK' );
                             error_log( '[KKPAY] Slot capacity save failed. date=' . $date . ' slot=' . $slot . ' seat=' . $seat . ' message=' . $slot_capacity_result->get_error_message() );
-                            wp_send_json_error( array( 'message' => 'Save failed' ) );
+                            wp_send_json_error( array( 'message' => self::admin_message( 'save_failed' ) ) );
+                            return;
                         }
                     }
 
                     if ( array_key_exists( 'Bar', $seat_capacities ) ) {
-                        $bar_capacity   = max( 0, (int) $seat_capacities['Bar'] );
+                        $bar_capacity   = min( self::max_capacity_for_seat( 'Bar' ), max( 0, (int) $seat_capacities['Bar'] ) );
                         $accepted_result = KKPAY_Accepted_Dates_Repository::upsert_slot( $date, $slot, $bar_capacity, $bar_capacity > 0 ? 1 : 0 );
                         if ( $accepted_result === false ) {
                             $wpdb->query( 'ROLLBACK' );
                             error_log( '[KKPAY] Accepted dates capacity save failed. date=' . $date . ' slot=' . $slot . ' message=' . $wpdb->last_error );
-                            wp_send_json_error( array( 'message' => 'Save failed' ) );
+                            wp_send_json_error( array( 'message' => self::admin_message( 'save_failed' ) ) );
+                            return;
                         }
                     }
                 } else {
@@ -130,14 +135,16 @@ class KKPAY_Admin_Controller {
                         if ( is_wp_error( $slot_capacity_result ) ) {
                             $wpdb->query( 'ROLLBACK' );
                             error_log( '[KKPAY] Slot capacity disable failed. date=' . $date . ' slot=' . $slot . ' seat=' . $seat . ' message=' . $slot_capacity_result->get_error_message() );
-                            wp_send_json_error( array( 'message' => 'Save failed' ) );
+                            wp_send_json_error( array( 'message' => self::admin_message( 'save_failed' ) ) );
+                            return;
                         }
                     }
                     $accepted_result = KKPAY_Accepted_Dates_Repository::upsert_slot( $date, $slot, 0, 0 );
                     if ( $accepted_result === false ) {
                         $wpdb->query( 'ROLLBACK' );
                         error_log( '[KKPAY] Accepted dates slot disable failed. date=' . $date . ' slot=' . $slot . ' message=' . $wpdb->last_error );
-                        wp_send_json_error( array( 'message' => 'Save failed' ) );
+                        wp_send_json_error( array( 'message' => self::admin_message( 'save_failed' ) ) );
+                        return;
                     }
                 }
             }
@@ -148,21 +155,23 @@ class KKPAY_Admin_Controller {
                     if ( is_wp_error( $slot_capacity_result ) ) {
                         $wpdb->query( 'ROLLBACK' );
                         error_log( '[KKPAY] Closed slot capacity disable failed. date=' . $date . ' slot=' . $closed_slot . ' seat=' . $seat . ' message=' . $slot_capacity_result->get_error_message() );
-                        wp_send_json_error( array( 'message' => 'Save failed' ) );
+                        wp_send_json_error( array( 'message' => self::admin_message( 'save_failed' ) ) );
+                        return;
                     }
                 }
                 $accepted_result = KKPAY_Accepted_Dates_Repository::upsert_slot( $date, $closed_slot, 0, 0 );
                 if ( $accepted_result === false ) {
                     $wpdb->query( 'ROLLBACK' );
                     error_log( '[KKPAY] Accepted dates closed slot disable failed. date=' . $date . ' slot=' . $closed_slot . ' message=' . $wpdb->last_error );
-                    wp_send_json_error( array( 'message' => 'Save failed' ) );
+                    wp_send_json_error( array( 'message' => self::admin_message( 'save_failed' ) ) );
+                    return;
                 }
             }
         }
 
         $wpdb->query( 'COMMIT' );
 
-        wp_send_json_success( array( 'message' => 'Saved' ) );
+        wp_send_json_success( array( 'message' => self::admin_message( 'saved' ) ) );
     }
 
     public static function ajax_save_calendar_day() {
@@ -170,16 +179,18 @@ class KKPAY_Admin_Controller {
 
         check_ajax_referer( 'kkpay_nonce', 'nonce' );
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( array( 'message' => 'Unauthorized' ) );
+            wp_send_json_error( array( 'message' => self::admin_message( 'unauthorized' ) ) );
+            return;
         }
 
         $raw  = wp_unslash( $_POST['days'] ?? '[]' );
         $days = json_decode( $raw, true );
         if ( ! is_array( $days ) ) {
-            wp_send_json_error( array( 'message' => 'Invalid data' ) );
+            wp_send_json_error( array( 'message' => self::admin_message( 'invalid_data' ) ) );
+            return;
         }
         if ( empty( $days ) ) {
-            wp_send_json_success( array( 'message' => 'Saved' ) );
+            wp_send_json_success( array( 'message' => self::admin_message( 'saved' ) ) );
             return;
         }
 
@@ -199,14 +210,14 @@ class KKPAY_Admin_Controller {
             if ( is_wp_error( $result ) ) {
                 $wpdb->query( 'ROLLBACK' );
                 error_log( '[KKPAY] Calendar save failed. date=' . $date . ' message=' . $result->get_error_message() );
-                wp_send_json_error( array( 'message' => 'Save failed' ) );
+                wp_send_json_error( array( 'message' => self::admin_message( 'save_failed' ) ) );
                 return;
             }
         }
 
         $wpdb->query( 'COMMIT' );
 
-        wp_send_json_success( array( 'message' => 'Saved' ) );
+        wp_send_json_success( array( 'message' => self::admin_message( 'saved' ) ) );
     }
 
     private static function is_valid_date( $date ) {
@@ -218,5 +229,20 @@ class KKPAY_Admin_Controller {
         return checkdate( (int) $parts[1], (int) $parts[2], (int) $parts[0] );
     }
 
+    private static function max_capacity_for_seat( $seat ) {
+        return $seat === 'Table' ? KKPAY_TABLE_MAX_CAPACITY : KKPAY_MAX_CAPACITY;
+    }
+
+    private static function admin_message( $key ) {
+        // Admin-only screens are operated by Japanese staff, so these messages intentionally do not use kkpay_msg().
+        $messages = array(
+            'unauthorized' => '権限がありません。',
+            'invalid_data' => '不正なデータです。',
+            'save_failed'  => '保存に失敗しました。',
+            'saved'        => '保存しました。',
+        );
+
+        return $messages[ $key ] ?? $messages['save_failed'];
+    }
 
 }

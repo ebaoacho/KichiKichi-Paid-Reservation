@@ -44,6 +44,7 @@ function kkpay_step8_read( $relative_path ) {
 echo "KKPAY Step 8 smoke checks\n\n";
 
 $admin      = kkpay_step8_read( 'includes/class-kkpay-admin.php' );
+$entry      = kkpay_step8_read( 'early-reservation-system.php' );
 $controller = kkpay_step8_read( 'includes/Controllers/class-kkpay-admin-controller.php' );
 $repository = kkpay_step8_read( 'includes/Repositories/class-kkpay-reservation-repository.php' );
 $slot_repo  = kkpay_step8_read( 'includes/Repositories/class-kkpay-slot-capacity-repository.php' );
@@ -51,6 +52,7 @@ $template   = kkpay_step8_read( 'templates/admin/seat-capacity-tab.php' );
 $script     = kkpay_step8_read( 'assets/js/kkpay-admin-capacity.js' );
 
 kkpay_step8_check( $admin !== false, 'admin class is readable' );
+kkpay_step8_check( $entry !== false, 'entry point is readable' );
 kkpay_step8_check( $controller !== false, 'admin controller is readable' );
 kkpay_step8_check( $repository !== false, 'reservation repository is readable' );
 kkpay_step8_check( $slot_repo !== false, 'slot capacity repository is readable' );
@@ -61,12 +63,19 @@ if ( $admin !== false ) {
     kkpay_step8_check( strpos( $admin, 'KKPAY_Slot_Capacity_Repository::get_by_date_range' ) !== false, 'seat capacity tab reads kkpay_slot_capacities' );
     kkpay_step8_check( strpos( $admin, 'sum_active_people_by_date_range_and_seat' ) !== false, 'seat capacity tab reads active reservations by seat' );
     kkpay_step8_check( strpos( $admin, "\$seat_keys = array( 'Bar', 'Table' );" ) !== false, 'seat capacity tab provides Bar and Table seat keys' );
+    kkpay_step8_check( strpos( $admin, "'barMaxCapacity'   => KKPAY_MAX_CAPACITY" ) !== false, 'admin script receives Bar max capacity' );
+    kkpay_step8_check( strpos( $admin, "'tableMaxCapacity' => KKPAY_TABLE_MAX_CAPACITY" ) !== false, 'admin script receives Table max capacity' );
+}
+
+if ( $entry !== false ) {
+    kkpay_step8_check( strpos( $entry, "define( 'KKPAY_TABLE_MAX_CAPACITY', 6 )" ) !== false, 'entry point defines fixed Table capacity limit' );
 }
 
 if ( $controller !== false ) {
     kkpay_step8_check( strpos( $controller, "array( 'Bar', 'Table' )" ) !== false, 'save controller handles Bar and Table' );
     kkpay_step8_check( strpos( $controller, 'KKPAY_Slot_Capacity_Repository::upsert' ) !== false, 'save controller writes kkpay_slot_capacities' );
     kkpay_step8_check( strpos( $controller, 'KKPAY_Accepted_Dates_Repository::upsert_slot' ) !== false, 'save controller keeps Bar compatibility mirror' );
+    kkpay_step8_check( strpos( $controller, 'max_capacity_for_seat' ) !== false, 'save controller clamps capacity by seat' );
     kkpay_step8_check( strpos( $controller, "upsert_slot( \$date, \$slot, 0, 0 )" ) !== false, 'save controller disables missing Bar mirror slots' );
     kkpay_step8_check( strpos( $controller, "upsert_slot( \$date, \$closed_slot, 0, 0 )" ) !== false, 'save controller disables closed Bar mirror slots' );
     kkpay_step8_check( strpos( $controller, 'get_open_slot_keys_for_date' ) !== false, 'save controller respects calendar open slots' );
@@ -81,11 +90,13 @@ if ( $repository !== false ) {
 if ( $template !== false ) {
     kkpay_step8_check( strpos( $template, 'kkpay-bulk-cap-bar' ) !== false, 'template has Bar bulk capacity input' );
     kkpay_step8_check( strpos( $template, 'kkpay-bulk-cap-table' ) !== false, 'template has Table bulk capacity input' );
+    kkpay_step8_check( strpos( $template, 'KKPAY_TABLE_MAX_CAPACITY' ) !== false, 'template limits Table capacity input' );
     kkpay_step8_check( strpos( $template, 'KKPAY_Calendar_Service::get_open_slot_keys_for_date' ) !== false, 'template renders only calendar-open slots' );
     kkpay_step8_check( strpos( $template, 'data-closed="1"' ) !== false, 'template keeps closed days as hidden disable payloads' );
     kkpay_step8_check( strpos( $template, 'data-seat="<?php echo esc_attr( $seat ); ?>"' ) !== false, 'template marks inputs with seat type' );
-    kkpay_step8_check( strpos( $template, 'Bar' ) !== false, 'template renders Bar capacity controls' );
-    kkpay_step8_check( strpos( $template, 'Table' ) !== false, 'template renders Table capacity controls' );
+    kkpay_step8_check( strpos( $template, 'カウンター' ) !== false, 'template renders counter capacity label in Japanese' );
+    kkpay_step8_check( strpos( $template, 'テーブル' ) !== false, 'template renders table capacity label in Japanese' );
+    kkpay_step8_check( strpos( $template, 'is-over-capacity' ) !== false, 'template warns when active reservations exceed displayed capacity' );
     kkpay_step8_check( strpos( $template, '休業日と休業枠は席数を設定できません' ) !== false, 'template explains closed days and slots are not configurable' );
     kkpay_step8_check( strpos( $template, '予約中:' ) !== false, 'template renders active reservation totals' );
 }
@@ -93,6 +104,7 @@ if ( $template !== false ) {
 if ( $script !== false ) {
     kkpay_step8_check( strpos( $script, 'kkpay-bulk-cap-bar' ) !== false, 'JavaScript reads Bar bulk capacity input' );
     kkpay_step8_check( strpos( $script, 'kkpay-bulk-cap-table' ) !== false, 'JavaScript reads Table bulk capacity input' );
+    kkpay_step8_check( strpos( $script, 'tableMaxCapacity' ) !== false, 'JavaScript clamps Table capacity' );
     kkpay_step8_check( strpos( $script, 'data-seat="Bar"' ) !== false, 'JavaScript applies bulk capacity to Bar inputs only' );
     kkpay_step8_check( strpos( $script, 'data-seat="Table"' ) !== false, 'JavaScript applies bulk capacity to Table inputs only' );
     kkpay_step8_check( strpos( $script, "var seat = $(this).data('seat');" ) !== false, 'JavaScript reads seat type from each input' );
