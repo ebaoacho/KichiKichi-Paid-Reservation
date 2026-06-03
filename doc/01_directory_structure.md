@@ -19,7 +19,14 @@ KichiKichi-Paid-Reservation/
 │   ├── 08_database_schema.md
 │   ├── 09_stripe_integration.md
 │   ├── 10_how_to_add_feature.md
-│   └── 11_coding_conventions.md
+│   ├── 11_coding_conventions.md
+│   ├── 12_special_premium_reservation_design.md
+│   ├── 13_production_launch_guide.md
+│   ├── 14_same_day_reservation_integration_design.md
+│   ├── 15_same_day_reservation_current_spec.md
+│   ├── 16_step2_review_criteria.md
+│   ├── 17_step3_review_criteria.md
+│   └── 18_same_day_production_cutover.md
 │
 ├── includes/
 │   │
@@ -90,7 +97,8 @@ KichiKichi-Paid-Reservation/
 │   ├── kkpay-step5-check.php
 │   ├── kkpay-step6-check.php
 │   ├── kkpay-step7-check.php
-│   └── kkpay-step8-check.php
+│   ├── kkpay-step8-check.php
+│   └── kkpay-step9-check.php
 │
 └── assets/
     ├── css/

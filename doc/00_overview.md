@@ -136,3 +136,10 @@ WordPress AJAX / REST API
 | [09_stripe_integration.md](09_stripe_integration.md) | Stripe 連携の仕様・フロー・注意点 |
 | [10_how_to_add_feature.md](10_how_to_add_feature.md) | 新機能追加時のステップバイステップガイド |
 | [11_coding_conventions.md](11_coding_conventions.md) | 命名規則・コーディング規約 |
+| [12_special_premium_reservation_design.md](12_special_premium_reservation_design.md) | スペシャルプレミアム予約設計 |
+| [13_production_launch_guide.md](13_production_launch_guide.md) | 本番公開前チェック |
+| [14_same_day_reservation_integration_design.md](14_same_day_reservation_integration_design.md) | 当日予約統合設計 |
+| [15_same_day_reservation_current_spec.md](15_same_day_reservation_current_spec.md) | 既存当日予約仕様 |
+| [16_step2_review_criteria.md](16_step2_review_criteria.md) | Step 2 レビュー観点 |
+| [17_step3_review_criteria.md](17_step3_review_criteria.md) | Step 3 レビュー観点 |
+| [18_same_day_production_cutover.md](18_same_day_production_cutover.md) | 当日予約本番切り替え手順 |
