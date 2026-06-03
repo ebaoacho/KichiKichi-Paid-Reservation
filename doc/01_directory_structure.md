@@ -86,6 +86,7 @@ KichiKichi-Paid-Reservation/
 │   ├── reservation-form.php            予約フォーム（ステップ 1）
 │   ├── payment-page.php                決済ページ（ステップ 2）
 │   ├── my-reservation.php              予約照会・キャンセルページ
+│   ├── customer-calendar.php           顧客向け営業日カレンダー
 │   ├── same-day-confirmation.php       当日予約確認・キャンセルページ
 │   ├── premium-payment.php             スペシャルプレミアム決済ページ
 │   ├── premium-cancel.php              スペシャルプレミアムキャンセルページ
@@ -101,17 +102,15 @@ KichiKichi-Paid-Reservation/
 │   ├── kkpay-step7-check.php
 │   ├── kkpay-step8-check.php
 │   ├── kkpay-step9-check.php
-<<<<<<< HEAD
 │   ├── kkpay-step10-check.php
-│   └── kkpay-step11-check.php
-=======
-│   └── kkpay-step10-check.php
->>>>>>> origin/main
+│   ├── kkpay-step11-check.php
+│   └── kkpay-step12-check.php
 │
 └── assets/
     ├── css/
     │   ├── kkpay-form.css              フォーム・決済ページのスタイル
     │   ├── kkpay-mypage.css            照会・キャンセルページのスタイル
+    │   ├── kkpay-customer-calendar.css 顧客向け営業日カレンダーのスタイル
     │   ├── kkpay-same-day.css          当日予約フォームのスタイル
     │   └── kkpay-same-day-confirmation.css
     └── js/
