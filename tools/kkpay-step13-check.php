@@ -94,7 +94,7 @@ $design     = kkpay_step13_read( 'doc/19_calendar_integration_design.md' );
 kkpay_step13_check( kkpay_step13_table_exists( $calendar_days_table ), 'kkpay_calendar_days table exists' );
 
 $columns = kkpay_step13_columns( $calendar_days_table );
-foreach ( array( 'id', 'calendar_date', 'lunch_enabled', 'dinner_enabled', 'admin_note', 'created_at', 'updated_at' ) as $column ) {
+foreach ( array( 'id', 'calendar_date', 'lunch_enabled', 'dinner_enabled', 'premium_enabled', 'admin_note', 'created_at', 'updated_at' ) as $column ) {
     kkpay_step13_check( in_array( $column, $columns, true ), "kkpay_calendar_days has {$column} column" );
 }
 
@@ -125,6 +125,7 @@ if ( $repository !== false ) {
     kkpay_step13_check( strpos( $repository, 'calendar_date AS date' ) !== false, 'calendar repository exposes date alias for callers' );
     kkpay_step13_check( strpos( $repository, 'lunch_enabled AS lunch' ) !== false, 'calendar repository exposes lunch alias for callers' );
     kkpay_step13_check( strpos( $repository, 'dinner_enabled AS dinner' ) !== false, 'calendar repository exposes dinner alias for callers' );
+    kkpay_step13_check( strpos( $repository, 'premium_enabled AS premium' ) !== false, 'calendar repository exposes premium alias for callers' );
     kkpay_step13_check( strpos( $repository, 'upsert_day' ) !== false, 'calendar repository saves kkpay_calendar_days rows' );
 }
 

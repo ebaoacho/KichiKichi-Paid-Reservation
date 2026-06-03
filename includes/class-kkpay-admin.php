@@ -142,17 +142,10 @@ class KKPAY_Admin {
         $calendar      = array();
         foreach ( $calendar_rows as $row ) {
             $calendar[ $row->date ] = array(
-                'lunch'  => (int) $row->lunch,
-                'dinner' => (int) $row->dinner,
+                'lunch'   => (int) $row->lunch,
+                'dinner'  => (int) $row->dinner,
+                'premium' => (int) $row->premium,
             );
-        }
-
-        $capacity_rows = KKPAY_Slot_Capacity_Repository::get_by_date_range( $from, $to );
-        $premium_days  = array();
-        foreach ( $capacity_rows as $row ) {
-            if ( $row->seating_preference === 'Bar' && (int) $row->enabled === 1 ) {
-                $premium_days[ $row->capacity_date ] = true;
-            }
         }
 
         include KKPAY_PLUGIN_DIR . 'templates/admin/calendar-tab.php';

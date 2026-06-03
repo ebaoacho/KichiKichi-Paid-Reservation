@@ -75,7 +75,7 @@ if ( $entry !== false ) {
 if ( $service !== false ) {
     kkpay_step12_check( strpos( $service, 'get_public_calendar_days' ) !== false, 'calendar service exposes public calendar days' );
     kkpay_step12_check( strpos( $service, 'KKPAY_Calendar_Repository::get_range' ) !== false, 'public calendar reads business day calendar rows' );
-    kkpay_step12_check( strpos( $service, 'KKPAY_Slot_Capacity_Repository::get_by_date_range' ) !== false, 'public calendar reads premium availability from slot capacities' );
+    kkpay_step12_check( strpos( $service, '$row->premium' ) !== false, 'public calendar reads explicit premium availability flag' );
     kkpay_step12_check( strpos( $service, "'premium_available'" ) !== false, 'public calendar returns premium availability flag' );
     kkpay_step12_check( strpos( $service, "'open'" ) !== false, 'public calendar returns open flag' );
 }

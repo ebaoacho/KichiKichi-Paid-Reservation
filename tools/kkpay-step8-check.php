@@ -81,10 +81,12 @@ if ( $repository !== false ) {
 if ( $template !== false ) {
     kkpay_step8_check( strpos( $template, 'kkpay-bulk-cap-bar' ) !== false, 'template has Bar bulk capacity input' );
     kkpay_step8_check( strpos( $template, 'kkpay-bulk-cap-table' ) !== false, 'template has Table bulk capacity input' );
+    kkpay_step8_check( strpos( $template, 'KKPAY_Calendar_Service::get_open_slot_keys_for_date' ) !== false, 'template renders only calendar-open slots' );
+    kkpay_step8_check( strpos( $template, 'data-closed="1"' ) !== false, 'template keeps closed days as hidden disable payloads' );
     kkpay_step8_check( strpos( $template, 'data-seat="<?php echo esc_attr( $seat ); ?>"' ) !== false, 'template marks inputs with seat type' );
     kkpay_step8_check( strpos( $template, 'Bar' ) !== false, 'template renders Bar capacity controls' );
     kkpay_step8_check( strpos( $template, 'Table' ) !== false, 'template renders Table capacity controls' );
-    kkpay_step8_check( strpos( $template, '休業' ) !== false, 'template distinguishes closed slots' );
+    kkpay_step8_check( strpos( $template, '休業日と休業枠は席数を設定できません' ) !== false, 'template explains closed days and slots are not configurable' );
     kkpay_step8_check( strpos( $template, '予約中:' ) !== false, 'template renders active reservation totals' );
 }
 
@@ -94,6 +96,7 @@ if ( $script !== false ) {
     kkpay_step8_check( strpos( $script, 'data-seat="Bar"' ) !== false, 'JavaScript applies bulk capacity to Bar inputs only' );
     kkpay_step8_check( strpos( $script, 'data-seat="Table"' ) !== false, 'JavaScript applies bulk capacity to Table inputs only' );
     kkpay_step8_check( strpos( $script, "var seat = $(this).data('seat');" ) !== false, 'JavaScript reads seat type from each input' );
+    kkpay_step8_check( strpos( $script, "var closed = \$row.data('closed')" ) !== false, 'JavaScript sends hidden closed days for disabling' );
     kkpay_step8_check( strpos( $script, 'slots[slot][seat]' ) !== false, 'JavaScript sends nested slot and seat capacities' );
 }
 

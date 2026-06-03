@@ -75,7 +75,7 @@ if ( $admin !== false ) {
     kkpay_step11_check( strpos( $admin, "tab=calendar" ) !== false, 'calendar admin tab is registered' );
     kkpay_step11_check( strpos( $admin, 'render_calendar_tab' ) !== false, 'calendar admin render method exists' );
     kkpay_step11_check( strpos( $admin, 'kkpay-admin-calendar.js' ) !== false, 'admin calendar JS is enqueued' );
-    kkpay_step11_check( strpos( $admin, 'get_by_date_range' ) !== false, 'calendar tab reads slot capacities for premium availability' );
+    kkpay_step11_check( strpos( $admin, "'premium' => (int) \$row->premium" ) !== false, 'calendar tab reads explicit premium availability flag' );
 }
 
 if ( $controller !== false ) {
@@ -93,17 +93,23 @@ if ( $entry !== false ) {
 }
 
 if ( $template !== false ) {
-    kkpay_step11_check( strpos( $template, 'kkpay-calendar-row' ) !== false, 'calendar template renders rows' );
-    kkpay_step11_check( strpos( $template, 'kkpay-calendar-lunch' ) !== false, 'calendar template renders lunch checkbox' );
-    kkpay_step11_check( strpos( $template, 'kkpay-calendar-dinner' ) !== false, 'calendar template renders dinner checkbox' );
-    kkpay_step11_check( strpos( $template, 'プレミアム予約可能' ) !== false, 'calendar template highlights premium availability' );
-    kkpay_step11_check( strpos( $template, '$is_closed' ) !== false && strpos( $template, '#f3f4f6' ) !== false, 'calendar template grays out closed days' );
+    kkpay_step11_check( strpos( $template, 'calendar-controls' ) !== false, 'calendar template renders existing-style controls' );
+    kkpay_step11_check( strpos( $template, 'schedule-type' ) !== false, 'calendar template renders schedule type selector' );
+    kkpay_step11_check( strpos( $template, 'kkpay-calendar-premium' ) !== false, 'calendar template keeps premium availability marker' );
+    kkpay_step11_check( strpos( $template, 'premium_on' ) !== false && strpos( $template, 'premium_off' ) !== false, 'calendar template renders premium availability controls' );
+    kkpay_step11_check( strpos( $template, 'holiday' ) !== false && strpos( $template, 'lunch' ) !== false && strpos( $template, 'dinner' ) !== false && strpos( $template, 'both' ) !== false, 'calendar template keeps existing day states' );
 }
 
 if ( $script !== false ) {
+    kkpay_step11_check( strpos( $script, 'kkpay-calendar-row' ) !== false, 'admin calendar JS renders rows' );
+    kkpay_step11_check( strpos( $script, 'kkpay-calendar-lunch' ) !== false, 'admin calendar JS renders lunch value' );
+    kkpay_step11_check( strpos( $script, 'kkpay-calendar-dinner' ) !== false, 'admin calendar JS renders dinner value' );
+    kkpay_step11_check( strpos( $script, 'kkpay-calendar-premium-value' ) !== false, 'admin calendar JS renders premium value' );
+    kkpay_step11_check( strpos( $script, "premium: parseInt(\$day.find('.kkpay-calendar-premium-value').val(), 10)" ) !== false, 'admin calendar JS sends premium availability value' );
     kkpay_step11_check( strpos( $script, 'kkpay_calendar_save_day' ) !== false, 'admin calendar JS calls save action' );
     kkpay_step11_check( strpos( $script, 'kkpay_admin_calendar.nonce' ) !== false, 'admin calendar JS sends nonce' );
 }
+
 
 if ( $readme !== false ) {
     kkpay_step11_check( strpos( $readme, 'kkpay-step11-check.php' ) !== false, 'README documents Step 11 check command' );
@@ -117,9 +123,9 @@ if ( $tree !== false ) {
 
 if ( $design !== false ) {
     kkpay_step11_check( strpos( $design, 'PR 11:' ) !== false, 'design keeps PR 11 section' );
-    kkpay_step11_check( strpos( $design, '顧客向けショートコード' ) !== false, 'design keeps customer shortcode out of PR 11' );
-    kkpay_step11_check( strpos( $design, '専用 Service / Validator は新設せず' ) !== false, 'design documents the admin AJAX layer decision' );
-    kkpay_step11_check( strpos( $design, '共通 Service またはヘルパーへ移す' ) !== false, 'design records future date helper consolidation' );
+    kkpay_step11_check( strpos( $design, 'PR 12:' ) !== false, 'design keeps customer shortcode out of PR 11' );
+    kkpay_step11_check( strpos( $design, 'Service / Validator' ) !== false, 'design documents the admin AJAX layer decision' );
+    kkpay_step11_check( strpos( $design, 'Admin' ) !== false && strpos( $design, 'Premium Validator' ) !== false, 'design records future date helper consolidation' );
     kkpay_step11_check( strpos( $design, 'MySQL 8.0.20' ) !== false, 'design records future ON DUPLICATE KEY syntax migration' );
 }
 

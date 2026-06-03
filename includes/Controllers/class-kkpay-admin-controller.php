@@ -192,9 +192,10 @@ class KKPAY_Admin_Controller {
                 continue;
             }
 
-            $lunch  = ! empty( $row['lunch'] ) ? 1 : 0;
-            $dinner = ! empty( $row['dinner'] ) ? 1 : 0;
-            $result = KKPAY_Calendar_Repository::upsert_day( $date, $lunch, $dinner );
+            $lunch   = ! empty( $row['lunch'] ) ? 1 : 0;
+            $dinner  = ! empty( $row['dinner'] ) ? 1 : 0;
+            $premium = ! empty( $row['premium'] ) ? 1 : 0;
+            $result  = KKPAY_Calendar_Repository::upsert_day( $date, $lunch, $dinner, $premium );
             if ( is_wp_error( $result ) ) {
                 $wpdb->query( 'ROLLBACK' );
                 error_log( '[KKPAY] Calendar save failed. date=' . $date . ' message=' . $result->get_error_message() );

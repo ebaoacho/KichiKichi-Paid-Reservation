@@ -111,6 +111,7 @@ class KKPAY_Activator {
             'calendar_date',
             'lunch_enabled',
             'dinner_enabled',
+            'premium_enabled',
             'admin_note',
             'created_at',
             'updated_at',
@@ -311,6 +312,7 @@ class KKPAY_Activator {
             calendar_date  DATE            NOT NULL,
             lunch_enabled  TINYINT(1)      NOT NULL DEFAULT 0,
             dinner_enabled TINYINT(1)      NOT NULL DEFAULT 0,
+            premium_enabled TINYINT(1)     NOT NULL DEFAULT 0,
             admin_note     TEXT            DEFAULT NULL,
             created_at     DATETIME        NOT NULL,
             updated_at     DATETIME        NOT NULL,
@@ -407,8 +409,8 @@ class KKPAY_Activator {
             // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table names are derived from $wpdb->prefix; identifiers cannot use placeholders.
             $wpdb->prepare(
                 "INSERT IGNORE INTO {$calendar_days_table}
-                (calendar_date, lunch_enabled, dinner_enabled, created_at, updated_at)
-             SELECT date, lunch, dinner, %s, %s
+                (calendar_date, lunch_enabled, dinner_enabled, premium_enabled, created_at, updated_at)
+             SELECT date, lunch, dinner, 0, %s, %s
              FROM {$legacy_table}",
                 $now,
                 $now
