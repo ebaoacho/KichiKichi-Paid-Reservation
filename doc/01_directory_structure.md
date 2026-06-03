@@ -101,8 +101,12 @@ KichiKichi-Paid-Reservation/
 │   ├── kkpay-step7-check.php
 │   ├── kkpay-step8-check.php
 │   ├── kkpay-step9-check.php
+<<<<<<< HEAD
 │   ├── kkpay-step10-check.php
 │   └── kkpay-step11-check.php
+=======
+│   └── kkpay-step10-check.php
+>>>>>>> origin/main
 │
 └── assets/
     ├── css/
