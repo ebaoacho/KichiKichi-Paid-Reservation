@@ -142,3 +142,7 @@ LIMIT 20;
 - `kkpay_accepted_dates` の削除。
 - 本番ページの実際のショートコード差し替え。
 - Feature Flag の追加。PR 9 では手順書による段階切り替えと切り戻しで制御する。
+
+## PR 13 以降の営業日カレンダー編集
+
+- PR 13 以降、営業日カレンダーの編集は必ず KKPAY 管理画面の「営業日カレンダー」タブから行うこと。旧プラグイン側の `{prefix}calendar` 変更は `kkpay_calendar_days` に同期されない。

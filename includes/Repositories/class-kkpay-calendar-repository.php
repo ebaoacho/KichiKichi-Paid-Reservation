@@ -4,19 +4,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * 既存プラグインの {prefix}calendar テーブルへの読み書きアクセスを担当する。
+ * kkpay_calendar_days テーブルへのアクセスを担当する。
  */
 class KKPAY_Calendar_Repository {
 
     private static function table() {
         global $wpdb;
-        return $wpdb->prefix . 'calendar';
+        return $wpdb->prefix . 'kkpay_calendar_days';
     }
 
     public static function find_by_date( $date_str ) {
         global $wpdb;
         return $wpdb->get_row( $wpdb->prepare(
-            'SELECT lunch, dinner FROM ' . self::table() . ' WHERE date = %s LIMIT 1',
+            'SELECT calendar_date AS date, lunch_enabled AS lunch, dinner_enabled AS dinner, admin_note
+             FROM ' . self::table() . '
+             WHERE calendar_date = %s
+             LIMIT 1',
             $date_str
         ) );
     }
@@ -24,35 +27,53 @@ class KKPAY_Calendar_Repository {
     public static function get_range( $from, $to ) {
         global $wpdb;
         return $wpdb->get_results( $wpdb->prepare(
-            'SELECT date, lunch, dinner FROM ' . self::table() . ' WHERE date BETWEEN %s AND %s ORDER BY date ASC',
-            $from, $to
+            'SELECT calendar_date AS date, lunch_enabled AS lunch, dinner_enabled AS dinner, admin_note
+             FROM ' . self::table() . '
+             WHERE calendar_date BETWEEN %s AND %s
+             ORDER BY calendar_date ASC',
+            $from,
+            $to
         ) );
     }
 
-    public static function upsert_day( $date, $lunch, $dinner ) {
+    public static function upsert_day( $date, $lunch, $dinner, $admin_note = null ) {
         global $wpdb;
 
-        if ( ! self::find_by_date( $date ) ) {
-            $blocking_columns = self::required_insert_columns();
-            if ( ! empty( $blocking_columns ) ) {
-                return new WP_Error(
-                    'calendar_schema_incompatible',
-                    'calendar insert requires additional columns: ' . implode( ', ', $blocking_columns )
-                );
-            }
-        }
+        $now = current_time( 'mysql' );
 
-        $result = $wpdb->query( $wpdb->prepare(
-            'INSERT INTO ' . self::table() . '
-                (date, lunch, dinner)
-             VALUES (%s, %d, %d)
-             ON DUPLICATE KEY UPDATE
-                lunch = VALUES(lunch),
-                dinner = VALUES(dinner)',
-            $date,
-            (int) (bool) $lunch,
-            (int) (bool) $dinner
-        ) );
+        if ( $admin_note === null ) {
+            $result = $wpdb->query( $wpdb->prepare(
+                'INSERT INTO ' . self::table() . '
+                    (calendar_date, lunch_enabled, dinner_enabled, admin_note, created_at, updated_at)
+                 VALUES (%s, %d, %d, NULL, %s, %s)
+                 ON DUPLICATE KEY UPDATE
+                    lunch_enabled = VALUES(lunch_enabled),
+                    dinner_enabled = VALUES(dinner_enabled),
+                    updated_at = VALUES(updated_at)',
+                $date,
+                (int) (bool) $lunch,
+                (int) (bool) $dinner,
+                $now,
+                $now
+            ) );
+        } else {
+            $result = $wpdb->query( $wpdb->prepare(
+                'INSERT INTO ' . self::table() . '
+                    (calendar_date, lunch_enabled, dinner_enabled, admin_note, created_at, updated_at)
+                 VALUES (%s, %d, %d, %s, %s, %s)
+                 ON DUPLICATE KEY UPDATE
+                    lunch_enabled = VALUES(lunch_enabled),
+                    dinner_enabled = VALUES(dinner_enabled),
+                    admin_note = VALUES(admin_note),
+                    updated_at = VALUES(updated_at)',
+                $date,
+                (int) (bool) $lunch,
+                (int) (bool) $dinner,
+                $admin_note,
+                $now,
+                $now
+            ) );
+        }
 
         if ( $result !== false ) {
             return $result;
@@ -60,46 +81,7 @@ class KKPAY_Calendar_Repository {
 
         return new WP_Error(
             'db_upsert_failed',
-            'calendar upsert failed: ' . $wpdb->last_error
+            'kkpay_calendar_days upsert failed: ' . $wpdb->last_error
         );
-    }
-
-    private static function required_insert_columns() {
-        static $cache = null;
-
-        if ( $cache !== null ) {
-            return $cache;
-        }
-
-        global $wpdb;
-
-        $table = self::table();
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is derived from $wpdb->prefix; identifiers cannot use placeholders.
-        $rows = $wpdb->get_results( "DESCRIBE {$table}", ARRAY_A );
-        if ( ! is_array( $rows ) ) {
-            $cache = array();
-            return $cache;
-        }
-
-        $provided = array( 'date', 'lunch', 'dinner' );
-        $required = array();
-
-        foreach ( $rows as $row ) {
-            $field = $row['Field'] ?? '';
-            if ( in_array( $field, $provided, true ) ) {
-                continue;
-            }
-
-            $null    = strtoupper( $row['Null'] ?? '' );
-            $default = $row['Default'] ?? null;
-            $extra   = strtolower( $row['Extra'] ?? '' );
-
-            if ( $null === 'NO' && $default === null && strpos( $extra, 'auto_increment' ) === false ) {
-                $required[] = $field;
-            }
-        }
-
-        $cache = $required;
-        return $cache;
     }
 }

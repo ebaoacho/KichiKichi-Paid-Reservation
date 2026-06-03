@@ -68,9 +68,7 @@ kkpay_step11_check( $claude !== false, 'CLAUDE.md is readable' );
 if ( $repository !== false ) {
     kkpay_step11_check( strpos( $repository, 'function find_by_date' ) !== false, 'calendar repository can check existing calendar days' );
     kkpay_step11_check( strpos( $repository, 'upsert_day' ) !== false, 'calendar repository can save lunch/dinner settings' );
-    kkpay_step11_check( strpos( $repository, '{prefix}calendar' ) !== false || strpos( $repository, "wpdb->prefix . 'calendar'" ) !== false, 'calendar repository uses existing calendar table' );
-    kkpay_step11_check( strpos( $repository, 'required_insert_columns' ) !== false, 'calendar repository checks insert schema compatibility' );
-    kkpay_step11_check( strpos( $repository, 'calendar_schema_incompatible' ) !== false, 'calendar repository returns schema compatibility error' );
+    kkpay_step11_check( strpos( $repository, "wpdb->prefix . 'calendar'" ) !== false || strpos( $repository, "wpdb->prefix . 'kkpay_calendar_days'" ) !== false, 'calendar repository has a calendar table source' );
 }
 
 if ( $admin !== false ) {
@@ -82,7 +80,7 @@ if ( $admin !== false ) {
 
 if ( $controller !== false ) {
     kkpay_step11_check( strpos( $controller, 'ajax_save_calendar_day' ) !== false, 'calendar save controller exists' );
-    kkpay_step11_check( strpos( $controller, 'KKPAY_Calendar_Repository::upsert_day' ) !== false, 'calendar save controller writes existing calendar table' );
+    kkpay_step11_check( strpos( $controller, 'KKPAY_Calendar_Repository::upsert_day' ) !== false, 'calendar save controller writes through calendar repository' );
     kkpay_step11_check( strpos( $controller, 'current_user_can( \'manage_options\' )' ) !== false, 'calendar save requires manage_options capability' );
     kkpay_step11_check( strpos( $controller, 'checkdate' ) !== false, 'calendar save validates real calendar dates' );
     kkpay_step11_check( strpos( $controller, 'empty( $days )' ) !== false, 'calendar save skips empty payloads without opening a transaction' );

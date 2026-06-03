@@ -328,7 +328,6 @@ PR 11 の保存処理は、既存の席数設定保存 kkpay_save_slot_capacity 
 必要になった場合に実施する。
 
 含めるもの:
-
 - `kkpay_calendar_days` テーブル追加
 - 既存 `{prefix}calendar` からの移行
 - `KKPAY_Calendar_Repository` の参照先切り替え
@@ -350,7 +349,14 @@ PR 11 の保存処理は、既存の席数設定保存 kkpay_save_slot_capacity 
 
 - 顧客向けカレンダーを表示専用にするか、予約フォームへのリンクを付けるか。
 - プレミアム予約可能日を `kkpay_slot_capacities` から導出するだけで十分か、将来的に専用フラグが必要か。
-- `kkpay_calendar_days` への移行をいつ行うか。
 - 管理者向けカレンダーで月送りを何か月先まで許可するか。
 - 今日から2か月後の月末を求める日付計算は、現時点では Admin 内ヘルパーと Premium Validator に同等実装がある。後続 PR で利用箇所が増える場合は共通 Service またはヘルパーへ移す。
 - 既存 Repository と同様に `ON DUPLICATE KEY UPDATE ... VALUES()` を使っている箇所は、MySQL 8.0.20 以降の非推奨に合わせて後続 PR で row alias 形式への移行を検討する。
+
+## 解決済み事項
+
+- `kkpay_calendar_days` への移行は PR 13 で実施済み。
+
+## PR 13 以降の正本運用
+
+- PR 13 以降、営業日カレンダーの正本は `kkpay_calendar_days` です。旧プラグイン側の `{prefix}calendar` 変更は `kkpay_calendar_days` に同期されないため、営業日編集は KKPAY 管理画面から行います。

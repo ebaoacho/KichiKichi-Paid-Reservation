@@ -32,7 +32,7 @@
 
 ### 必須
 - **KichiKichi Reservation System プラグイン**  
-  `{prefix}calendar` テーブルを提供する。このテーブルがないと営業日判定が機能しない。
+  `{prefix}calendar` は PR 13 以降、営業日設定の初期移行元としてのみ参照します。営業日判定の正本は `kkpay_calendar_days` です。
 
 ### 任意
 - **WP Mail SMTP**  

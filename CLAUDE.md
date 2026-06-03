@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-A WordPress plugin (`early-reservation-system.php`) for paid restaurant reservations. It integrates with an existing "KichiKichi Calendar" plugin (which provides the `{prefix}calendar` table) and handles Stripe payments, 5-language emails, and transactional seat holds.
+A WordPress plugin (`early-reservation-system.php`) for paid restaurant reservations. It owns reservation, capacity, and calendar tables, can migrate initial business-day data from the legacy `{prefix}calendar` table, and handles Stripe payments, 5-language emails, and transactional seat holds.
 
 ## No Build Step
 
@@ -116,7 +116,7 @@ Optional dev variable: `KKPAY_DEV_MAIL=true` — when set, `KKPAY_Dev_Mailer` re
 
 ## Database Tables
 
-Custom tables (prefix + `kkpay_holds`, `kkpay_reservations`, `kkpay_cancellations`, `kkpay_accepted_dates`, `kkpay_premium_reservations`) plus read-only access to the external `{prefix}calendar` table. Schema is in `class-kkpay-activator.php`.
+Custom tables include `kkpay_holds`, `kkpay_reservations`, `kkpay_cancellations`, `kkpay_accepted_dates`, `kkpay_premium_reservations`, `kkpay_slot_capacities`, `kkpay_reservation_events`, and `kkpay_calendar_days`. The legacy external `{prefix}calendar` table is an optional one-time migration source only; calendar reads and writes use `kkpay_calendar_days`. Schema is in `class-kkpay-activator.php`.
 
 Key constraints:
 
