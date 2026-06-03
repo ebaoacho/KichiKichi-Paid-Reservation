@@ -165,5 +165,57 @@ class KKPAY_Admin_Controller {
         wp_send_json_success( array( 'message' => 'Saved' ) );
     }
 
+    public static function ajax_save_calendar_day() {
+        global $wpdb;
+
+        check_ajax_referer( 'kkpay_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => 'Unauthorized' ) );
+        }
+
+        $raw  = wp_unslash( $_POST['days'] ?? '[]' );
+        $days = json_decode( $raw, true );
+        if ( ! is_array( $days ) ) {
+            wp_send_json_error( array( 'message' => 'Invalid data' ) );
+        }
+        if ( empty( $days ) ) {
+            wp_send_json_success( array( 'message' => 'Saved' ) );
+            return;
+        }
+
+        $wpdb->query( 'START TRANSACTION' );
+
+        foreach ( $days as $row ) {
+            $date = sanitize_text_field( $row['date'] ?? '' );
+            if ( ! self::is_valid_date( $date ) ) {
+                // The admin UI generates date values; invalid payload rows are ignored defensively.
+                continue;
+            }
+
+            $lunch  = ! empty( $row['lunch'] ) ? 1 : 0;
+            $dinner = ! empty( $row['dinner'] ) ? 1 : 0;
+            $result = KKPAY_Calendar_Repository::upsert_day( $date, $lunch, $dinner );
+            if ( is_wp_error( $result ) ) {
+                $wpdb->query( 'ROLLBACK' );
+                error_log( '[KKPAY] Calendar save failed. date=' . $date . ' message=' . $result->get_error_message() );
+                wp_send_json_error( array( 'message' => 'Save failed' ) );
+                return;
+            }
+        }
+
+        $wpdb->query( 'COMMIT' );
+
+        wp_send_json_success( array( 'message' => 'Saved' ) );
+    }
+
+    private static function is_valid_date( $date ) {
+        if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) ) {
+            return false;
+        }
+
+        $parts = explode( '-', $date );
+        return checkdate( (int) $parts[1], (int) $parts[2], (int) $parts[0] );
+    }
+
 
 }

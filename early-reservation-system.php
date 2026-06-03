@@ -406,6 +406,7 @@ foreach ( $kkpay_public_actions as $action => $callback ) {
 add_action( 'wp_ajax_kkpay_load_admin_list',              array( 'KKPAY_Admin_Controller',             'ajax_load_admin_list' ) );
 add_action( 'wp_ajax_kkpay_export_csv',                   array( 'KKPAY_Admin_Controller',             'ajax_export_csv' ) );
 add_action( 'wp_ajax_kkpay_save_slot_capacity',           array( 'KKPAY_Admin_Controller',             'ajax_save_slot_capacity' ) );
+add_action( 'wp_ajax_kkpay_calendar_save_day',            array( 'KKPAY_Admin_Controller',             'ajax_save_calendar_day' ) );
 add_action( 'wp_ajax_kkpay_premium_issue_payment_link',   array( 'KKPAY_Premium_Reservation_Controller', 'ajax_issue_payment_link' ) );
 add_action( 'wp_ajax_kkpay_premium_schedule_reservation', array( 'KKPAY_Premium_Reservation_Controller', 'ajax_schedule_reservation' ) );
 add_action( 'wp_ajax_kkpay_premium_issue_cancel_link',    array( 'KKPAY_Premium_Reservation_Controller', 'ajax_issue_cancel_link' ) );

@@ -205,6 +205,7 @@ Admin only (`manage_options`):
 | `kkpay_load_admin_list` | `KKPAY_Admin_Controller::ajax_load_admin_list` |
 | `kkpay_export_csv` | `KKPAY_Admin_Controller::ajax_export_csv` |
 | `kkpay_save_slot_capacity` | `KKPAY_Admin_Controller::ajax_save_slot_capacity` |
+| `kkpay_calendar_save_day` | `KKPAY_Admin_Controller::ajax_save_calendar_day` |
 | `kkpay_premium_issue_payment_link` | `KKPAY_Premium_Reservation_Controller::ajax_issue_payment_link` |
 | `kkpay_premium_schedule_reservation` | `KKPAY_Premium_Reservation_Controller::ajax_schedule_reservation` |
 | `kkpay_premium_issue_cancel_link` | `KKPAY_Premium_Reservation_Controller::ajax_issue_cancel_link` |

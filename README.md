@@ -216,6 +216,12 @@ Stripe 決済は、ブラウザの確定処理と Webhook の両方から同じ 
 - Step 8 確認スクリプト
 - 当日予約の本番切り替え手順書 `doc/18_same_day_production_cutover.md` を追加
 - Step 9 確認スクリプト
+- カレンダー統合設計書 `doc/19_calendar_integration_design.md` を追加
+- Step 10 確認スクリプト
+- 管理画面に営業日カレンダータブを追加
+- 既存 `{prefix}calendar` のランチ・ディナー営業可否を管理画面から保存
+- 席数設定の Bar 有効日をプレミアム予約可能日として青背景表示
+- Step 11 確認スクリプト
 
 Step 8 の席数設定保存では、表示中の営業スロットを全件送信する設計です。表示対象の営業スロットが送信されなかった場合は、古い席数を残さず `capacity = 0` / `enabled = 0` として無効化します。
 
@@ -317,7 +323,7 @@ Webhook signing secret を `KKPAY_STRIPE_WEBHOOK_SECRET` に設定します。
 
 Step 1 のスキーマ確認用に、読み取り専用スクリプトを用意しています。
 Step 2 / Step 3 / Step 4 / Step 6 の確認は Step 1 のDBマイグレーションが適用済みであることを前提にしています。
-Step 5 / Step 7 / Step 8 / Step 9 の確認スクリプトはファイルと登録内容の静的確認のみで、DB接続は不要です。
+Step 5 / Step 7 / Step 8 / Step 9 / Step 10 / Step 11 の確認スクリプトはファイルと登録内容の静的確認のみで、DB接続は不要です。
 
 ```powershell
 C:\xampp\php\php.exe tools\kkpay-step1-check.php C:\xampp\htdocs\kichikichi\wp-load.php
@@ -329,6 +335,8 @@ C:\xampp\php\php.exe tools\kkpay-step6-check.php
 C:\xampp\php\php.exe tools\kkpay-step7-check.php
 C:\xampp\php\php.exe tools\kkpay-step8-check.php
 C:\xampp\php\php.exe tools\kkpay-step9-check.php
+C:\xampp\php\php.exe tools\kkpay-step10-check.php
+C:\xampp\php\php.exe tools\kkpay-step11-check.php
 ```
 
 期待結果:
@@ -374,8 +382,11 @@ C:\xampp\php\php.exe -l tools\kkpay-step6-check.php
 C:\xampp\php\php.exe -l tools\kkpay-step7-check.php
 C:\xampp\php\php.exe -l tools\kkpay-step8-check.php
 C:\xampp\php\php.exe -l tools\kkpay-step9-check.php
+C:\xampp\php\php.exe -l tools\kkpay-step10-check.php
+C:\xampp\php\php.exe -l tools\kkpay-step11-check.php
 node --check assets\js\kkpay-same-day.js
 node --check assets\js\kkpay-admin-capacity.js
+node --check assets\js\kkpay-admin-calendar.js
 node --check assets\js\kkpay-admin-same-day.js
 node --check assets\js\kkpay-same-day-confirmation.js
 ```
