@@ -131,22 +131,8 @@ class KKPAY_Calendar_Service {
             $days[ $row->date ] = array(
                 'date'              => $row->date,
                 'open'              => $open,
-                'premium_available' => false,
+                'premium_available' => $open && (bool) $row->premium,
             );
-        }
-
-        foreach ( KKPAY_Slot_Capacity_Repository::get_by_date_range( $from, $to ) as $row ) {
-            if ( $row->seating_preference !== 'Bar' ) {
-                continue;
-            }
-
-            if ( ! isset( $days[ $row->capacity_date ] ) || ! $days[ $row->capacity_date ]['open'] ) {
-                continue;
-            }
-
-            if ( (int) $row->enabled === 1 && (int) $row->capacity > 0 ) {
-                $days[ $row->capacity_date ]['premium_available'] = true;
-            }
         }
 
         return $days;

@@ -69,12 +69,12 @@
 
 ### プレミアム予約可能日の扱い
 
-プレミアム予約可能日は、専用フラグを新設するのではなく、当面は `kkpay_slot_capacities` から導出する。
+プレミアム予約可能日は、`kkpay_calendar_days.premium_enabled` で明示的に管理する。
 
 判定:
 
 ```text
-対象日に seating_preference = Bar の enabled = 1 行が1件以上ある
+対象日の kkpay_calendar_days.premium_enabled = 1
 ```
 
 この日を「プレミアム予約可能日」として扱い、顧客向けカレンダーでは青背景で表示する。
@@ -82,8 +82,8 @@
 理由:
 
 - プレミアム予約は `Bar` 固定で残席を消費する。
-- Step 8 で `Bar` / `Table` の席数設定を `kkpay_slot_capacities` に統合済み。
-- 管理者が席数設定で `Bar` を有効化した日を、そのままプレミアム予約可能日として説明できる。
+- ただし、`Bar` の席数が 0 より多いことと、プレミアム予約を受け付けるかどうかは別の運用判断である。
+- 管理者が営業日カレンダーで `premium_enabled` を設定した日を、プレミアム予約可能日として扱う。
 
 ## 画面設計
 
@@ -103,15 +103,16 @@
 - ランチ営業可否
 - ディナー営業可否
 - プレミアム予約可能状態
-- Bar 席数設定への導線
+- プレミアム予約可能状態の ON/OFF
 - Table 席数設定への導線
 
 管理者が変更できる項目:
 
 - ランチ営業 ON/OFF
 - ディナー営業 ON/OFF
+- プレミアム予約可能日 ON/OFF
 
-プレミアム予約可能日は、直接 ON/OFF するのではなく、席数設定タブの `Bar` 席数・enabled から反映する。
+プレミアム予約可能日は、営業日カレンダーで直接 ON/OFF する。席数設定タブの `Bar` 席数・enabled からは導出しない。
 
 ### 管理者向け: プレミアム予約可能日の見え方
 
@@ -128,7 +129,7 @@
 青背景になる条件:
 
 ```text
-kkpay_slot_capacities に対象日の Bar enabled = 1 が存在する
+kkpay_calendar_days.premium_enabled = 1
 ```
 
 ### 顧客向け: カレンダーショートコード
@@ -196,6 +197,7 @@ KKPAY_Calendar_Repository::upsert_day( $date, $lunch, $dinner )
 | `calendar_date` | DATE | 対象日 |
 | `lunch_enabled` | TINYINT(1) | ランチ営業可否 |
 | `dinner_enabled` | TINYINT(1) | ディナー営業可否 |
+| `premium_enabled` | TINYINT(1) | プレミアム予約受付可否 |
 | `admin_note` | TEXT NULL | 管理者メモ |
 | `created_at` | DATETIME | 作成日時 |
 | `updated_at` | DATETIME | 更新日時 |
@@ -225,6 +227,7 @@ UNIQUE KEY calendar_date (calendar_date)
 date
 lunch_enabled
 dinner_enabled
+premium_enabled
 nonce
 ```
 
@@ -340,7 +343,7 @@ PR 11 の保存処理は、既存の席数設定保存 kkpay_save_slot_capacity 
 
 - 既存 `{prefix}calendar` の営業日設定を壊さないか。
 - 管理者がランチ/ディナー営業可否を直感的に設定できるか。
-- プレミアム予約可能日の青背景が `Bar` の有効設定と一致しているか。
+- プレミアム予約可能日の青背景が `kkpay_calendar_days.premium_enabled` と一致しているか。
 - 顧客向けカレンダーに内部情報を出しすぎていないか。
 - 休業日とプレミアム予約可能日の色が混同されないか。
 - 旧当日予約プラグイン停止前でも安全に併用できるか。
@@ -348,7 +351,7 @@ PR 11 の保存処理は、既存の席数設定保存 kkpay_save_slot_capacity 
 ## 未決事項
 
 - 顧客向けカレンダーを表示専用にするか、予約フォームへのリンクを付けるか。
-- プレミアム予約可能日を `kkpay_slot_capacities` から導出するだけで十分か、将来的に専用フラグが必要か。
+- プレミアム予約可能日は `kkpay_calendar_days.premium_enabled` で管理する。
 - 管理者向けカレンダーで月送りを何か月先まで許可するか。
 - 今日から2か月後の月末を求める日付計算は、現時点では Admin 内ヘルパーと Premium Validator に同等実装がある。後続 PR で利用箇所が増える場合は共通 Service またはヘルパーへ移す。
 - 既存 Repository と同様に `ON DUPLICATE KEY UPDATE ... VALUES()` を使っている箇所は、MySQL 8.0.20 以降の非推奨に合わせて後続 PR で row alias 形式への移行を検討する。

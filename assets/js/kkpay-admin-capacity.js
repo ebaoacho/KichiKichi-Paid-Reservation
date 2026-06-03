@@ -15,6 +15,7 @@ jQuery(function ($) {
         $('.kkpay-cap-row').each(function () {
             var $row  = $(this);
             var slots = {};
+            var closed = $row.data('closed') === 1 || $row.data('closed') === true || $row.attr('data-closed') === '1';
             $row.find('.kkpay-cap-input').each(function () {
                 var slot = $(this).data('slot');
                 var seat = $(this).data('seat');
@@ -23,7 +24,7 @@ jQuery(function ($) {
                 }
                 slots[slot][seat] = parseInt($(this).val(), 10) || 0;
             });
-            if (Object.keys(slots).length > 0) {
+            if (Object.keys(slots).length > 0 || closed) {
                 dates.push({ date: $row.data('date'), slots: slots });
             }
         });
