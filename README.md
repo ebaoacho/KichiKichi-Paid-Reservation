@@ -402,3 +402,4 @@ node --check assets\js\kkpay-same-day-confirmation.js
 | `doc/14_same_day_reservation_integration_design.md` | 当日予約統合設計 |
 | `doc/15_same_day_reservation_current_spec.md` | 既存当日予約仕様 |
 | `doc/18_same_day_production_cutover.md` | 当日予約本番切り替え手順 |
+| `doc/19_calendar_integration_design.md` | カレンダー統合設計 |

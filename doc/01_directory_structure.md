@@ -26,7 +26,8 @@ KichiKichi-Paid-Reservation/
 │   ├── 15_same_day_reservation_current_spec.md
 │   ├── 16_step2_review_criteria.md
 │   ├── 17_step3_review_criteria.md
-│   └── 18_same_day_production_cutover.md
+│   ├── 18_same_day_production_cutover.md
+│   └── 19_calendar_integration_design.md
 │
 ├── includes/
 │   │

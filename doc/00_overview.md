@@ -143,3 +143,4 @@ WordPress AJAX / REST API
 | [16_step2_review_criteria.md](16_step2_review_criteria.md) | Step 2 レビュー観点 |
 | [17_step3_review_criteria.md](17_step3_review_criteria.md) | Step 3 レビュー観点 |
 | [18_same_day_production_cutover.md](18_same_day_production_cutover.md) | 当日予約本番切り替え手順 |
+| [19_calendar_integration_design.md](19_calendar_integration_design.md) | カレンダー統合設計 |
