@@ -78,6 +78,7 @@ KichiKichi-Paid-Reservation/
 │
 ├── templates/                          ショートコードが出力する HTML テンプレート
 │   ├── admin/
+│   │   ├── calendar-tab.php
 │   │   ├── premium-reservations-tab.php
 │   │   ├── reservations-tab.php
 │   │   ├── same-day-reservations-tab.php
@@ -100,7 +101,12 @@ KichiKichi-Paid-Reservation/
 │   ├── kkpay-step7-check.php
 │   ├── kkpay-step8-check.php
 │   ├── kkpay-step9-check.php
+<<<<<<< HEAD
+│   ├── kkpay-step10-check.php
+│   └── kkpay-step11-check.php
+=======
 │   └── kkpay-step10-check.php
+>>>>>>> origin/main
 │
 └── assets/
     ├── css/
@@ -112,6 +118,7 @@ KichiKichi-Paid-Reservation/
         ├── kkpay-form.js               予約フォーム・決済の JS ロジック
         ├── kkpay-mypage.js             照会・キャンセルの JS ロジック
         ├── kkpay-admin-capacity.js      席数設定タブの JS ロジック
+        ├── kkpay-admin-calendar.js      営業日カレンダータブの JS ロジック
         ├── kkpay-admin-same-day.js
         ├── kkpay-same-day.js           当日予約フォームの JS ロジック
         └── kkpay-same-day-confirmation.js

@@ -304,6 +304,10 @@ nonce
 - 顧客向けショートコード
 - `kkpay_calendar_days` への移行
 
+PR 11 の保存処理は、既存の席数設定保存 kkpay_save_slot_capacity と同じ管理画面 AJAX パターンに合わせる。
+このため、この PR では専用 Service / Validator は新設せず、Controller で nonce・権限確認、JSON デコード、日付形式チェック、トランザクション管理を行う。
+営業日カレンダー保存の責務が複雑化した場合は、後続 PR で Service / Validator に分離する。
+
 ### PR 12: 顧客向けカレンダーショートコード
 
 含めるもの:
@@ -347,3 +351,5 @@ nonce
 - プレミアム予約可能日を `kkpay_slot_capacities` から導出するだけで十分か、将来的に専用フラグが必要か。
 - `kkpay_calendar_days` への移行をいつ行うか。
 - 管理者向けカレンダーで月送りを何か月先まで許可するか。
+- 今日から2か月後の月末を求める日付計算は、現時点では Admin 内ヘルパーと Premium Validator に同等実装がある。後続 PR で利用箇所が増える場合は共通 Service またはヘルパーへ移す。
+- 既存 Repository と同様に `ON DUPLICATE KEY UPDATE ... VALUES()` を使っている箇所は、MySQL 8.0.20 以降の非推奨に合わせて後続 PR で row alias 形式への移行を検討する。

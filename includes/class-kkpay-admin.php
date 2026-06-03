@@ -38,6 +38,10 @@ class KKPAY_Admin {
         ) );
 
         wp_enqueue_script( 'kkpay-admin-same-day', KKPAY_PLUGIN_URL . 'assets/js/kkpay-admin-same-day.js', array( 'jquery' ), KKPAY_VERSION, true );
+        wp_enqueue_script( 'kkpay-admin-calendar', KKPAY_PLUGIN_URL . 'assets/js/kkpay-admin-calendar.js', array( 'jquery' ), KKPAY_VERSION, true );
+        wp_localize_script( 'kkpay-admin-calendar', 'kkpay_admin_calendar', array(
+            'nonce' => wp_create_nonce( 'kkpay_nonce' ),
+        ) );
     }
 
     public static function render_page() {
@@ -58,6 +62,8 @@ class KKPAY_Admin {
                    href="<?php echo esc_url( admin_url( 'admin.php?page=kkpay-settings&tab=premium_reservations' ) ); ?>">スペシャルプレミアム予約</a>
                 <a class="nav-tab <?php echo $active_tab === 'same_day_reservations' ? 'nav-tab-active' : ''; ?>"
                    href="<?php echo esc_url( admin_url( 'admin.php?page=kkpay-settings&tab=same_day_reservations' ) ); ?>">当日予約</a>
+                <a class="nav-tab <?php echo $active_tab === 'calendar' ? 'nav-tab-active' : ''; ?>"
+                   href="<?php echo esc_url( admin_url( 'admin.php?page=kkpay-settings&tab=calendar' ) ); ?>">営業日カレンダー</a>
             </h2>
             <?php
             if ( $active_tab === 'seat_capacity' ) {
@@ -66,6 +72,8 @@ class KKPAY_Admin {
                 self::render_premium_reservations_tab();
             } elseif ( $active_tab === 'same_day_reservations' ) {
                 self::render_same_day_reservations_tab();
+            } elseif ( $active_tab === 'calendar' ) {
+                self::render_calendar_tab();
             } else {
                 self::render_reservations_tab();
             }
@@ -102,7 +110,7 @@ class KKPAY_Admin {
         $tz    = new DateTimeZone( 'Asia/Tokyo' );
         $today = new DateTimeImmutable( 'today', $tz );
         $from  = $today->format( 'Y-m-d' );
-        $to_date = KKPAY_Premium_Reservation_Validator::two_months_later_end_of_month( $today );
+        $to_date = self::two_months_later_end_of_month( $today );
         $to      = $to_date->format( 'Y-m-d' );
         $capacity_days = (int) $today->diff( $to_date )->format( '%a' );
 
@@ -121,4 +129,45 @@ class KKPAY_Admin {
 
         include KKPAY_PLUGIN_DIR . 'templates/admin/seat-capacity-tab.php';
     }
-}
+
+    public static function render_calendar_tab() {
+        $tz    = new DateTimeZone( 'Asia/Tokyo' );
+        $today = new DateTimeImmutable( 'today', $tz );
+        $from  = $today->format( 'Y-m-d' );
+        $to_date = self::two_months_later_end_of_month( $today );
+        $to      = $to_date->format( 'Y-m-d' );
+        $calendar_days = (int) $today->diff( $to_date )->format( '%a' );
+
+        $calendar_rows = KKPAY_Calendar_Repository::get_range( $from, $to );
+        $calendar      = array();
+        foreach ( $calendar_rows as $row ) {
+            $calendar[ $row->date ] = array(
+                'lunch'  => (int) $row->lunch,
+                'dinner' => (int) $row->dinner,
+            );
+        }
+
+        $capacity_rows = KKPAY_Slot_Capacity_Repository::get_by_date_range( $from, $to );
+        $premium_days  = array();
+        foreach ( $capacity_rows as $row ) {
+            if ( $row->seating_preference === 'Bar' && (int) $row->enabled === 1 ) {
+                $premium_days[ $row->capacity_date ] = true;
+            }
+        }
+
+        include KKPAY_PLUGIN_DIR . 'templates/admin/calendar-tab.php';
+    }
+
+    private static function two_months_later_end_of_month( DateTimeImmutable $today ) {
+        $tz    = new DateTimeZone( 'Asia/Tokyo' );
+        $year  = (int) $today->format( 'Y' );
+        $month = (int) $today->format( 'n' ) + 2;
+
+        while ( $month > 12 ) {
+            $month -= 12;
+            $year++;
+        }
+
+        return ( new DateTimeImmutable( sprintf( '%04d-%02d-01', $year, $month ), $tz ) )
+            ->modify( 'last day of this month' );
+    }}
