@@ -12,6 +12,7 @@ class KKPAY_Activator {
     public static function activate() {
         self::create_tables();
         self::maybe_migrate_step1();
+        self::maybe_migrate_calendar_days();
         self::schedule_cron();
         update_option( 'kkpay_db_version', KKPAY_VERSION );
     }
@@ -33,6 +34,7 @@ class KKPAY_Activator {
 
         self::create_tables();
         self::maybe_migrate_step1( $schema_is_missing );
+        self::maybe_migrate_calendar_days( $schema_is_missing );
         self::schedule_cron();
         update_option( 'kkpay_db_version', KKPAY_VERSION );
     }
@@ -48,6 +50,7 @@ class KKPAY_Activator {
             $wpdb->prefix . 'kkpay_premium_reservations',
             $wpdb->prefix . 'kkpay_slot_capacities',
             $wpdb->prefix . 'kkpay_reservation_events',
+            $wpdb->prefix . 'kkpay_calendar_days',
         );
 
         foreach ( $required_tables as $table ) {
@@ -101,6 +104,18 @@ class KKPAY_Activator {
             'created_at',
         );
         if ( ! self::table_has_columns( $wpdb->prefix . 'kkpay_reservation_events', $required_reservation_event_columns ) ) {
+            return true;
+        }
+
+        $required_calendar_day_columns = array(
+            'calendar_date',
+            'lunch_enabled',
+            'dinner_enabled',
+            'admin_note',
+            'created_at',
+            'updated_at',
+        );
+        if ( ! self::table_has_columns( $wpdb->prefix . 'kkpay_calendar_days', $required_calendar_day_columns ) ) {
             return true;
         }
 
@@ -290,6 +305,19 @@ class KKPAY_Activator {
             KEY created_at (created_at)
         ) {$charset_collate};";
 
+        $calendar_days_table = $wpdb->prefix . 'kkpay_calendar_days';
+        $sql_calendar_days   = "CREATE TABLE {$calendar_days_table} (
+            id             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            calendar_date  DATE            NOT NULL,
+            lunch_enabled  TINYINT(1)      NOT NULL DEFAULT 0,
+            dinner_enabled TINYINT(1)      NOT NULL DEFAULT 0,
+            admin_note     TEXT            DEFAULT NULL,
+            created_at     DATETIME        NOT NULL,
+            updated_at     DATETIME        NOT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY calendar_date (calendar_date)
+        ) {$charset_collate};";
+
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         dbDelta( $sql_holds );
         dbDelta( $sql_reservations );
@@ -298,6 +326,7 @@ class KKPAY_Activator {
         dbDelta( $sql_premium );
         dbDelta( $sql_slot_capacities );
         dbDelta( $sql_reservation_events );
+        dbDelta( $sql_calendar_days );
 
         self::normalize_schema_defaults();
     }
@@ -360,6 +389,40 @@ class KKPAY_Activator {
 
         self::migrate_data();
         update_option( 'kkpay_migration_step1_done', '1' );
+    }
+
+    private static function migrate_calendar_days() {
+        global $wpdb;
+
+        $legacy_table        = $wpdb->prefix . 'calendar';
+        $calendar_days_table = $wpdb->prefix . 'kkpay_calendar_days';
+        $exists              = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $legacy_table ) );
+        if ( $exists !== $legacy_table ) {
+            return;
+        }
+
+        $now = current_time( 'mysql' );
+
+        $wpdb->query(
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table names are derived from $wpdb->prefix; identifiers cannot use placeholders.
+            $wpdb->prepare(
+                "INSERT IGNORE INTO {$calendar_days_table}
+                (calendar_date, lunch_enabled, dinner_enabled, created_at, updated_at)
+             SELECT date, lunch, dinner, %s, %s
+             FROM {$legacy_table}",
+                $now,
+                $now
+            )
+        );
+    }
+
+    private static function maybe_migrate_calendar_days( $force = false ) {
+        if ( ! $force && get_option( 'kkpay_migration_calendar_days_done' ) ) {
+            return;
+        }
+
+        self::migrate_calendar_days();
+        update_option( 'kkpay_migration_calendar_days_done', '1' );
     }
 
     private static function schedule_cron() {

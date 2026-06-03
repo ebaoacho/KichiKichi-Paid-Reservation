@@ -225,6 +225,9 @@ Stripe 決済は、ブラウザの確定処理と Webhook の両方から同じ 
 - 顧客向け営業日カレンダー shortcode `[kkpay_customer_calendar]` 追加
 - 営業日を白、休業日をグレー、プレミアム予約可能日を青で表示
 - Step 12 確認スクリプト
+- `kkpay_calendar_days` テーブルを追加し、営業日カレンダーの正本を移行
+- 既存 `{prefix}calendar` から `kkpay_calendar_days` への初期移行
+- Step 13 確認スクリプト
 
 Step 8 の席数設定保存では、表示中の営業スロットを全件送信する設計です。表示対象の営業スロットが送信されなかった場合は、古い席数を残さず `capacity = 0` / `enabled = 0` として無効化します。
 
@@ -342,6 +345,7 @@ C:\xampp\php\php.exe tools\kkpay-step9-check.php
 C:\xampp\php\php.exe tools\kkpay-step10-check.php
 C:\xampp\php\php.exe tools\kkpay-step11-check.php
 C:\xampp\php\php.exe tools\kkpay-step12-check.php
+C:\xampp\php\php.exe tools\kkpay-step13-check.php C:\xampp\htdocs\kichikichi\wp-load.php
 ```
 
 期待結果:
@@ -391,6 +395,7 @@ C:\xampp\php\php.exe -l tools\kkpay-step9-check.php
 C:\xampp\php\php.exe -l tools\kkpay-step10-check.php
 C:\xampp\php\php.exe -l tools\kkpay-step11-check.php
 C:\xampp\php\php.exe -l tools\kkpay-step12-check.php
+C:\xampp\php\php.exe -l tools\kkpay-step13-check.php
 node --check assets\js\kkpay-same-day.js
 node --check assets\js\kkpay-admin-capacity.js
 node --check assets\js\kkpay-admin-calendar.js
