@@ -1,105 +1,138 @@
 .kkpay-customer-calendar {
-    width: 100%;
-    max-width: 980px;
-    margin: 0 auto;
-    color: var(--kkpay-text, #1f2937);
+    width: 90vw;
+    max-width: 90vw;
+    margin: 2vh auto 0;
+    position: relative;
+    text-align: center;
+    font-family: Arial, sans-serif;
+    color: #111;
 }
 
 .kkpay-customer-calendar__header {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 20px;
+    margin: 0;
 }
 
 .kkpay-customer-calendar__title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.kkpay-customer-calendar__month-nav,
+.kkpay-customer-calendar__month-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin: 0;
-    font-size: 24px;
-    line-height: 1.25;
+    background-color: #ea2525;
+    color: #ffffff;
+    padding: 1vh;
+    border-radius: 1vw;
+    font-size: 3vw;
+    line-height: 1.2;
+    font-weight: bold;
+    text-align: center;
+}
+
+.kkpay-customer-calendar__month-title {
+    display: block;
+}
+
+.kkpay-customer-calendar__nav-title {
+    flex: 1;
+    text-align: center;
+}
+
+.kkpay-customer-calendar__nav-button {
+    background: #ffffff;
+    border: none;
+    padding: 1vh 1vw;
+    cursor: pointer;
+    font-size: 2vw;
+    border-radius: 1vw;
+    color: #111111;
+}
+
+.kkpay-customer-calendar__nav-button:disabled {
+    cursor: default;
+    opacity: 0.45;
+}
+
+.kkpay-customer-calendar__month-nav {
+    display: none;
+}
+
+.kkpay-customer-calendar.is-enhanced .kkpay-customer-calendar__month-nav {
+    display: flex;
+}
+
+.kkpay-customer-calendar.is-enhanced .kkpay-customer-calendar__month-title {
+    display: none;
 }
 
 .kkpay-customer-calendar__legend {
     display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    font-size: 13px;
-    color: var(--kkpay-muted, #6b7280);
+    justify-content: center;
+    gap: 2vw;
+    margin: 0.5vh 0;
+    font-size: 1.8vw;
 }
 
 .kkpay-customer-calendar__legend span {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 1vw;
+    font-weight: bold;
 }
 
-.kkpay-customer-calendar__swatch {
+.kkpay-customer-calendar__legend-emoji,
+.kkpay-customer-calendar__emoji {
     display: inline-block;
-    width: 14px;
-    height: 14px;
-    border: 1px solid #d1d5db;
-    border-radius: 3px;
+    font-size: 2.5vw;
+    padding: 0.2vh 0.2vw;
+    background-color: #f9f9f9;
+    border-radius: 1vw;
+    line-height: 1;
 }
 
-.kkpay-customer-calendar__swatch.is-premium {
-    background: #dbeafe;
-    border-color: #93c5fd;
-}
-
-.kkpay-customer-calendar__swatch.is-open {
-    background: #ffffff;
-}
-
-.kkpay-customer-calendar__swatch.is-closed {
-    background: #f3f4f6;
+.kkpay-customer-calendar__legend-premium {
+    display: inline-block;
+    width: 2.5vw;
+    height: 2.5vw;
+    border-radius: 1vw;
+    background: #2563eb;
 }
 
 .kkpay-customer-calendar__months {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 20px;
-}
-
-.kkpay-customer-calendar__month-title {
-    margin: 0 0 10px;
-    font-size: 18px;
-    line-height: 1.3;
+    grid-template-columns: 1fr;
+    gap: 3vh;
 }
 
 .kkpay-customer-calendar__grid {
     display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.kkpay-customer-calendar__weekday,
-.kkpay-customer-calendar__day {
-    min-width: 0;
-    border-right: 1px solid #e5e7eb;
-    border-bottom: 1px solid #e5e7eb;
-}
-
-.kkpay-customer-calendar__weekday:nth-child(7n),
-.kkpay-customer-calendar__day:nth-child(7n) {
-    border-right: 0;
-}
-
-.kkpay-customer-calendar__weekday {
-    padding: 8px 4px;
-    background: #f9fafb;
-    font-size: 12px;
-    font-weight: 600;
-    text-align: center;
-    color: #4b5563;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.5vw;
+    margin-top: 0.1vh;
 }
 
 .kkpay-customer-calendar__day {
     position: relative;
-    min-height: 72px;
-    padding: 8px;
-    background: #ffffff;
+    min-width: 0;
+    min-height: 0;
+    padding: 0.2vh;
+    border: 0.2vw solid #ddd;
+    border-radius: 1vw;
+    background-color: #f9f9f9;
+    overflow: hidden;
+    text-align: center;
+    font-size: 1.8vw;
     outline: 0 !important;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
@@ -112,56 +145,120 @@
     box-shadow: none !important;
 }
 
+.kkpay-customer-calendar__day.is-today,
 .kkpay-customer-calendar__day.is-today:focus,
 .kkpay-customer-calendar__day.is-today:focus-visible,
 .kkpay-customer-calendar__day.is-today:active {
-    box-shadow: inset 0 0 0 2px #2563eb !important;
+    border: 0.5vw solid #d31010 !important;
 }
 
 .kkpay-customer-calendar__day.is-premium {
-    background: #dbeafe;
+    box-shadow: inset 0 0 0 0.35vw #2563eb;
 }
 
 .kkpay-customer-calendar__day.is-closed {
-    background: #f3f4f6;
-    color: #6b7280;
-}
-
-.kkpay-customer-calendar__day.is-outside-month {
-    background: #fafafa;
-}
-
-.kkpay-customer-calendar__day.is-today {
-    box-shadow: inset 0 0 0 2px #2563eb;
+    background-color: #f9f9f9;
 }
 
 .kkpay-customer-calendar__date {
     display: block;
-    font-size: 15px;
-    font-weight: 600;
+    margin: 0 0 0.2vh;
+    font-size: 1.8vw;
+    font-weight: normal;
     line-height: 1.2;
 }
 
 .kkpay-customer-calendar__state {
+    display: none;
+}
+
+.kkpay-customer-calendar__meal {
     display: block;
-    margin-top: 6px;
-    font-size: 11px;
+    margin-top: 0.2vh;
+    padding: 0.2vh;
+    border-radius: 1vw;
+    font-size: 2vw;
+    font-weight: bold;
     line-height: 1.25;
-    color: #4b5563;
+    text-align: left;
+}
+
+.kkpay-customer-calendar__meal.is-open {
+    background-color: #a0ffa0;
+}
+
+.kkpay-customer-calendar__meal.is-closed {
+    background-color: #ffaaaa;
+}
+
+.kkpay-customer-calendar__premium-label {
+    display: block;
+    margin-top: 0.2vh;
+    padding: 0.2vh 0.4vw;
+    border-radius: 1vw;
+    background: #2563eb;
+    color: #ffffff;
+    font-size: 1.3vw;
+    font-weight: bold;
+    line-height: 1.25;
 }
 
 @media (max-width: 640px) {
-    .kkpay-customer-calendar__header {
-        align-items: flex-start;
-        flex-direction: column;
+    .kkpay-customer-calendar {
+        width: 96vw;
+        max-width: 96vw;
+    }
+
+    .kkpay-customer-calendar__month-title {
+        font-size: 5vw;
+        border-radius: 2vw;
+    }
+
+    .kkpay-customer-calendar__nav-button {
+        padding: 1vh 2vw;
+        font-size: 4vw;
+        border-radius: 2vw;
+    }
+
+    .kkpay-customer-calendar__legend {
+        gap: 4vw;
+        font-size: 3.5vw;
+    }
+
+    .kkpay-customer-calendar__legend-emoji,
+    .kkpay-customer-calendar__emoji {
+        font-size: 4.2vw;
+        border-radius: 2vw;
+    }
+
+    .kkpay-customer-calendar__grid {
+        gap: 0.8vw;
     }
 
     .kkpay-customer-calendar__day {
-        min-height: 58px;
-        padding: 6px;
+        border-width: 0.35vw;
+        border-radius: 2vw;
+        font-size: 2.6vw;
     }
 
-    .kkpay-customer-calendar__state {
-        display: none;
+    .kkpay-customer-calendar__day.is-today,
+    .kkpay-customer-calendar__day.is-today:focus,
+    .kkpay-customer-calendar__day.is-today:focus-visible,
+    .kkpay-customer-calendar__day.is-today:active {
+        border-width: 0.7vw !important;
+    }
+
+    .kkpay-customer-calendar__date {
+        font-size: 2.8vw;
+    }
+
+    .kkpay-customer-calendar__meal {
+        border-radius: 2vw;
+        font-size: 2.8vw;
+    }
+
+    .kkpay-customer-calendar__premium-label {
+        border-radius: 2vw;
+        font-size: 2.2vw;
     }
 }

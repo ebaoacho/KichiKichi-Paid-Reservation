@@ -127,9 +127,13 @@ class KKPAY_Calendar_Service {
         $days = array();
 
         foreach ( KKPAY_Calendar_Repository::get_range( $from, $to ) as $row ) {
-            $open = (bool) $row->lunch || (bool) $row->dinner;
+            $lunch = (bool) $row->lunch;
+            $dinner = (bool) $row->dinner;
+            $open = $lunch || $dinner;
             $days[ $row->date ] = array(
                 'date'              => $row->date,
+                'lunch'             => $lunch,
+                'dinner'            => $dinner,
                 'open'              => $open,
                 'premium_available' => $open && (bool) $row->premium,
             );

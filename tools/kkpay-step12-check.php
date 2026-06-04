@@ -48,6 +48,7 @@ $service  = kkpay_step12_read( 'includes/Services/class-kkpay-calendar-service.p
 $messages = kkpay_step12_read( 'includes/kkpay-messages.php' );
 $template = kkpay_step12_read( 'templates/customer-calendar.php' );
 $css      = kkpay_step12_read( 'assets/css/kkpay-customer-calendar.css' );
+$script   = kkpay_step12_read( 'assets/js/kkpay-customer-calendar.js' );
 $readme   = kkpay_step12_read( 'README.md' );
 $tree     = kkpay_step12_read( 'doc/01_directory_structure.md' );
 $design   = kkpay_step12_read( 'doc/19_calendar_integration_design.md' );
@@ -58,6 +59,7 @@ kkpay_step12_check( $service !== false, 'calendar service is readable' );
 kkpay_step12_check( $messages !== false, 'messages file is readable' );
 kkpay_step12_check( $template !== false, 'customer calendar template is readable' );
 kkpay_step12_check( $css !== false, 'customer calendar CSS is readable' );
+kkpay_step12_check( $script !== false, 'customer calendar JS is readable' );
 kkpay_step12_check( $readme !== false, 'README is readable' );
 kkpay_step12_check( $tree !== false, 'directory structure doc is readable' );
 kkpay_step12_check( $design !== false, 'calendar integration design is readable' );
@@ -69,6 +71,7 @@ if ( $entry !== false ) {
     kkpay_step12_check( strpos( $entry, 'templates/customer-calendar.php' ) !== false, 'customer calendar template is included' );
     kkpay_step12_check( strpos( $entry, 'kkpay_enqueue_customer_calendar_assets' ) !== false, 'customer calendar asset enqueue function exists' );
     kkpay_step12_check( strpos( $entry, 'kkpay-customer-calendar.css' ) !== false, 'customer calendar CSS is enqueued' );
+    kkpay_step12_check( strpos( $entry, 'kkpay-customer-calendar.js' ) !== false, 'customer calendar JS is enqueued' );
     kkpay_step12_check( strpos( $entry, "has_shortcode( \$content, 'kkpay_customer_calendar' )" ) !== false, 'customer calendar assets are detected by shortcode' );
 }
 
@@ -98,13 +101,19 @@ if ( $messages !== false ) {
     kkpay_step12_check( strpos( $messages, "'calendar_premium_available'" ) !== false, 'messages define premium availability label' );
     kkpay_step12_check( strpos( $messages, "'calendar_open'" ) !== false, 'messages define open label' );
     kkpay_step12_check( strpos( $messages, "'calendar_closed'" ) !== false, 'messages define closed label' );
+    kkpay_step12_check( strpos( $messages, "'calendar_previous_month'" ) !== false && strpos( $messages, "'calendar_next_month'" ) !== false, 'messages define month navigation labels' );
     kkpay_step12_check( strpos( $messages, "'calendar_week_sun'" ) !== false && strpos( $messages, "'calendar_week_sat'" ) !== false, 'messages define weekday labels' );
 }
 
 if ( $css !== false ) {
     kkpay_step12_check( strpos( $css, '.kkpay-customer-calendar__day.is-premium' ) !== false, 'CSS styles premium days' );
     kkpay_step12_check( strpos( $css, '.kkpay-customer-calendar__day.is-closed' ) !== false, 'CSS styles closed days' );
-    kkpay_step12_check( strpos( $css, '.kkpay-customer-calendar__day.is-open' ) !== false || strpos( $css, '.kkpay-customer-calendar__swatch.is-open' ) !== false, 'CSS styles open legend/day state' );
+    kkpay_step12_check( strpos( $css, '.kkpay-customer-calendar__meal.is-open' ) !== false, 'CSS styles open meal state' );
+}
+
+if ( $script !== false ) {
+    kkpay_step12_check( strpos( $script, 'data-calendar-prev' ) !== false && strpos( $script, 'data-calendar-next' ) !== false, 'JS supports existing-style month navigation' );
+    kkpay_step12_check( strpos( $script, 'is-enhanced' ) !== false, 'JS progressively enhances static month rendering' );
 }
 
 if ( $readme !== false ) {
@@ -115,13 +124,15 @@ if ( $readme !== false ) {
 if ( $tree !== false ) {
     kkpay_step12_check( strpos( $tree, 'customer-calendar.php' ) !== false, 'directory tree lists customer calendar template' );
     kkpay_step12_check( strpos( $tree, 'kkpay-customer-calendar.css' ) !== false, 'directory tree lists customer calendar CSS' );
+    kkpay_step12_check( strpos( $tree, 'kkpay-customer-calendar.js' ) !== false, 'directory tree lists customer calendar JS' );
     kkpay_step12_check( strpos( $tree, 'kkpay-step12-check.php' ) !== false, 'directory tree lists Step 12 check script' );
 }
 
 if ( $design !== false ) {
     kkpay_step12_check( strpos( $design, 'PR 12:' ) !== false, 'design keeps PR 12 section' );
     kkpay_step12_check( strpos( $design, '[kkpay_customer_calendar]' ) !== false, 'design documents customer calendar shortcode' );
-    kkpay_step12_check( strpos( $design, '静的描画' ) !== false, 'design documents static rendering decision' );
+    kkpay_step12_check( strpos( $design, 'サーバーサイドでカレンダーを描画する' ) !== false, 'design documents server-rendered calendar decision' );
+    kkpay_step12_check( strpos( $design, 'ランチ・ディナー営業可否の2段表示' ) !== false, 'design documents lunch/dinner customer display' );
 }
 
 if ( $claude !== false ) {
