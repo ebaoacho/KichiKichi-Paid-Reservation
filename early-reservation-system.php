@@ -406,6 +406,7 @@ function kkpay_enqueue_same_day_assets() {
 function kkpay_enqueue_customer_calendar_assets() {
     wp_enqueue_style( 'kkpay-form', KKPAY_PLUGIN_URL . 'assets/css/kkpay-form.css', array(), KKPAY_VERSION );
     wp_enqueue_style( 'kkpay-customer-calendar', KKPAY_PLUGIN_URL . 'assets/css/kkpay-customer-calendar.css', array( 'kkpay-form' ), KKPAY_VERSION );
+    wp_enqueue_script( 'kkpay-customer-calendar', KKPAY_PLUGIN_URL . 'assets/js/kkpay-customer-calendar.js', array(), KKPAY_VERSION, true );
 }
 
 // AJAX ハンドラ登録（公開エンドポイント）

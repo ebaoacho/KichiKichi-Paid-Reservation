@@ -400,6 +400,7 @@ node --check assets\js\kkpay-same-day.js
 node --check assets\js\kkpay-admin-capacity.js
 node --check assets\js\kkpay-admin-calendar.js
 node --check assets\js\kkpay-admin-same-day.js
+node --check assets\js\kkpay-customer-calendar.js
 node --check assets\js\kkpay-same-day-confirmation.js
 ```
 

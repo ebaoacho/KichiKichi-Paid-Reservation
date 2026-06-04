@@ -120,6 +120,7 @@ KichiKichi-Paid-Reservation/
         ├── kkpay-admin-capacity.js      席数設定タブの JS ロジック
         ├── kkpay-admin-calendar.js      営業日カレンダータブの JS ロジック
         ├── kkpay-admin-same-day.js
+        ├── kkpay-customer-calendar.js   顧客向け営業日カレンダーの月切替
         ├── kkpay-same-day.js           当日予約フォームの JS ロジック
         └── kkpay-same-day-confirmation.js
 ```
