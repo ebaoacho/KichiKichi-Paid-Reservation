@@ -27,6 +27,7 @@ require_once $wp_load_path;
 global $wpdb;
 
 $failures = 0;
+$root = dirname( __DIR__ );
 
 function kkpay_step4_pass( $message ) {
     echo "[PASS] {$message}\n";
@@ -71,6 +72,9 @@ foreach ( array( 'validate_available_slots', 'validate_create', 'validate_email_
         "same-day validator method exists: {$method}"
     );
 }
+kkpay_step4_check( defined( 'KKPAY_TABLE_MAX_CAPACITY' ) && KKPAY_TABLE_MAX_CAPACITY === 6, 'Table max capacity constant is available' );
+$same_day_validator = file_get_contents( $root . '/includes/Validators/class-kkpay-same-day-reservation-validator.php' );
+kkpay_step4_check( strpos( $same_day_validator, 'max_people_for_seat' ) !== false, 'same-day validator applies seat-specific people limit' );
 
 kkpay_step4_check( class_exists( 'KKPAY_Same_Day_Reservation_Controller' ), 'KKPAY_Same_Day_Reservation_Controller is loaded' );
 foreach ( array( 'ajax_status', 'ajax_start', 'ajax_stop', 'ajax_available_slots', 'ajax_create', 'ajax_find', 'ajax_cancel' ) as $method ) {

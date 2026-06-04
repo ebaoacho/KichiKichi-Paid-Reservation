@@ -5,6 +5,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 $by_slot = array();
 $totals  = array();
+$seat_labels = array(
+    'Bar'   => 'カウンター',
+    'Table' => 'テーブル',
+);
 
 foreach ( $results as $row ) {
     $slot = $row->time_slot;
@@ -70,8 +74,8 @@ foreach ( $results as $row ) {
         <h2 style="margin-top:28px;"><?php echo esc_html( $slot_label ); ?></h2>
         <p>
             <strong>来店予定:</strong> <?php echo (int) $slot_total['active']; ?>名
-            <span style="margin-left:12px;"><strong>Bar:</strong> <?php echo (int) $slot_total['Bar']; ?>名</span>
-            <span style="margin-left:12px;"><strong>Table:</strong> <?php echo (int) $slot_total['Table']; ?>名</span>
+            <span style="margin-left:12px;"><strong>カウンター:</strong> <?php echo (int) $slot_total['Bar']; ?>名</span>
+            <span style="margin-left:12px;"><strong>テーブル:</strong> <?php echo (int) $slot_total['Table']; ?>名</span>
             <span style="margin-left:12px;"><strong>キャンセル履歴:</strong> <?php echo (int) $slot_total['cancelled']; ?>件</span>
         </p>
 
@@ -92,10 +96,12 @@ foreach ( $results as $row ) {
                 <?php foreach ( $rows as $row ) : ?>
                     <?php
                     $is_cancelled = $row->status === 'cancelled' || $row->cancelled_at !== null;
+                    $seat_key     = $row->seating_preference ?: 'Bar';
+                    $seat_label   = $seat_labels[ $seat_key ] ?? $seat_key;
                     ?>
                     <tr data-kkpay-cancelled="<?php echo $is_cancelled ? '1' : '0'; ?>" style="<?php echo $is_cancelled ? 'opacity:.65;' : ''; ?>">
                         <td><?php echo esc_html( $row->status ?: ( $is_cancelled ? 'cancelled' : 'active' ) ); ?></td>
-                        <td><?php echo esc_html( $row->seating_preference ?: 'Bar' ); ?></td>
+                        <td><?php echo esc_html( $seat_label ); ?></td>
                         <td><?php echo esc_html( $row->name ); ?></td>
                         <td><?php echo esc_html( $row->email ); ?></td>
                         <td><?php echo (int) $row->number_of_people; ?>名</td>

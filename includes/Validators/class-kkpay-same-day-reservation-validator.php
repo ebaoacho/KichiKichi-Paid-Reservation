@@ -13,13 +13,11 @@ class KKPAY_Same_Day_Reservation_Validator {
         $number_of_people   = intval( $input['number_of_people'] ?? 0 );
         $seating_preference = sanitize_text_field( $input['seating_preference'] ?? '' );
 
-        // KKPAY_MAX_CAPACITY は業務上の1予約上限ではなく、異常に大きい入力を落とす防御的な上限。
-        // 実際の予約可否は kkpay_slot_capacities の残席で判定する。
-        if ( $number_of_people < 1 || $number_of_people > KKPAY_MAX_CAPACITY ) {
-            return new WP_Error( 'invalid_people', kkpay_msg( 'server_error', $lang ) );
-        }
         if ( ! self::is_valid_seating_preference( $seating_preference ) ) {
             return new WP_Error( 'invalid_seating_preference', kkpay_msg( 'server_error', $lang ) );
+        }
+        if ( $number_of_people < 1 || $number_of_people > self::max_people_for_seat( $seating_preference ) ) {
+            return new WP_Error( 'invalid_people', kkpay_msg( 'server_error', $lang ) );
         }
 
         return array(
@@ -50,13 +48,11 @@ class KKPAY_Same_Day_Reservation_Validator {
         if ( $email !== $email_confirm ) {
             return new WP_Error( 'email_mismatch', kkpay_msg( 'email_mismatch', $lang ) );
         }
-        // KKPAY_MAX_CAPACITY は業務上の1予約上限ではなく、異常に大きい入力を落とす防御的な上限。
-        // 実際の予約可否は kkpay_slot_capacities の残席で判定する。
-        if ( $number_of_people < 1 || $number_of_people > KKPAY_MAX_CAPACITY ) {
-            return new WP_Error( 'invalid_people', kkpay_msg( 'server_error', $lang ) );
-        }
         if ( ! self::is_valid_seating_preference( $seating_preference ) ) {
             return new WP_Error( 'invalid_seating_preference', kkpay_msg( 'server_error', $lang ) );
+        }
+        if ( $number_of_people < 1 || $number_of_people > self::max_people_for_seat( $seating_preference ) ) {
+            return new WP_Error( 'invalid_people', kkpay_msg( 'server_error', $lang ) );
         }
         if ( ! array_key_exists( $time_slot, KKPAY_SLOT_TYPES ) ) {
             return new WP_Error( 'invalid_slot', kkpay_msg( 'server_error', $lang ) );
@@ -94,6 +90,10 @@ class KKPAY_Same_Day_Reservation_Validator {
 
     private static function is_valid_seating_preference( $seating_preference ) {
         return in_array( $seating_preference, array( 'Table', 'Bar' ), true );
+    }
+
+    private static function max_people_for_seat( $seating_preference ) {
+        return $seating_preference === 'Table' ? KKPAY_TABLE_MAX_CAPACITY : KKPAY_MAX_CAPACITY;
     }
 
     private static function is_english_name( $name ) {

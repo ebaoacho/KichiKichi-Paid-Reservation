@@ -20,6 +20,7 @@ define( 'KKPAY_AMOUNT',             13 );
 define( 'KKPAY_CURRENCY',           'usd' );
 define( 'KKPAY_STRIPE_AMOUNT_MULTIPLIER', 100 );
 define( 'KKPAY_MAX_CAPACITY',       8 );
+define( 'KKPAY_TABLE_MAX_CAPACITY', 6 );
 define( 'KKPAY_MAX_PEOPLE',         4 );
 define( 'KKPAY_HOLD_MINUTES',       5 );
 define( 'KKPAY_ACCEPT_DAYS_BEFORE', 3 );
@@ -161,6 +162,7 @@ add_action( 'init', function () {
     add_shortcode( 'kkpay_same_day_confirmation', 'kkpay_render_same_day_confirmation' );
     add_shortcode( 'kkpay_same_day_reservation_form', 'kkpay_render_same_day_reservation_form' );
     add_shortcode( 'kkpay_customer_calendar', 'kkpay_render_customer_calendar' );
+    add_shortcode( 'kkpay_legal_policies', 'kkpay_render_legal_policies' );
 } );
 
 function kkpay_render_reservation_form() {
@@ -227,6 +229,14 @@ function kkpay_render_customer_calendar() {
 
     ob_start();
     include KKPAY_PLUGIN_DIR . 'templates/customer-calendar.php';
+    return ob_get_clean();
+}
+
+function kkpay_render_legal_policies() {
+    wp_enqueue_style( 'kkpay-legal-policies', KKPAY_PLUGIN_URL . 'assets/css/kkpay-legal-policies.css', array(), KKPAY_VERSION );
+    wp_enqueue_script( 'kkpay-legal-policies', KKPAY_PLUGIN_URL . 'assets/js/kkpay-legal-policies.js', array( 'jquery' ), KKPAY_VERSION, true );
+    ob_start();
+    include KKPAY_PLUGIN_DIR . 'templates/legal-policies.php';
     return ob_get_clean();
 }
 
@@ -395,11 +405,12 @@ function kkpay_enqueue_same_day_assets() {
     wp_enqueue_style( 'kkpay-same-day', KKPAY_PLUGIN_URL . 'assets/css/kkpay-same-day.css', array( 'kkpay-form' ), KKPAY_VERSION );
     wp_enqueue_script( 'kkpay-same-day', KKPAY_PLUGIN_URL . 'assets/js/kkpay-same-day.js', array( 'jquery' ), KKPAY_VERSION, true );
     wp_localize_script( 'kkpay-same-day', 'kkpay_same_day', array(
-        'ajax_url'    => admin_url( 'admin-ajax.php' ),
-        'nonce'       => wp_create_nonce( 'kkpay_nonce' ),
-        'slot_labels' => KKPAY_SLOT_LABELS,
-        'messages'    => KKPAY_MESSAGES,
-        'max_people'  => KKPAY_MAX_CAPACITY,
+        'ajax_url'         => admin_url( 'admin-ajax.php' ),
+        'nonce'            => wp_create_nonce( 'kkpay_nonce' ),
+        'slot_labels'      => KKPAY_SLOT_LABELS,
+        'messages'         => KKPAY_MESSAGES,
+        'max_people'       => KKPAY_MAX_CAPACITY,
+        'table_max_people' => KKPAY_TABLE_MAX_CAPACITY,
     ) );
 }
 

@@ -325,6 +325,7 @@ Webhook signing secret を `KKPAY_STRIPE_WEBHOOK_SECRET` に設定します。
 | --- | --- |
 | `[kkpay_same_day_confirmation]` | 当日予約確認・キャンセル |
 | `[kkpay_customer_calendar]` | 顧客向け営業日カレンダー |
+| `[kkpay_legal_policies]` | 5言語タブ付きのキャンセルポリシー・プライバシーポリシー・利用規約 |
 
 ## 確認スクリプト
 
