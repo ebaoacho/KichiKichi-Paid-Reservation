@@ -4,6 +4,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 // Variables provided by KKPAY_Admin::render_seat_capacity_tab():
 //   $today, $tz, $saved, $reserved, $slot_keys, $seat_keys, $capacity_days
+$seat_labels = array(
+    'Bar'   => 'カウンター',
+    'Table' => 'テーブル',
+);
 ?>
 
 <div id="kkpay-seat-capacity" class="kkpay-seat-capacity">
@@ -55,6 +59,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                     <strong><?php echo esc_html( $day->format( 'n/j' ) ); ?></strong>
                     <span class="<?php echo esc_attr( $dow_class ); ?>"><?php echo esc_html( $dow_label ); ?></span>
                     <small><?php echo esc_html( $date ); ?></small>
+                    <em class="kkpay-seat-capacity__unsaved">未保存</em>
                 </div>
                 <div class="kkpay-seat-capacity__slots">
                     <?php foreach ( $open_slots as $slot ) : ?>
@@ -69,7 +74,8 @@ if ( ! defined( 'ABSPATH' ) ) {
                                     $capacity         = $capacity_row ? (int) $capacity_row['capacity'] : $default_capacity;
                                     $capacity         = min( $max_capacity, max( 0, $capacity ) );
                                     $current          = $reserved[ $date ][ $slot ][ $seat ] ?? 0;
-                                    $seat_label       = $seat === 'Bar' ? 'カウンター' : 'テーブル';
+                                    $seat_label       = $seat_labels[ $seat ] ?? $seat;
+                                    $is_saved         = $capacity_row ? 1 : 0;
                                     $is_over_capacity = $current > $capacity;
                                     ?>
                                     <label class="kkpay-seat-capacity__seat <?php echo $is_over_capacity ? 'is-over-capacity' : ''; ?>">
@@ -77,6 +83,7 @@ if ( ! defined( 'ABSPATH' ) ) {
                                         <input type="number" class="kkpay-cap-input"
                                                data-slot="<?php echo esc_attr( $slot ); ?>"
                                                data-seat="<?php echo esc_attr( $seat ); ?>"
+                                               data-saved="<?php echo esc_attr( $is_saved ); ?>"
                                                min="0"
                                                max="<?php echo esc_attr( $max_capacity ); ?>"
                                                value="<?php echo esc_attr( $capacity ); ?>" />
@@ -168,6 +175,11 @@ if ( ! defined( 'ABSPATH' ) ) {
     border-radius: 8px;
 }
 
+.kkpay-seat-capacity__day.is-unsaved {
+    border-color: #b32d2e;
+    box-shadow: 0 0 0 1px #b32d2e;
+}
+
 .kkpay-seat-capacity__date {
     display: grid;
     align-content: start;
@@ -181,6 +193,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 .kkpay-seat-capacity__date span {
     font-weight: 700;
+}
+
+.kkpay-seat-capacity__unsaved {
+    display: none;
+    width: fit-content;
+    padding: 2px 8px;
+    background: #b32d2e;
+    border-radius: 999px;
+    color: #fff;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 700;
+}
+
+.kkpay-seat-capacity__day.is-unsaved .kkpay-seat-capacity__unsaved {
+    display: inline-block;
 }
 
 .kkpay-seat-capacity__date small,

@@ -94,8 +94,11 @@ if ( $template !== false ) {
     kkpay_step8_check( strpos( $template, 'KKPAY_Calendar_Service::get_open_slot_keys_for_date' ) !== false, 'template renders only calendar-open slots' );
     kkpay_step8_check( strpos( $template, 'data-closed="1"' ) !== false, 'template keeps closed days as hidden disable payloads' );
     kkpay_step8_check( strpos( $template, 'data-seat="<?php echo esc_attr( $seat ); ?>"' ) !== false, 'template marks inputs with seat type' );
-    kkpay_step8_check( strpos( $template, 'カウンター' ) !== false, 'template renders counter capacity label in Japanese' );
-    kkpay_step8_check( strpos( $template, 'テーブル' ) !== false, 'template renders table capacity label in Japanese' );
+    kkpay_step8_check( strpos( $template, 'data-saved="<?php echo esc_attr( $is_saved ); ?>"' ) !== false, 'template marks inputs with saved capacity state' );
+    kkpay_step8_check( strpos( $template, 'カウンター' ) !== false, 'template renders Japanese Bar capacity label' );
+    kkpay_step8_check( strpos( $template, 'テーブル' ) !== false, 'template renders Japanese Table capacity label' );
+    kkpay_step8_check( strpos( $template, 'is-unsaved' ) !== false, 'template can mark unsaved capacity days' );
+    kkpay_step8_check( strpos( $template, '未保存' ) !== false, 'template renders unsaved capacity badge' );
     kkpay_step8_check( strpos( $template, 'is-over-capacity' ) !== false, 'template warns when active reservations exceed displayed capacity' );
     kkpay_step8_check( strpos( $template, '休業日と休業枠は席数を設定できません' ) !== false, 'template explains closed days and slots are not configurable' );
     kkpay_step8_check( strpos( $template, '予約中:' ) !== false, 'template renders active reservation totals' );
@@ -107,6 +110,10 @@ if ( $script !== false ) {
     kkpay_step8_check( strpos( $script, 'tableMaxCapacity' ) !== false, 'JavaScript clamps Table capacity' );
     kkpay_step8_check( strpos( $script, 'data-seat="Bar"' ) !== false, 'JavaScript applies bulk capacity to Bar inputs only' );
     kkpay_step8_check( strpos( $script, 'data-seat="Table"' ) !== false, 'JavaScript applies bulk capacity to Table inputs only' );
+    kkpay_step8_check( strpos( $script, 'markUnsaved' ) !== false, 'JavaScript marks changed days as unsaved' );
+    kkpay_step8_check( strpos( $script, 'clearUnsaved' ) !== false, 'JavaScript clears unsaved state after successful save' );
+    kkpay_step8_check( strpos( $script, 'hasUnsavedCapacityInputs' ) !== false, 'JavaScript detects unsaved capacity inputs' );
+    kkpay_step8_check( strpos( $script, 'markUnsavedBusinessDays' ) !== false, 'JavaScript marks open days with unsaved capacity inputs as unsaved' );
     kkpay_step8_check( strpos( $script, "var seat = $(this).data('seat');" ) !== false, 'JavaScript reads seat type from each input' );
     kkpay_step8_check( strpos( $script, "var closed = \$row.data('closed')" ) !== false, 'JavaScript sends hidden closed days for disabling' );
     kkpay_step8_check( strpos( $script, 'slots[slot][seat]' ) !== false, 'JavaScript sends nested slot and seat capacities' );

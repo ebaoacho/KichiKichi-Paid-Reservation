@@ -162,6 +162,7 @@ add_action( 'init', function () {
     add_shortcode( 'kkpay_same_day_confirmation', 'kkpay_render_same_day_confirmation' );
     add_shortcode( 'kkpay_same_day_reservation_form', 'kkpay_render_same_day_reservation_form' );
     add_shortcode( 'kkpay_customer_calendar', 'kkpay_render_customer_calendar' );
+    add_shortcode( 'kkpay_legal_policies', 'kkpay_render_legal_policies' );
 } );
 
 function kkpay_render_reservation_form() {
@@ -228,6 +229,14 @@ function kkpay_render_customer_calendar() {
 
     ob_start();
     include KKPAY_PLUGIN_DIR . 'templates/customer-calendar.php';
+    return ob_get_clean();
+}
+
+function kkpay_render_legal_policies() {
+    wp_enqueue_style( 'kkpay-legal-policies', KKPAY_PLUGIN_URL . 'assets/css/kkpay-legal-policies.css', array(), KKPAY_VERSION );
+    wp_enqueue_script( 'kkpay-legal-policies', KKPAY_PLUGIN_URL . 'assets/js/kkpay-legal-policies.js', array( 'jquery' ), KKPAY_VERSION, true );
+    ob_start();
+    include KKPAY_PLUGIN_DIR . 'templates/legal-policies.php';
     return ob_get_clean();
 }
 

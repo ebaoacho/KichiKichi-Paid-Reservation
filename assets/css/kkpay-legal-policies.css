@@ -1,0 +1,129 @@
+.kkpay-legal-policies {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 32px 16px;
+    color: #18263b;
+    line-height: 1.72;
+}
+
+.kkpay-legal-policies__header {
+    padding: 28px;
+    background: #f6f8fb;
+    border: 1px solid #d9e2ef;
+    border-radius: 8px;
+}
+
+.kkpay-legal-policies__eyebrow {
+    margin: 0 0 8px;
+    color: #49617d;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.kkpay-legal-policies h2,
+.kkpay-legal-policies h3 {
+    margin-top: 0;
+    line-height: 1.3;
+}
+
+.kkpay-legal-policies__title {
+    margin-bottom: 12px;
+    font-size: 32px;
+}
+
+.kkpay-legal-policies__header p:last-child,
+.kkpay-legal-policies article p:last-child {
+    margin-bottom: 0;
+}
+
+.kkpay-legal-policies__nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 18px 0 28px;
+}
+
+.kkpay-legal-policies__nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 38px;
+    padding: 0 14px;
+    background: #fff;
+    border: 1px solid #c8d4e4;
+    border-radius: 8px;
+    color: #163a5f;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.kkpay-legal-policies__tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 20px 0 8px;
+    padding: 6px;
+    background: #eef3f8;
+    border: 1px solid #d9e2ef;
+    border-radius: 8px;
+}
+
+.kkpay-legal-policies__tab {
+    min-height: 40px;
+    padding: 0 14px;
+    background: transparent;
+    border: 0;
+    border-radius: 6px;
+    color: #405671;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+}
+
+.kkpay-legal-policies__tab.is-active,
+.kkpay-legal-policies__tab:focus-visible {
+    background: #fff;
+    color: #153b63;
+    outline: 2px solid #8db7e8;
+    outline-offset: 0;
+}
+
+.kkpay-legal-policies__panel[hidden] {
+    display: none;
+}
+
+.kkpay-legal-policies__section {
+    margin-top: 28px;
+    padding-top: 8px;
+}
+
+.kkpay-legal-policies__section h3 {
+    margin-bottom: 14px;
+    font-size: 24px;
+}
+
+.kkpay-legal-policies article {
+    padding: 22px;
+    background: #fff;
+    border: 1px solid #d9e2ef;
+    border-radius: 8px;
+}
+
+@media (max-width: 760px) {
+    .kkpay-legal-policies {
+        padding: 20px 12px;
+    }
+
+    .kkpay-legal-policies__header {
+        padding: 20px;
+    }
+
+    .kkpay-legal-policies__title {
+        font-size: 26px;
+    }
+
+    .kkpay-legal-policies__tabs {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+}
