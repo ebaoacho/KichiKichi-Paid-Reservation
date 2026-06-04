@@ -79,7 +79,7 @@ if ( is_wp_error( $result ) ) {
 wp_send_json_success( array( ... ) );
 ```
 
-**User-facing error messages:** always use `kkpay_msg( $key, $lang )`. Never hard-code strings. New message keys require translations in all 5 languages in `includes/kkpay-messages.php`.
+**User-facing error messages:** always use `kkpay_msg( $key, $lang )`. Never hard-code strings. New message keys require translations in all 5 languages in `includes/kkpay-messages.php`. Admin-only `wp-admin` messages are Japanese fixed for the shop staff and should be centralized in the relevant admin helper instead of repeated inline.
 
 **Git commit messages:** `{type}: {日本語一行説明}` — e.g. `feat: クーポンコード機能を追加`, `fix: キャンセル時の履歴記録が正しく動作しない不具合を修正`. Types: `feat`, `fix`, `refactor`, `docs`, `chore`.
 
@@ -171,7 +171,8 @@ Normal and special premium reservations validate names as ASCII/English-style na
 | `KKPAY_AMOUNT` | 13 | Unit charge per seat (USD) — normal reservations |
 | `KKPAY_CURRENCY` | `'usd'` | Stripe currency code |
 | `KKPAY_STRIPE_AMOUNT_MULTIPLIER` | 100 | Multiplier to convert to Stripe cents |
-| `KKPAY_MAX_CAPACITY` | 8 | Default max people per slot (confirmed + held) when no `accepted_dates` row |
+| `KKPAY_MAX_CAPACITY` | 8 | Bar counter capacity limit and default max people per Bar slot |
+| `KKPAY_TABLE_MAX_CAPACITY` | 6 | Table capacity limit |
 | `KKPAY_MAX_PEOPLE` | 4 | Legacy constant; normal booking seat choices are now limited by actual remaining capacity |
 | `KKPAY_HOLD_MINUTES` | 5 | Hold expiration window |
 | `KKPAY_ACCEPT_DAYS_BEFORE` | 3 | Booking window (days ahead) |

@@ -24,8 +24,10 @@ class KKPAY_Admin {
         wp_enqueue_style( 'kkpay-admin', KKPAY_PLUGIN_URL . 'assets/css/kkpay-form.css', array(), KKPAY_VERSION );
         wp_enqueue_script( 'kkpay-admin-capacity', KKPAY_PLUGIN_URL . 'assets/js/kkpay-admin-capacity.js', array( 'jquery' ), KKPAY_VERSION, true );
         wp_localize_script( 'kkpay-admin-capacity', 'kkpay_admin_cap', array(
-            'nonce'       => wp_create_nonce( 'kkpay_nonce' ),
-            'maxCapacity' => KKPAY_MAX_CAPACITY,
+            'nonce'            => wp_create_nonce( 'kkpay_nonce' ),
+            'maxCapacity'      => KKPAY_MAX_CAPACITY,
+            'barMaxCapacity'   => KKPAY_MAX_CAPACITY,
+            'tableMaxCapacity' => KKPAY_TABLE_MAX_CAPACITY,
         ) );
 
         wp_enqueue_script( 'kkpay-admin-premium', KKPAY_PLUGIN_URL . 'assets/js/kkpay-admin-premium.js', array( 'jquery' ), KKPAY_VERSION, true );

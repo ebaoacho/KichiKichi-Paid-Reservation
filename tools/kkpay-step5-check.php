@@ -56,7 +56,8 @@ kkpay_step5_check( strpos( $entrypoint, 'kkpay_render_same_day_reservation_form'
 kkpay_step5_check( strpos( $entrypoint, 'kkpay_enqueue_same_day_assets' ) !== false, 'same-day asset enqueue function exists' );
 kkpay_step5_check( strpos( $entrypoint, 'assets/js/kkpay-same-day.js' ) !== false, 'same-day JavaScript is enqueued' );
 kkpay_step5_check( strpos( $entrypoint, 'assets/css/kkpay-same-day.css' ) !== false, 'same-day CSS is enqueued' );
-kkpay_step5_check( strpos( $entrypoint, "'max_people'  => KKPAY_MAX_CAPACITY" ) !== false, 'same-day max_people is localized' );
+kkpay_step5_check( strpos( $entrypoint, "'max_people'       => KKPAY_MAX_CAPACITY" ) !== false, 'same-day max_people is localized' );
+kkpay_step5_check( strpos( $entrypoint, "'table_max_people' => KKPAY_TABLE_MAX_CAPACITY" ) !== false, 'same-day Table max_people is localized' );
 
 foreach ( array( 'kkpay_same_day_status', 'kkpay_same_day_available_slots', 'kkpay_same_day_create' ) as $action ) {
     kkpay_step5_check( strpos( $script, $action ) !== false, "JavaScript calls AJAX action: {$action}" );
@@ -71,6 +72,8 @@ kkpay_step5_check(
     'JavaScript filters unavailable slots and handles no-slot state'
 );
 kkpay_step5_check( strpos( $script, "kkpay_same_day.max_people" ) !== false, 'JavaScript receives defensive max people value' );
+kkpay_step5_check( strpos( $script, 'kkpay_same_day.table_max_people' ) !== false, 'JavaScript receives Table max people value' );
+kkpay_step5_check( strpos( $script, 'maxPeopleForSeat' ) !== false, 'JavaScript rebuilds people options by seat type' );
 kkpay_step5_check( strpos( $script, "/^[A-Za-z][A-Za-z .'-]*$/" ) !== false, 'JavaScript validates English-style names' );
 
 echo "\n";
