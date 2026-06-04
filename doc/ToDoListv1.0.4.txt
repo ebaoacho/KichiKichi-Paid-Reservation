@@ -37,7 +37,7 @@ v1.0.4バージョン
 
 目的:
 - Controller にビジネスロジックを書かないようにする
-- CalendarService::get_available_slot_keys() との重複をなくす
+- CalendarService のスロット算出ロジックとの重複をなくす
 - 将来スロット仕様が変わった時の修正漏れを防ぐ
 
 
