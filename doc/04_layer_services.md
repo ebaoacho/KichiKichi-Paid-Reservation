@@ -55,8 +55,8 @@ Controller はリクエストを受けるだけ、Repository は SQL を発行�
 // 日付が受付期間内か（JST 固定）
 KKPAY_Calendar_Service::is_accepting_reservations( '2025-06-01' ); // bool
 
-// その日に予約可能なスロットキー一覧
-KKPAY_Calendar_Service::get_available_slot_keys( '2025-06-01' ); // string[]
+// その日に通常プレミアム予約可能なスロットキー一覧
+KKPAY_Calendar_Service::get_bookable_slot_keys( '2025-06-01' ); // string[]
 ```
 
 **受付判定は 2 モードあり、`kkpay_accepted_dates` テーブルの有無で自動的に切り替わります。**
@@ -78,7 +78,7 @@ KKPAY_Calendar_Service::get_available_slot_keys( '2025-06-01' ); // string[]
 
 - `enabled = 1` のレコードがある日程だけ `is_accepting_reservations()` が `true` を返す
 - 受付開始は**対象日の 3 日前 0:00 JST**（時刻ベースのルールは適用されない）
-- `get_available_slot_keys()` は `enabled = 1` のスロットのみを返す
+- `get_bookable_slot_keys()` は営業日・プレミアム予約可能日・`enabled = 1` のスロットをすべて満たすスロットのみを返す
 
 例：5/10 の予約が `accepted_dates` に登録済み → 5/7 **0:00 JST** から受付開始
 

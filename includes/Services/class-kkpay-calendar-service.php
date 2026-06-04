@@ -73,7 +73,7 @@ class KKPAY_Calendar_Service {
     /**
      * 指定日にカレンダーが営業しているスロットキーの配列を返す（accepted_dates フィルターなし）
      * 管理画面など「カレンダー上の全営業スロット」が必要な場合に使う
-     * ユーザー向けの予約受付には get_available_slot_keys() を使うこと
+     * 通常プレミアム予約の受付には get_bookable_slot_keys() を使うこと
      */
     public static function get_open_slot_keys_for_date( $date_str ) {
         $info = KKPAY_Calendar_Repository::find_by_date( $date_str );
@@ -93,24 +93,13 @@ class KKPAY_Calendar_Service {
         return $keys;
     }
 
-    /**
-     * 指定日に予約可能なスロットキーの配列を返す
-     * calendar テーブルにレコードがなければ空配列（定休日扱い）
-     */
-    public static function get_available_slot_keys( $date_str ) {
+    public static function get_bookable_slot_keys( $date_str ) {
         $info = KKPAY_Calendar_Repository::find_by_date( $date_str );
-        if ( ! $info ) {
+        if ( ! self::calendar_row_allows_premium_reservation( $info ) ) {
             return array();
         }
 
-        $keys = array();
-        foreach ( KKPAY_SLOT_TYPES as $key => $type ) {
-            if ( $type === 'lunch' && $info->lunch ) {
-                $keys[] = $key;
-            } elseif ( $type === 'dinner' && $info->dinner ) {
-                $keys[] = $key;
-            }
-        }
+        $keys = self::slot_keys_from_calendar_row( $info );
 
         if ( KKPAY_Accepted_Dates_Repository::has_any_records() ) {
             $accepted = array();
@@ -118,6 +107,27 @@ class KKPAY_Calendar_Service {
                 $accepted[] = $row->time_slot;
             }
             $keys = array_values( array_intersect( $keys, $accepted ) );
+        }
+
+        return $keys;
+    }
+
+    private static function calendar_row_allows_premium_reservation( $info ) {
+        if ( ! $info ) {
+            return false;
+        }
+
+        return ( (bool) $info->lunch || (bool) $info->dinner ) && (bool) $info->premium;
+    }
+
+    private static function slot_keys_from_calendar_row( $info ) {
+        $keys = array();
+        foreach ( KKPAY_SLOT_TYPES as $key => $type ) {
+            if ( $type === 'lunch' && $info->lunch ) {
+                $keys[] = $key;
+            } elseif ( $type === 'dinner' && $info->dinner ) {
+                $keys[] = $key;
+            }
         }
 
         return $keys;
