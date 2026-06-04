@@ -109,6 +109,7 @@ Optional dev variable: `KKPAY_DEV_MAIL=true` — when set, `KKPAY_Dev_Mailer` re
 | `[kkpay_premium_payment]` | `templates/premium-payment.php` | Special premium payment via token URL |
 | `[kkpay_premium_cancel]` | `templates/premium-cancel.php` | Special premium cancellation via token URL |
 | `[kkpay_customer_calendar]` | `templates/customer-calendar.php` | Customer-facing business day calendar |
+| `[kkpay_legal_policies]` | `templates/legal-policies.php` | Customer-facing cancellation, privacy, and terms page with 5 language tabs |
 
 ## Critical: Race Condition Prevention on Hold Creation
 

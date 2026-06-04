@@ -1,6 +1,29 @@
 jQuery(function ($) {
     var maxCapacity = kkpay_admin_cap.maxCapacity;
 
+    function markUnsaved($row) {
+        $row.addClass('is-unsaved');
+    }
+
+    function clearUnsaved() {
+        $('.kkpay-cap-row').removeClass('is-unsaved');
+    }
+
+    function hasUnsavedCapacityInputs($row) {
+        return $row.find('.kkpay-cap-input[data-saved="0"]').length > 0;
+    }
+
+    function markUnsavedBusinessDays() {
+        $('.kkpay-cap-row').each(function () {
+            var $row = $(this);
+            if ($row.find('.kkpay-cap-input').length > 0 && hasUnsavedCapacityInputs($row)) {
+                markUnsaved($row);
+            }
+        });
+    }
+
+    markUnsavedBusinessDays();
+
     $('#kkpay-apply-bulk-cap').on('click', function () {
         var barCap = parseInt($('#kkpay-bulk-cap-bar').val(), 10);
         var tableCap = parseInt($('#kkpay-bulk-cap-table').val(), 10);
@@ -8,6 +31,16 @@ jQuery(function ($) {
         if (isNaN(tableCap) || tableCap < 0) tableCap = 0;
         $('.kkpay-cap-row .kkpay-cap-input[data-seat="Bar"]').val(barCap);
         $('.kkpay-cap-row .kkpay-cap-input[data-seat="Table"]').val(tableCap);
+        $('.kkpay-cap-row').each(function () {
+            var $row = $(this);
+            if ($row.find('.kkpay-cap-input').length > 0) {
+                markUnsaved($row);
+            }
+        });
+    });
+
+    $('.kkpay-cap-input').on('input change', function () {
+        markUnsaved($(this).closest('.kkpay-cap-row'));
     });
 
     $('#kkpay-save-cap').on('click', function () {
@@ -37,6 +70,8 @@ jQuery(function ($) {
             dates:  JSON.stringify(dates)
         }, function (res) {
             if (res.success) {
+                $('.kkpay-cap-input').attr('data-saved', '1');
+                clearUnsaved();
                 $msg.css('color', 'green').text('保存しました。');
             } else {
                 var errMsg = res.data && res.data.message ? res.data.message : '保存に失敗しました。';

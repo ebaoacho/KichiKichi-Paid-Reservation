@@ -87,6 +87,7 @@ KichiKichi-Paid-Reservation/
 │   ├── payment-page.php                決済ページ（ステップ 2）
 │   ├── my-reservation.php              予約照会・キャンセルページ
 │   ├── customer-calendar.php           顧客向け営業日カレンダー
+│   ├── legal-policies.php              キャンセルポリシー・プライバシーポリシー・利用規約
 │   ├── same-day-confirmation.php       当日予約確認・キャンセルページ
 │   ├── premium-payment.php             スペシャルプレミアム決済ページ
 │   ├── premium-cancel.php              スペシャルプレミアムキャンセルページ
@@ -112,6 +113,7 @@ KichiKichi-Paid-Reservation/
     │   ├── kkpay-form.css              フォーム・決済ページのスタイル
     │   ├── kkpay-mypage.css            照会・キャンセルページのスタイル
     │   ├── kkpay-customer-calendar.css 顧客向け営業日カレンダーのスタイル
+    │   ├── kkpay-legal-policies.css    ポリシーページのスタイル
     │   ├── kkpay-same-day.css          当日予約フォームのスタイル
     │   └── kkpay-same-day-confirmation.css
     └── js/
@@ -120,6 +122,7 @@ KichiKichi-Paid-Reservation/
         ├── kkpay-admin-capacity.js      席数設定タブの JS ロジック
         ├── kkpay-admin-calendar.js      営業日カレンダータブの JS ロジック
         ├── kkpay-admin-same-day.js
+        ├── kkpay-legal-policies.js      ポリシーページの言語タブ切り替え
         ├── kkpay-same-day.js           当日予約フォームの JS ロジック
         └── kkpay-same-day-confirmation.js
 ```

@@ -80,6 +80,8 @@ if ( $template !== false ) {
     kkpay_step7_check( strpos( $template, "\$slot_total['active']" ) !== false, 'template renders active slot total' );
     kkpay_step7_check( strpos( $template, "\$slot_total['Bar']" ) !== false, 'template renders Bar total' );
     kkpay_step7_check( strpos( $template, "\$slot_total['Table']" ) !== false, 'template renders Table total' );
+    kkpay_step7_check( strpos( $template, 'カウンター' ) !== false, 'template renders Japanese Bar label' );
+    kkpay_step7_check( strpos( $template, 'テーブル' ) !== false, 'template renders Japanese Table label' );
 }
 
 if ( $script !== false ) {
