@@ -93,6 +93,7 @@ class KKPAY_Calendar_Service {
         return $keys;
     }
 
+    /** 通常プレミアム予約で選択可能なスロットキーを返す（営業日・プレミアム受付可・accepted_dates 互換フィルターを反映）。 */
     public static function get_bookable_slot_keys( $date_str ) {
         $info = KKPAY_Calendar_Repository::find_by_date( $date_str );
         if ( ! self::calendar_row_allows_premium_reservation( $info ) ) {

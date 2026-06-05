@@ -111,6 +111,7 @@ KichiKichi-Paid-Reservation/
 └── assets/
     ├── css/
     │   ├── kkpay-form.css              フォーム・決済ページのスタイル
+    │   ├── kkpay-admin-reservations.css 管理画面の予約一覧カード表示のスタイル
     │   ├── kkpay-mypage.css            照会・キャンセルページのスタイル
     │   ├── kkpay-customer-calendar.css 顧客向け営業日カレンダーのスタイル
     │   ├── kkpay-legal-policies.css    ポリシーページのスタイル
