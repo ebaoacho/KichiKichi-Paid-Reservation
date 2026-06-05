@@ -89,11 +89,18 @@ define( 'KKPAY_MESSAGES', array(
         'zh-TW' => '當日預約已取消。',
     ),
     'max_people_exceeded' => array(
-        'en'    => 'Maximum 4 people per reservation.',
-        'ja'    => '1予約あたり最大4名までです。',
-        'ko'    => '1예약당 최대 4명까지 가능합니다.',
-        'zh-CN' => '每次预约最多4人。',
-        'zh-TW' => '每次預約最多4人。',
+        'en'    => 'The selected number of people exceeds the allowed limit.',
+        'ja'    => '選択した人数が許可された上限を超えています。',
+        'ko'    => '선택한 인원이 허용된 한도를 초과했습니다.',
+        'zh-CN' => '选择的人数超过了允许的上限。',
+        'zh-TW' => '選擇的人數超過了允許的上限。',
+    ),
+    'premium_no_available_dates' => array(
+        'en'    => 'There are currently no available Premium Reservation slots.',
+        'ja'    => '現在、ご予約可能なプレミアム予約枠はありません。',
+        'ko'    => '현재 예약 가능한 프리미엄 예약 슬롯이 없습니다.',
+        'zh-CN' => '目前没有可预约的高级预约名额。',
+        'zh-TW' => '目前沒有可預約的高級預約名額。',
     ),
     'duplicate_reservation' => array(
         'en'    => 'A reservation already exists for this email, date, and time slot.',

@@ -23,9 +23,9 @@ class KKPAY_Reservation_Controller {
             wp_send_json_error( array( 'message' => kkpay_msg( 'not_yet_open', $lang ) ) );
         }
 
-        $valid_slots = KKPAY_Calendar_Service::get_available_slot_keys( $date );
+        $valid_slots = KKPAY_Calendar_Service::get_bookable_slot_keys( $date );
         if ( empty( $valid_slots ) ) {
-            wp_send_json_error( array( 'message' => kkpay_msg( 'closed', $lang ) ) );
+            wp_send_json_error( array( 'message' => kkpay_msg( 'date_unavailable', $lang ) ) );
         }
 
         $slots = KKPAY_Reservation_Service::build_slot_list( $date, $valid_slots, $lang );

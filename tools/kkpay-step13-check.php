@@ -86,7 +86,12 @@ $activator  = kkpay_step13_read( 'includes/class-kkpay-activator.php' );
 $repository = kkpay_step13_read( 'includes/Repositories/class-kkpay-calendar-repository.php' );
 $service    = kkpay_step13_read( 'includes/Services/class-kkpay-calendar-service.php' );
 $controller = kkpay_step13_read( 'includes/Controllers/class-kkpay-admin-controller.php' );
+$hold_ctrl  = kkpay_step13_read( 'includes/Controllers/class-kkpay-hold-controller.php' );
+$reservation_ctrl = kkpay_step13_read( 'includes/Controllers/class-kkpay-reservation-controller.php' );
 $admin      = kkpay_step13_read( 'includes/class-kkpay-admin.php' );
+$entry      = kkpay_step13_read( 'early-reservation-system.php' );
+$script     = kkpay_step13_read( 'assets/js/kkpay-form.js' );
+$messages   = kkpay_step13_read( 'includes/kkpay-messages.php' );
 $readme     = kkpay_step13_read( 'README.md' );
 $tree       = kkpay_step13_read( 'doc/01_directory_structure.md' );
 $design     = kkpay_step13_read( 'doc/19_calendar_integration_design.md' );
@@ -109,7 +114,12 @@ kkpay_step13_check( $activator !== false, 'activator is readable' );
 kkpay_step13_check( $repository !== false, 'calendar repository is readable' );
 kkpay_step13_check( $service !== false, 'calendar service is readable' );
 kkpay_step13_check( $controller !== false, 'admin controller is readable' );
+kkpay_step13_check( $hold_ctrl !== false, 'hold controller is readable' );
+kkpay_step13_check( $reservation_ctrl !== false, 'reservation controller is readable' );
 kkpay_step13_check( $admin !== false, 'admin class is readable' );
+kkpay_step13_check( $entry !== false, 'entry point is readable' );
+kkpay_step13_check( $script !== false, 'reservation form JS is readable' );
+kkpay_step13_check( $messages !== false, 'messages file is readable' );
 kkpay_step13_check( $readme !== false, 'README is readable' );
 kkpay_step13_check( $tree !== false, 'directory structure doc is readable' );
 kkpay_step13_check( $design !== false, 'calendar integration design is readable' );
@@ -132,6 +142,28 @@ if ( $repository !== false ) {
 if ( $service !== false ) {
     kkpay_step13_check( strpos( $service, 'KKPAY_Calendar_Repository::find_by_date' ) !== false, 'calendar service reads through calendar repository' );
     kkpay_step13_check( strpos( $service, 'KKPAY_Calendar_Repository::get_range' ) !== false, 'public calendar reads through calendar repository' );
+    kkpay_step13_check( strpos( $service, 'get_bookable_slot_keys' ) !== false, 'calendar service exposes premium-gated slot keys' );
+    kkpay_step13_check( strpos( $service, '&& (bool) $info->premium' ) !== false, 'premium reservation availability requires both business opening and premium flag' );
+}
+
+if ( $entry !== false ) {
+    kkpay_step13_check( strpos( $entry, 'get_bookable_slot_keys( $date )' ) !== false, 'reservation form bookable dates use premium-gated slot keys' );
+}
+
+if ( $hold_ctrl !== false ) {
+    kkpay_step13_check( strpos( $hold_ctrl, 'get_bookable_slot_keys' ) !== false, 'hold controller uses premium-gated slot keys' );
+}
+
+if ( $reservation_ctrl !== false ) {
+    kkpay_step13_check( strpos( $reservation_ctrl, 'get_bookable_slot_keys' ) !== false, 'reservation controller uses premium-gated slot keys' );
+}
+
+if ( $script !== false ) {
+    kkpay_step13_check( strpos( $script, "msg('premium_no_available_dates')" ) !== false, 'reservation form shows a no-premium-availability message' );
+}
+
+if ( $messages !== false ) {
+    kkpay_step13_check( strpos( $messages, 'premium_no_available_dates' ) !== false, 'messages define no-premium-availability text' );
 }
 
 if ( $controller !== false ) {

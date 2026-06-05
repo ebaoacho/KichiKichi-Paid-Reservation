@@ -21,7 +21,7 @@ define( 'KKPAY_CURRENCY',           'usd' );
 define( 'KKPAY_STRIPE_AMOUNT_MULTIPLIER', 100 );
 define( 'KKPAY_MAX_CAPACITY',       8 );
 define( 'KKPAY_TABLE_MAX_CAPACITY', 6 );
-define( 'KKPAY_MAX_PEOPLE',         4 );
+define( 'KKPAY_MAX_PEOPLE',         8 );
 define( 'KKPAY_HOLD_MINUTES',       5 );
 define( 'KKPAY_ACCEPT_DAYS_BEFORE', 3 );
 define( 'KKPAY_ACCEPT_HOUR_JST',    13 );
@@ -296,7 +296,7 @@ function kkpay_get_bookable_dates_map() {
             continue;
         }
 
-        $slot_keys = KKPAY_Calendar_Service::get_available_slot_keys( $date );
+        $slot_keys = KKPAY_Calendar_Service::get_bookable_slot_keys( $date );
         if ( empty( $slot_keys ) ) {
             continue;
         }

@@ -173,7 +173,7 @@ Normal and special premium reservations validate names as ASCII/English-style na
 | `KKPAY_STRIPE_AMOUNT_MULTIPLIER` | 100 | Multiplier to convert to Stripe cents |
 | `KKPAY_MAX_CAPACITY` | 8 | Bar counter capacity limit and default max people per Bar slot |
 | `KKPAY_TABLE_MAX_CAPACITY` | 6 | Table capacity limit |
-| `KKPAY_MAX_PEOPLE` | 4 | Legacy constant; normal booking seat choices are now limited by actual remaining capacity |
+| `KKPAY_MAX_PEOPLE` | 8 | Legacy constant; normal booking seat choices are now limited by actual remaining capacity |
 | `KKPAY_HOLD_MINUTES` | 5 | Hold expiration window |
 | `KKPAY_ACCEPT_DAYS_BEFORE` | 3 | Booking window (days ahead) |
 | `KKPAY_ACCEPT_HOUR_JST` | 13 | **Normal mode only.** Hour (JST) at which bookings open on the cutoff day. Ignored in premium mode. |
