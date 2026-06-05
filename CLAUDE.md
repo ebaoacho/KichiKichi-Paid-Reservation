@@ -177,6 +177,10 @@ Normal and special premium reservations validate names as ASCII/English-style na
 | `KKPAY_HOLD_MINUTES` | 5 | Hold expiration window |
 | `KKPAY_ACCEPT_DAYS_BEFORE` | 3 | Booking window (days ahead) |
 | `KKPAY_ACCEPT_HOUR_JST` | 13 | **Normal mode only.** Hour (JST) at which bookings open on the cutoff day. Ignored in premium mode. |
+| `KKPAY_SAME_DAY_LUNCH_START_HOUR` / `KKPAY_SAME_DAY_LUNCH_START_MINUTE` | 9 / 30 | Same-day reservation lunch acceptance start time (JST) |
+| `KKPAY_SAME_DAY_LUNCH_END_HOUR` / `KKPAY_SAME_DAY_LUNCH_END_MINUTE` | 11 / 59 | Same-day reservation lunch acceptance end time (JST) |
+| `KKPAY_SAME_DAY_DINNER_START_HOUR` / `KKPAY_SAME_DAY_DINNER_START_MINUTE` | 13 / 30 | Same-day reservation dinner acceptance start time (JST) |
+| `KKPAY_SAME_DAY_DINNER_END_HOUR` / `KKPAY_SAME_DAY_DINNER_END_MINUTE` | 15 / 59 | Same-day reservation dinner acceptance end time (JST) |
 | `KKPAY_PREMIUM_AMOUNT` | 32 | Unit charge per seat (USD) — special premium reservations |
 | `KKPAY_PREMIUM_CURRENCY` | `'usd'` | Stripe currency code for premium |
 | `KKPAY_PREMIUM_MAX_PEOPLE` | 8 | Max seats for special premium reservations |
