@@ -23,51 +23,28 @@ class KKPAY_Email_Service {
         );
 
         $bodies = array(
-            'en' => "Dear {$reservation->name},\n\nYour reservation at KichiKichi has been confirmed.\n\n"
-                . "Reservation Date : {$reservation->reservation_date}\n"
-                . "Time Slot        : {$label}\n"
-                . "Number of Seats  : {$reservation->number_of_people}\n"
-                . "Amount Paid      : {$amount}\n"
-                . "Product          : Seat with goods included\n\n"
-                . "Cancellation Policy:\nNo refund will be issued after cancellation.\n\nKichiKichi",
+            'en' => "Dear {$reservation->name},\n\nYour reservation at KichiKichi has been confirmed.\n\n{{DETAILS}}\n\nCancellation Policy:\nNo refund will be issued after cancellation.\n\nKichiKichi",
+            'ja' => "{$reservation->name} 様\n\nキチキチへのご予約が確定しました。\n\n{{DETAILS}}\n\nキャンセルポリシー:\nキャンセル後の返金はございません。\n\nキチキチ",
+            'ko' => "{$reservation->name} 님\n\nKichiKichi 예약이 확정되었습니다.\n\n{{DETAILS}}\n\n취소 정책:\n취소 후 환불은 제공되지 않습니다.\n\nKichiKichi",
+            'zh-CN' => "亲爱的 {$reservation->name}：\n\n您的 KichiKichi 预约已确认。\n\n{{DETAILS}}\n\n取消政策:\n取消后不予退款。\n\nKichiKichi",
+            'zh-TW' => "親愛的 {$reservation->name}：\n\n您的 KichiKichi 預約已確認。\n\n{{DETAILS}}\n\n取消政策:\n取消後不予退款。\n\nKichiKichi",
+        );
 
-            'ja' => "{$reservation->name} 様\n\nキチキチへのご予約が確定しました。\n\n"
-                . "予約日      : {$reservation->reservation_date}\n"
-                . "時間枠      : {$label}\n"
-                . "席数        : {$reservation->number_of_people}席\n"
-                . "お支払い    : {$amount}\n"
-                . "商品内容    : 席＋グッズ付き\n\n"
-                . "キャンセルポリシー:\nキャンセル後の返金はございません。\n\nキチキチ",
-
-            'ko' => "{$reservation->name} 님\n\nKichiKichi 예약이 확정되었습니다.\n\n"
-                . "예약일      : {$reservation->reservation_date}\n"
-                . "시간대      : {$label}\n"
-                . "좌석 수     : {$reservation->number_of_people}\n"
-                . "결제 금액   : {$amount}\n"
-                . "상품        : 좌석 + 굿즈 포함\n\n"
-                . "취소 정책:\n취소 후 환불은 제공되지 않습니다.\n\nKichiKichi",
-
-            'zh-CN' => "亲爱的 {$reservation->name}：\n\n您的 KichiKichi 预约已确认。\n\n"
-                . "预约日期    : {$reservation->reservation_date}\n"
-                . "时间段      : {$label}\n"
-                . "席数        : {$reservation->number_of_people}\n"
-                . "支付金额    : {$amount}\n"
-                . "商品内容    : 座席＋周边商品\n\n"
-                . "取消政策:\n取消后不予退款。\n\nKichiKichi",
-
-            'zh-TW' => "親愛的 {$reservation->name}：\n\n您的 KichiKichi 預約已確認。\n\n"
-                . "預約日期    : {$reservation->reservation_date}\n"
-                . "時間段      : {$label}\n"
-                . "席數        : {$reservation->number_of_people}\n"
-                . "支付金額    : {$amount}\n"
-                . "商品內容    : 座席＋周邊商品\n\n"
-                . "取消政策:\n取消後不予退款。\n\nKichiKichi",
+        $dl      = self::detail_labels_reservation( $lang );
+        $details = array(
+            array( 'label' => $dl['date'],   'value' => $reservation->reservation_date ),
+            array( 'label' => $dl['slot'],   'value' => $label ),
+            array( 'label' => $dl['people'], 'value' => self::people_value( $reservation->number_of_people, $lang ) ),
+            array( 'label' => $dl['amount'], 'value' => $amount ),
         );
 
         self::send(
             $reservation->email,
             $subjects[ $lang ] ?? $subjects['en'],
-            $bodies[ $lang ] ?? $bodies['en']
+            $bodies[ $lang ] ?? $bodies['en'],
+            $lang,
+            true,
+            $details
         );
     }
 
@@ -88,36 +65,27 @@ class KKPAY_Email_Service {
         );
 
         $bodies = array(
-            'en' => "Dear {$reservation->name},\n\nYour reservation has been cancelled. No refund will be issued.\n\n"
-                . "Reservation Date : {$reservation->reservation_date}\n"
-                . "Time Slot        : {$label}\n"
-                . "Number of Seats  : {$reservation->number_of_people}\n\nKichiKichi",
+            'en' => "Dear {$reservation->name},\n\nYour reservation has been cancelled. No refund will be issued.\n\n{{DETAILS}}\n\nKichiKichi",
+            'ja' => "{$reservation->name} 様\n\nご予約をキャンセルしました。返金はございません。\n\n{{DETAILS}}\n\nキチキチ",
+            'ko' => "{$reservation->name} 님\n\n예약이 취소되었습니다. 환불은 제공되지 않습니다.\n\n{{DETAILS}}\n\nKichiKichi",
+            'zh-CN' => "亲爱的 {$reservation->name}：\n\n您的预约已取消。不会退款。\n\n{{DETAILS}}\n\nKichiKichi",
+            'zh-TW' => "親愛的 {$reservation->name}：\n\n您的預約已取消。不會退款。\n\n{{DETAILS}}\n\nKichiKichi",
+        );
 
-            'ja' => "{$reservation->name} 様\n\nご予約をキャンセルしました。返金はございません。\n\n"
-                . "予約日 : {$reservation->reservation_date}\n"
-                . "時間枠 : {$label}\n"
-                . "席数   : {$reservation->number_of_people}席\n\nキチキチ",
-
-            'ko' => "{$reservation->name} 님\n\n예약이 취소되었습니다. 환불은 제공되지 않습니다.\n\n"
-                . "예약일  : {$reservation->reservation_date}\n"
-                . "시간대  : {$label}\n"
-                . "좌석 수 : {$reservation->number_of_people}\n\nKichiKichi",
-
-            'zh-CN' => "亲爱的 {$reservation->name}：\n\n您的预约已取消。不会退款。\n\n"
-                . "预约日期 : {$reservation->reservation_date}\n"
-                . "时间段   : {$label}\n"
-                . "席数     : {$reservation->number_of_people}\n\nKichiKichi",
-
-            'zh-TW' => "親愛的 {$reservation->name}：\n\n您的預約已取消。不會退款。\n\n"
-                . "預約日期 : {$reservation->reservation_date}\n"
-                . "時間段   : {$label}\n"
-                . "席數     : {$reservation->number_of_people}\n\nKichiKichi",
+        $dl      = self::detail_labels_reservation( $lang );
+        $details = array(
+            array( 'label' => $dl['date'],   'value' => $reservation->reservation_date ),
+            array( 'label' => $dl['slot'],   'value' => $label ),
+            array( 'label' => $dl['people'], 'value' => self::people_value( $reservation->number_of_people, $lang ) ),
         );
 
         self::send(
             $reservation->email,
             $subjects[ $lang ] ?? $subjects['en'],
-            $bodies[ $lang ] ?? $bodies['en']
+            $bodies[ $lang ] ?? $bodies['en'],
+            $lang,
+            false,
+            $details
         );
     }
 
@@ -175,7 +143,8 @@ class KKPAY_Email_Service {
         self::send_with_cc(
             $premium->email,
             $subjects[ $lang ] ?? $subjects['en'],
-            $bodies[ $lang ] ?? $bodies['en']
+            $bodies[ $lang ] ?? $bodies['en'],
+            $lang
         );
     }
 
@@ -199,46 +168,26 @@ class KKPAY_Email_Service {
         );
 
         $bodies = array(
-            'en' => "Dear {$premium->name},\n\nYour KichiKichi Special Premium Reservation date has been confirmed.\n\n"
-                . "Reservation Date : {$premium->reservation_date}\n"
-                . "Time Slot        : {$label}\n\n"
-                . "Cancellation Policy:\nFull refund is available up to 3 days before the reservation date.\nNo refund after that.\n\n"
-                . "To cancel, please request a cancellation link from the master.\n\n"
-                . "KichiKichi",
+            'en' => "Dear {$premium->name},\n\nYour KichiKichi Special Premium Reservation date has been confirmed.\n\n{{DETAILS}}\n\nCancellation Policy:\nFull refund is available up to 3 days before the reservation date.\nNo refund after that.\n\nTo cancel, please request a cancellation link from the master.\n\nKichiKichi",
+            'ja' => "{$premium->name} 様\n\nキチキチ スペシャルプレミアム予約の日時が確定しました。\n\n{{DETAILS}}\n\nキャンセルポリシー:\n予約日の3日前までは全額返金いたします。それ以降は返金なし。\n\nキャンセルご希望の場合は、マスターにキャンセルリンクをご依頼ください。\n\nキチキチ",
+            'ko' => "{$premium->name} 님\n\nKichiKichi 스페셜 프리미엄 예약 날짜가 확정되었습니다.\n\n{{DETAILS}}\n\n취소 정책:\n예약일 3일 전까지 전액 환불 가능합니다. 이후에는 환불 불가.\n\n취소를 원하시면 마스터에게 취소 링크를 요청하세요.\n\nKichiKichi",
+            'zh-CN' => "亲爱的 {$premium->name}：\n\nKichiKichi 特别高级预约日期已确认。\n\n{{DETAILS}}\n\n取消政策:\n预约日3天前可全额退款。之后不予退款。\n\n如需取消，请向主人索取取消链接。\n\nKichiKichi",
+            'zh-TW' => "親愛的 {$premium->name}：\n\nKichiKichi 特別高級預約日期已確認。\n\n{{DETAILS}}\n\n取消政策:\n預約日3天前可全額退款。之後不予退款。\n\n如需取消，請向主人索取取消連結。\n\nKichiKichi",
+        );
 
-            'ja' => "{$premium->name} 様\n\nキチキチ スペシャルプレミアム予約の日時が確定しました。\n\n"
-                . "予約日  : {$premium->reservation_date}\n"
-                . "時間枠  : {$label}\n\n"
-                . "キャンセルポリシー:\n予約日の3日前までは全額返金いたします。それ以降は返金なし。\n\n"
-                . "キャンセルご希望の場合は、マスターにキャンセルリンクをご依頼ください。\n\n"
-                . "キチキチ",
-
-            'ko' => "{$premium->name} 님\n\nKichiKichi 스페셜 프리미엄 예약 날짜가 확정되었습니다.\n\n"
-                . "예약일  : {$premium->reservation_date}\n"
-                . "시간대  : {$label}\n\n"
-                . "취소 정책:\n예약일 3일 전까지 전액 환불 가능합니다. 이후에는 환불 불가.\n\n"
-                . "취소를 원하시면 마스터에게 취소 링크를 요청하세요.\n\n"
-                . "KichiKichi",
-
-            'zh-CN' => "亲爱的 {$premium->name}：\n\nKichiKichi 特别高级预约日期已确认。\n\n"
-                . "预约日期 : {$premium->reservation_date}\n"
-                . "时间段   : {$label}\n\n"
-                . "取消政策:\n预约日3天前可全额退款。之后不予退款。\n\n"
-                . "如需取消，请向主人索取取消链接。\n\n"
-                . "KichiKichi",
-
-            'zh-TW' => "親愛的 {$premium->name}：\n\nKichiKichi 特別高級預約日期已確認。\n\n"
-                . "預約日期 : {$premium->reservation_date}\n"
-                . "時間段   : {$label}\n\n"
-                . "取消政策:\n預約日3天前可全額退款。之後不予退款。\n\n"
-                . "如需取消，請向主人索取取消連結。\n\n"
-                . "KichiKichi",
+        $dl      = self::detail_labels_date_slot( $lang );
+        $details = array(
+            array( 'label' => $dl['date'], 'value' => $premium->reservation_date ),
+            array( 'label' => $dl['slot'], 'value' => $label ),
         );
 
         self::send_with_cc(
             $premium->email,
             $subjects[ $lang ] ?? $subjects['en'],
-            $bodies[ $lang ] ?? $bodies['en']
+            $bodies[ $lang ] ?? $bodies['en'],
+            $lang,
+            true,
+            $details
         );
     }
 
@@ -262,46 +211,26 @@ class KKPAY_Email_Service {
         );
 
         $bodies = array(
-            'en' => "Dear {$premium->name},\n\nYour KichiKichi Special Premium Reservation date has been changed.\n\n"
-                . "New Reservation Date : {$premium->reservation_date}\n"
-                . "New Time Slot        : {$label}\n\n"
-                . "Cancellation Policy:\nFull refund is available up to 3 days before the reservation date.\nNo refund after that.\n\n"
-                . "To cancel, please request a cancellation link from the master.\n\n"
-                . "KichiKichi",
+            'en' => "Dear {$premium->name},\n\nYour KichiKichi Special Premium Reservation date has been changed.\n\n{{DETAILS}}\n\nCancellation Policy:\nFull refund is available up to 3 days before the reservation date.\nNo refund after that.\n\nTo cancel, please request a cancellation link from the master.\n\nKichiKichi",
+            'ja' => "{$premium->name} 様\n\nキチキチ スペシャルプレミアム予約の日時を変更しました。\n\n{{DETAILS}}\n\nキャンセルポリシー:\n予約日の3日前までは全額返金いたします。それ以降は返金なし。\n\nキャンセルご希望の場合は、マスターにキャンセルリンクをご依頼ください。\n\nキチキチ",
+            'ko' => "{$premium->name} 님\n\nKichiKichi 스페셜 프리미엄 예약 날짜가 변경되었습니다.\n\n{{DETAILS}}\n\n취소 정책:\n예약일 3일 전까지 전액 환불 가능합니다. 이후에는 환불 불가.\n\n취소를 원하시면 마스터에게 취소 링크를 요청하세요.\n\nKichiKichi",
+            'zh-CN' => "亲爱的 {$premium->name}：\n\nKichiKichi 特别高级预约日期已变更。\n\n{{DETAILS}}\n\n取消政策:\n预约日3天前可全额退款。之后不予退款。\n\n如需取消，请向主人索取取消链接。\n\nKichiKichi",
+            'zh-TW' => "親愛的 {$premium->name}：\n\nKichiKichi 特別高級預約日期已變更。\n\n{{DETAILS}}\n\n取消政策:\n預約日3天前可全額退款。之後不予退款。\n\n如需取消，請向主人索取取消連結。\n\nKichiKichi",
+        );
 
-            'ja' => "{$premium->name} 様\n\nキチキチ スペシャルプレミアム予約の日時を変更しました。\n\n"
-                . "新しい予約日  : {$premium->reservation_date}\n"
-                . "新しい時間枠  : {$label}\n\n"
-                . "キャンセルポリシー:\n予約日の3日前までは全額返金いたします。それ以降は返金なし。\n\n"
-                . "キャンセルご希望の場合は、マスターにキャンセルリンクをご依頼ください。\n\n"
-                . "キチキチ",
-
-            'ko' => "{$premium->name} 님\n\nKichiKichi 스페셜 프리미엄 예약 날짜가 변경되었습니다.\n\n"
-                . "새 예약일  : {$premium->reservation_date}\n"
-                . "새 시간대  : {$label}\n\n"
-                . "취소 정책:\n예약일 3일 전까지 전액 환불 가능합니다. 이후에는 환불 불가.\n\n"
-                . "취소를 원하시면 마스터에게 취소 링크를 요청하세요.\n\n"
-                . "KichiKichi",
-
-            'zh-CN' => "亲爱的 {$premium->name}：\n\nKichiKichi 特别高级预约日期已变更。\n\n"
-                . "新预约日期 : {$premium->reservation_date}\n"
-                . "新时间段   : {$label}\n\n"
-                . "取消政策:\n预约日3天前可全额退款。之后不予退款。\n\n"
-                . "如需取消，请向主人索取取消链接。\n\n"
-                . "KichiKichi",
-
-            'zh-TW' => "親愛的 {$premium->name}：\n\nKichiKichi 特別高級預約日期已變更。\n\n"
-                . "新預約日期 : {$premium->reservation_date}\n"
-                . "新時間段   : {$label}\n\n"
-                . "取消政策:\n預約日3天前可全額退款。之後不予退款。\n\n"
-                . "如需取消，請向主人索取取消連結。\n\n"
-                . "KichiKichi",
+        $dl      = self::detail_labels_new_date_slot( $lang );
+        $details = array(
+            array( 'label' => $dl['date'], 'value' => $premium->reservation_date ),
+            array( 'label' => $dl['slot'], 'value' => $label ),
         );
 
         self::send_with_cc(
             $premium->email,
             $subjects[ $lang ] ?? $subjects['en'],
-            $bodies[ $lang ] ?? $bodies['en']
+            $bodies[ $lang ] ?? $bodies['en'],
+            $lang,
+            true,
+            $details
         );
     }
 
@@ -313,8 +242,8 @@ class KKPAY_Email_Service {
             return;
         }
 
-        $lang  = self::normalize_lang( $premium->language ?? 'en' );
-        $label = KKPAY_SLOT_LABELS[ $lang ][ $premium->time_slot ] ?? ( $premium->time_slot ?? '' );
+        $lang   = self::normalize_lang( $premium->language ?? 'en' );
+        $label  = KKPAY_SLOT_LABELS[ $lang ][ $premium->time_slot ] ?? ( $premium->time_slot ?? '' );
         $amount = (int) ( $premium->amount ?? KKPAY_PREMIUM_AMOUNT );
 
         $subjects = array(
@@ -352,36 +281,26 @@ class KKPAY_Email_Service {
         }
 
         $bodies = array(
-            'en' => "Dear {$premium->name},\n\nYour KichiKichi Special Premium Reservation has been cancelled.\n\n"
-                . "Reservation Date : {$premium->reservation_date}\n"
-                . "Time Slot        : {$label}\n\n"
-                . ( $refund_note['en'] ) . "\n\nKichiKichi",
+            'en' => "Dear {$premium->name},\n\nYour KichiKichi Special Premium Reservation has been cancelled.\n\n{{DETAILS}}\n\n" . $refund_note['en'] . "\n\nKichiKichi",
+            'ja' => "{$premium->name} 様\n\nキチキチ スペシャルプレミアム予約をキャンセルしました。\n\n{{DETAILS}}\n\n" . $refund_note['ja'] . "\n\nキチキチ",
+            'ko' => "{$premium->name} 님\n\nKichiKichi 스페셜 프리미엄 예약이 취소되었습니다.\n\n{{DETAILS}}\n\n" . $refund_note['ko'] . "\n\nKichiKichi",
+            'zh-CN' => "亲爱的 {$premium->name}：\n\nKichiKichi 特别高级预约已取消。\n\n{{DETAILS}}\n\n" . $refund_note['zh-CN'] . "\n\nKichiKichi",
+            'zh-TW' => "親愛的 {$premium->name}：\n\nKichiKichi 特別高級預約已取消。\n\n{{DETAILS}}\n\n" . $refund_note['zh-TW'] . "\n\nKichiKichi",
+        );
 
-            'ja' => "{$premium->name} 様\n\nキチキチ スペシャルプレミアム予約をキャンセルしました。\n\n"
-                . "予約日  : {$premium->reservation_date}\n"
-                . "時間枠  : {$label}\n\n"
-                . ( $refund_note['ja'] ) . "\n\nキチキチ",
-
-            'ko' => "{$premium->name} 님\n\nKichiKichi 스페셜 프리미엄 예약이 취소되었습니다.\n\n"
-                . "예약일  : {$premium->reservation_date}\n"
-                . "시간대  : {$label}\n\n"
-                . ( $refund_note['ko'] ) . "\n\nKichiKichi",
-
-            'zh-CN' => "亲爱的 {$premium->name}：\n\nKichiKichi 特别高级预约已取消。\n\n"
-                . "预约日期 : {$premium->reservation_date}\n"
-                . "时间段   : {$label}\n\n"
-                . ( $refund_note['zh-CN'] ) . "\n\nKichiKichi",
-
-            'zh-TW' => "親愛的 {$premium->name}：\n\nKichiKichi 特別高級預約已取消。\n\n"
-                . "預約日期 : {$premium->reservation_date}\n"
-                . "時間段   : {$label}\n\n"
-                . ( $refund_note['zh-TW'] ) . "\n\nKichiKichi",
+        $dl      = self::detail_labels_date_slot( $lang );
+        $details = array(
+            array( 'label' => $dl['date'], 'value' => $premium->reservation_date ),
+            array( 'label' => $dl['slot'], 'value' => $label ),
         );
 
         self::send_with_cc(
             $premium->email,
             $subjects[ $lang ] ?? $subjects['en'],
-            $bodies[ $lang ] ?? $bodies['en']
+            $bodies[ $lang ] ?? $bodies['en'],
+            $lang,
+            false,
+            $details
         );
     }
 
@@ -392,12 +311,12 @@ class KKPAY_Email_Service {
     /**
      * お客様宛てに送信し、マスター（FROM_EMAIL）を CC に含める
      */
-    private static function send_with_cc( $to, $subject, $message ) {
-        $from_name  = KKPAY_Email_Config::from_name();
-        $from_email = KKPAY_Email_Config::from_email();
+    private static function send_with_cc( $to, $subject, $message, $lang = 'en', $include_arrival_notice = false, $details = array() ) {
+        $from_name    = KKPAY_Email_Config::from_name();
+        $from_email   = KKPAY_Email_Config::from_email();
         $master_email = KKPAY_Email_Config::master_email();
 
-        $headers = array( 'Content-Type: text/plain; charset=UTF-8' );
+        $headers = array( 'Content-Type: text/html; charset=UTF-8' );
         if ( $from_email !== '' ) {
             $headers[] = "From: {$from_name} <{$from_email}>";
         }
@@ -405,7 +324,7 @@ class KKPAY_Email_Service {
             $headers[] = "Cc: {$from_name} <{$master_email}>";
         }
 
-        wp_mail( $to, $subject, $message, $headers );
+        wp_mail( $to, $subject, self::html_message( $message, $lang, $include_arrival_notice, $details ), $headers );
     }
 
     private static function normalize_lang( $lang ) {
@@ -416,15 +335,151 @@ class KKPAY_Email_Service {
         return KKPAY_CURRENCY === 'usd' ? '$' . number_format( $amount ) : '¥' . number_format( $amount );
     }
 
-    private static function send( $to, $subject, $message ) {
+    private static function send( $to, $subject, $message, $lang = 'en', $include_arrival_notice = false, $details = array() ) {
         $from_name  = KKPAY_Email_Config::from_name();
         $from_email = KKPAY_Email_Config::from_email();
 
-        $headers = array( 'Content-Type: text/plain; charset=UTF-8' );
+        $headers = array( 'Content-Type: text/html; charset=UTF-8' );
         if ( $from_email !== '' ) {
             $headers[] = "From: {$from_name} <{$from_email}>";
         }
 
-        wp_mail( $to, $subject, $message, $headers );
+        wp_mail( $to, $subject, self::html_message( $message, $lang, $include_arrival_notice, $details ), $headers );
+    }
+
+    private static function html_message( $message, $lang = 'en', $include_arrival_notice = false, $details = array() ) {
+        $logo_url = KKPAY_PLUGIN_URL . 'assets/image/kichikichi_logo.png';
+        $bg_url   = KKPAY_PLUGIN_URL . 'assets/image/bg_omrice.png';
+
+        $parts      = explode( '{{DETAILS}}', $message, 2 );
+        $msg_before = trim( $parts[0] );
+        $msg_after  = isset( $parts[1] ) ? trim( $parts[1] ) : '';
+        $has_details = ! empty( $details );
+
+        ob_start();
+        ?>
+        <!doctype html>
+        <html>
+        <head>
+            <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        </head>
+        <body style="margin:0;padding:0;background:#f2f2f2;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;color:#f5f5f5;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;background:#f2f2f2;margin:0;padding:0;">
+                <tr>
+                    <td align="center" style="padding:28px 12px;">
+                        <table role="presentation" width="640" cellspacing="0" cellpadding="0" style="width:100%;max-width:640px;background:#ffffff;background-image:url('<?php echo esc_url( $bg_url ); ?>');background-repeat:repeat;border-collapse:separate;border-spacing:0;">
+                            <tr>
+                                <td align="center" style="padding:32px 24px 10px;">
+                                    <img src="<?php echo esc_url( $logo_url ); ?>" alt="KichiKichi" width="190" style="display:block;width:190px;max-width:70%;height:auto;border:0;" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding:16px 28px 34px;">
+                                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate;border-spacing:0;background:#4b4b4b;border-radius:18px;">
+                                        <tr>
+                                            <td style="padding:34px 30px;text-align:center;color:#eeeeee;font-size:18px;line-height:1.8;">
+                                                <?php if ( $include_arrival_notice ) : ?>
+                                                    <?php echo self::notice_block( self::arrival_notice( $lang ), '#fff3cd', '#f0b429', '#3b2f00' ); ?>
+                                                    <?php echo self::notice_block( self::waiting_line_notice( $lang ), '#efefef', '#d6d6d6', '#333333' ); ?>
+                                                <?php endif; ?>
+                                                <?php if ( $msg_before !== '' ) : ?>
+                                                    <div style="font-size:17px;line-height:1.85;color:#eeeeee;text-align:center;<?php echo $has_details ? 'margin-bottom:20px;' : ''; ?>">
+                                                        <?php echo nl2br( esc_html( $msg_before ) ); ?>
+                                                    </div>
+                                                <?php endif; ?>
+                                                <?php if ( $has_details ) : ?>
+                                                    <?php echo self::details_table( $details ); ?>
+                                                <?php endif; ?>
+                                                <?php if ( $msg_after !== '' ) : ?>
+                                                    <div style="font-size:17px;line-height:1.85;color:#eeeeee;text-align:center;<?php echo $has_details ? 'margin-top:20px;' : ''; ?>">
+                                                        <?php echo nl2br( esc_html( $msg_after ) ); ?>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </body>
+        </html>
+        <?php
+        return trim( ob_get_clean() );
+    }
+
+    private static function details_table( array $details ) {
+        $html = '<table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 auto;border-collapse:collapse;">';
+        foreach ( $details as $row ) {
+            $html .= '<tr>'
+                . '<td style="text-align:right;padding:4px 8px 4px 0;color:#eeeeee;font-size:17px;white-space:nowrap;">' . esc_html( $row['label'] ) . '</td>'
+                . '<td style="text-align:center;padding:4px 6px;color:#eeeeee;font-size:17px;white-space:nowrap;">:</td>'
+                . '<td style="text-align:left;padding:4px 0 4px 8px;color:#eeeeee;font-size:17px;white-space:nowrap;">' . esc_html( $row['value'] ) . '</td>'
+                . '</tr>';
+        }
+        $html .= '</table>';
+        return $html;
+    }
+
+    private static function detail_labels_reservation( $lang ) {
+        $map = array(
+            'en'    => array( 'date' => 'Reservation Date', 'slot' => 'Time Slot',  'people' => 'Number of Seats', 'amount' => 'Amount Paid'  ),
+            'ja'    => array( 'date' => '予約日',           'slot' => '時間枠',     'people' => '席数',            'amount' => 'お支払い'     ),
+            'ko'    => array( 'date' => '예약일',           'slot' => '시간대',     'people' => '좌석 수',         'amount' => '결제 금액'    ),
+            'zh-CN' => array( 'date' => '预约日期',         'slot' => '时间段',     'people' => '席数',            'amount' => '支付金额'     ),
+            'zh-TW' => array( 'date' => '預約日期',         'slot' => '時間段',     'people' => '席數',            'amount' => '支付金額'     ),
+        );
+        return $map[ $lang ] ?? $map['en'];
+    }
+
+    private static function detail_labels_date_slot( $lang ) {
+        $map = array(
+            'en'    => array( 'date' => 'Reservation Date', 'slot' => 'Time Slot' ),
+            'ja'    => array( 'date' => '予約日',           'slot' => '時間枠'    ),
+            'ko'    => array( 'date' => '예약일',           'slot' => '시간대'    ),
+            'zh-CN' => array( 'date' => '预约日期',         'slot' => '时间段'    ),
+            'zh-TW' => array( 'date' => '預約日期',         'slot' => '時間段'    ),
+        );
+        return $map[ $lang ] ?? $map['en'];
+    }
+
+    private static function detail_labels_new_date_slot( $lang ) {
+        $map = array(
+            'en'    => array( 'date' => 'New Reservation Date', 'slot' => 'New Time Slot' ),
+            'ja'    => array( 'date' => '新しい予約日',         'slot' => '新しい時間枠'  ),
+            'ko'    => array( 'date' => '새 예약일',            'slot' => '새 시간대'     ),
+            'zh-CN' => array( 'date' => '新预约日期',           'slot' => '新时间段'      ),
+            'zh-TW' => array( 'date' => '新預約日期',           'slot' => '新時間段'      ),
+        );
+        return $map[ $lang ] ?? $map['en'];
+    }
+
+    private static function people_value( $number, $lang ) {
+        return 'ja' === $lang ? $number . '席' : (string) $number;
+    }
+
+    private static function notice_block( array $notice, $background, $border, $color ) {
+        return '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate;border-spacing:0;margin:0 0 18px;background:' . esc_attr( $background ) . ';border:2px solid ' . esc_attr( $border ) . ';border-radius:14px;">'
+            . '<tr><td style="padding:18px 16px;text-align:center;color:' . esc_attr( $color ) . ';">'
+            . '<div style="font-size:18px;line-height:1.4;font-weight:700;margin-bottom:8px;">' . esc_html( $notice['title'] ) . '</div>'
+            . '<div style="font-size:16px;line-height:1.7;font-weight:600;">' . nl2br( esc_html( $notice['body'] ) ) . '</div>'
+            . '</td></tr></table>';
+    }
+
+    private static function arrival_notice( $lang ) {
+        return array(
+            'title' => kkpay_msg( 'email_arrival_notice_title', $lang ),
+            'body'  => kkpay_msg( 'email_arrival_notice_body', $lang ),
+        );
+    }
+
+    private static function waiting_line_notice( $lang ) {
+        return array(
+            'title' => kkpay_msg( 'email_waiting_line_notice_title', $lang ),
+            'body'  => kkpay_msg( 'email_waiting_line_notice_body', $lang ),
+        );
     }
 }

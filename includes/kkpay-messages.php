@@ -256,6 +256,34 @@ define( 'KKPAY_MESSAGES', array(
         'zh-CN' => '发生服务器错误，请稍后重试。',
         'zh-TW' => '發生伺服器錯誤，請稍後重試。',
     ),
+    'email_arrival_notice_title' => array(
+        'en'    => 'IMPORTANT',
+        'ja'    => '重要',
+        'ko'    => '중요',
+        'zh-CN' => '重要',
+        'zh-TW' => '重要',
+    ),
+    'email_arrival_notice_body' => array(
+        'en'    => "Please arrive by your arrival time.\nIf you are late, your reservation may be cancelled.",
+        'ja'    => "ご来店時間までに到着してください。\n遅れた場合、予約はキャンセル扱いとなります。",
+        'ko'    => "도착 시간까지 와 주세요.\n늦으시면 예약이 취소될 수 있습니다.",
+        'zh-CN' => "请在到店时间前抵达。\n迟到时，预约可能会被视为取消。",
+        'zh-TW' => "請在到店時間前抵達。\n遲到時，預約可能會被視為取消。",
+    ),
+    'email_waiting_line_notice_title' => array(
+        'en'    => 'After arrival',
+        'ja'    => '到着後',
+        'ko'    => '도착 후',
+        'zh-CN' => '到店后',
+        'zh-TW' => '到店後',
+    ),
+    'email_waiting_line_notice_body' => array(
+        'en'    => "Please wait in the waiting line (red line).\nStaff will guide you. Seating time is 1 hour.",
+        'ja'    => "waiting line（赤いライン）でお待ちください。\nスタッフがご案内します。\nお席は1時間制です。",
+        'ko'    => "waiting line (red line)에서 기다려 주세요.\n직원이 안내해 드립니다. 이용 시간은 1시간입니다.",
+        'zh-CN' => "请在 waiting line (red line) 等候。\n工作人员会为您带位。用餐时间为1小时。",
+        'zh-TW' => "請在 waiting line (red line) 等候。\n工作人員會為您帶位。用餐時間為1小時。",
+    ),
 ) );
 
 /**
