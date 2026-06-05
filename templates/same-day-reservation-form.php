@@ -18,6 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
         </select>
     </div>
 
+    <div id="kkpay-same-day-fields" class="kkpay-same-day-fields" hidden>
     <div class="kkpay-field">
         <label class="kkpay-same-day-check-row">
             <input type="checkbox" id="kkpay-same-day-agree-first" />
@@ -71,6 +72,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     <button type="button" id="kkpay-same-day-submit" class="kkpay-btn kkpay-btn-primary">
         <span id="kkpay-same-day-lbl-submit">Reserve</span>
     </button>
+    </div>
 
     <div id="kkpay-same-day-message" class="kkpay-message" style="display:none;" aria-live="polite"></div>
 </div>

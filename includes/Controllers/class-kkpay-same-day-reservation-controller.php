@@ -14,28 +14,6 @@ class KKPAY_Same_Day_Reservation_Controller {
         wp_send_json_success( KKPAY_Same_Day_Reservation_Service::get_status() );
     }
 
-    public static function ajax_start() {
-        check_ajax_referer( 'kkpay_nonce', 'nonce' );
-        $lang = self::request_lang();
-        if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( array( 'message' => kkpay_msg( 'server_error', $lang ) ) );
-            return;
-        }
-
-        wp_send_json_success( KKPAY_Same_Day_Reservation_Service::start_accepting() );
-    }
-
-    public static function ajax_stop() {
-        check_ajax_referer( 'kkpay_nonce', 'nonce' );
-        $lang = self::request_lang();
-        if ( ! current_user_can( 'manage_options' ) ) {
-            wp_send_json_error( array( 'message' => kkpay_msg( 'server_error', $lang ) ) );
-            return;
-        }
-
-        wp_send_json_success( KKPAY_Same_Day_Reservation_Service::stop_accepting() );
-    }
-
     public static function ajax_available_slots() {
         check_ajax_referer( 'kkpay_nonce', 'nonce' );
 

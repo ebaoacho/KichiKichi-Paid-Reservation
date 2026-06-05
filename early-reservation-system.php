@@ -25,6 +25,14 @@ define( 'KKPAY_MAX_PEOPLE',         4 );
 define( 'KKPAY_HOLD_MINUTES',       5 );
 define( 'KKPAY_ACCEPT_DAYS_BEFORE', 3 );
 define( 'KKPAY_ACCEPT_HOUR_JST',    13 );
+define( 'KKPAY_SAME_DAY_LUNCH_START_HOUR', 9 );
+define( 'KKPAY_SAME_DAY_LUNCH_START_MINUTE', 30 );
+define( 'KKPAY_SAME_DAY_LUNCH_END_HOUR', 12 );
+define( 'KKPAY_SAME_DAY_LUNCH_END_MINUTE', 0 );
+define( 'KKPAY_SAME_DAY_DINNER_START_HOUR', 13 );
+define( 'KKPAY_SAME_DAY_DINNER_START_MINUTE', 30 );
+define( 'KKPAY_SAME_DAY_DINNER_END_HOUR', 16 );
+define( 'KKPAY_SAME_DAY_DINNER_END_MINUTE', 0 );
 
 define( 'KKPAY_PREMIUM_AMOUNT',   32 );
 define( 'KKPAY_PREMIUM_CURRENCY', 'usd' );
@@ -452,8 +460,6 @@ add_action( 'wp_ajax_kkpay_premium_issue_payment_link',   array( 'KKPAY_Premium_
 add_action( 'wp_ajax_kkpay_premium_schedule_reservation', array( 'KKPAY_Premium_Reservation_Controller', 'ajax_schedule_reservation' ) );
 add_action( 'wp_ajax_kkpay_premium_issue_cancel_link',    array( 'KKPAY_Premium_Reservation_Controller', 'ajax_issue_cancel_link' ) );
 add_action( 'wp_ajax_kkpay_premium_export_csv',           array( 'KKPAY_Premium_Reservation_Controller', 'ajax_export_csv' ) );
-add_action( 'wp_ajax_kkpay_same_day_start',               array( 'KKPAY_Same_Day_Reservation_Controller', 'ajax_start' ) );
-add_action( 'wp_ajax_kkpay_same_day_stop',                array( 'KKPAY_Same_Day_Reservation_Controller', 'ajax_stop' ) );
 
 // Stripe Webhook（REST API）
 add_action( 'rest_api_init', function () {
