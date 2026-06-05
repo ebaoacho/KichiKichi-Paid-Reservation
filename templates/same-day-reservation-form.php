@@ -8,7 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     <div class="kkpay-same-day-status" id="kkpay-same-day-status" aria-live="polite"></div>
 
     <div class="kkpay-field">
-        <label class="kkpay-label" for="kkpay-same-day-language">Language / 言語 / 언어 / 语言 / 語言</label>
+        <label class="kkpay-label" for="kkpay-same-day-language">Language / 日本語 / 한국어 / 简体中文 / 繁體中文</label>
         <select id="kkpay-same-day-language" class="kkpay-select">
             <option value="en">English</option>
             <option value="ja">日本語</option>

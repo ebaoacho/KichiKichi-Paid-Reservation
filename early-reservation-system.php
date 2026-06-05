@@ -460,8 +460,6 @@ add_action( 'wp_ajax_kkpay_premium_issue_payment_link',   array( 'KKPAY_Premium_
 add_action( 'wp_ajax_kkpay_premium_schedule_reservation', array( 'KKPAY_Premium_Reservation_Controller', 'ajax_schedule_reservation' ) );
 add_action( 'wp_ajax_kkpay_premium_issue_cancel_link',    array( 'KKPAY_Premium_Reservation_Controller', 'ajax_issue_cancel_link' ) );
 add_action( 'wp_ajax_kkpay_premium_export_csv',           array( 'KKPAY_Premium_Reservation_Controller', 'ajax_export_csv' ) );
-add_action( 'wp_ajax_kkpay_same_day_start',               array( 'KKPAY_Same_Day_Reservation_Controller', 'ajax_start' ) );
-add_action( 'wp_ajax_kkpay_same_day_stop',                array( 'KKPAY_Same_Day_Reservation_Controller', 'ajax_stop' ) );
 
 // Stripe Webhook（REST API）
 add_action( 'rest_api_init', function () {

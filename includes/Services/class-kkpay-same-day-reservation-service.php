@@ -8,47 +8,24 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class KKPAY_Same_Day_Reservation_Service {
 
-    const START_OPTION = 'kkpay_same_day_accepting_started_at';
-    const ACCEPT_SECONDS = 10800;
-
     public static function get_status() {
         $tz      = new DateTimeZone( 'Asia/Tokyo' );
         $now     = new DateTimeImmutable( 'now', $tz );
-        $started = self::started_at();
         $allowed_slots = self::allowed_slot_keys_for_time( $now );
         $open_slots = ! empty( $allowed_slots )
             ? self::current_open_slot_keys( $now->format( 'Y-m-d' ), $now )
             : array();
         $all_full = ! empty( $open_slots ) && ! self::has_any_remaining_capacity( $now->format( 'Y-m-d' ), $open_slots );
-        $accepting = $started !== null
-            && $now < $started->modify( '+' . self::ACCEPT_SECONDS . ' seconds' )
-            && ! empty( $open_slots )
+        $accepting = ! empty( $open_slots )
             && ! $all_full;
 
         return array(
             'accepting'     => $accepting,
-            'started_at'    => $started ? $started->format( 'Y-m-d H:i:s' ) : null,
-            'expires_at'    => $started ? $started->modify( '+' . self::ACCEPT_SECONDS . ' seconds' )->format( 'Y-m-d H:i:s' ) : null,
             'current_date'  => $now->format( 'Y-m-d' ),
             'allowed_slots' => $allowed_slots,
             'open_slots'    => $open_slots,
             'all_full'      => $all_full,
         );
-    }
-
-    public static function start_accepting() {
-        $tz  = new DateTimeZone( 'Asia/Tokyo' );
-        $now = new DateTimeImmutable( 'now', $tz );
-
-        update_option( self::START_OPTION, $now->format( 'Y-m-d H:i:s' ) );
-
-        return self::get_status();
-    }
-
-    public static function stop_accepting() {
-        delete_option( self::START_OPTION );
-
-        return self::get_status();
     }
 
     public static function get_available_slots( $people, $seating_preference, $lang = 'en' ) {
@@ -265,12 +242,7 @@ class KKPAY_Same_Day_Reservation_Service {
     }
 
     private static function is_accepting_window_open( DateTimeImmutable $now ) {
-        $started = self::started_at();
-        if ( ! $started || $now >= $started->modify( '+' . self::ACCEPT_SECONDS . ' seconds' ) ) {
-            return false;
-        }
-
-        return true;
+        return ! empty( self::allowed_slot_keys_for_time( $now ) );
     }
 
     private static function current_open_slot_keys( $date, DateTimeImmutable $now ) {
@@ -322,19 +294,6 @@ class KKPAY_Same_Day_Reservation_Service {
         }
 
         return false;
-    }
-
-    private static function started_at() {
-        $value = get_option( self::START_OPTION );
-        if ( ! $value ) {
-            return null;
-        }
-
-        try {
-            return new DateTimeImmutable( $value, new DateTimeZone( 'Asia/Tokyo' ) );
-        } catch ( Exception $e ) {
-            return null;
-        }
     }
 
     private static function today() {

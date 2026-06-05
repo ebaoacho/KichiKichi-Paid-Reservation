@@ -198,6 +198,9 @@
     }
 
     function setFormVisible(visible) {
+        if (!$fields.length) {
+            return;
+        }
         $fields.prop('hidden', !visible);
     }
 
@@ -254,8 +257,8 @@
     }
 
     function refreshStatus() {
-        setStatus(t('statusLoading'), 'is-loading');
         setFormVisible(false);
+        setStatus(t('statusLoading'), 'is-loading');
         return $.post(kkpay_same_day.ajax_url, {
             action: 'kkpay_same_day_status',
             nonce: kkpay_same_day.nonce,
