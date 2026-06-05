@@ -18,6 +18,15 @@ $payment_status_labels = array(
     'paid'     => '入金済み',
     'refunded' => '返金済み',
 );
+$reservation_type_labels = array(
+    'premium'         => 'プレミアム予約',
+    'special_premium' => 'スペシャルプレミアム予約',
+    'same_day'        => '当日予約',
+);
+$seating_preference_labels = array(
+    'Bar'   => 'カウンター',
+    'Table' => 'テーブル',
+);
 ?>
 
 <form method="get" style="margin:20px 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -102,8 +111,8 @@ $payment_status_labels = array(
                         ?>
                         <tr>
                             <td><?php echo (int) $row->id; ?></td>
-                            <td><?php echo esc_html( $row->reservation_type ?? '' ); ?></td>
-                            <td><?php echo esc_html( $row->seating_preference ?? '' ); ?></td>
+                            <td><?php echo esc_html( $reservation_type_labels[ $row->reservation_type ?? '' ] ?? ( $row->reservation_type ?? '―' ) ); ?></td>
+                            <td><?php echo esc_html( $seating_preference_labels[ $row->seating_preference ?? '' ] ?? ( $row->seating_preference ?? '―' ) ); ?></td>
                             <td><?php echo esc_html( $row->name ); ?></td>
                             <td><?php echo esc_html( $row->email ); ?></td>
                             <td><?php echo (int) $row->number_of_people; ?>席</td>
