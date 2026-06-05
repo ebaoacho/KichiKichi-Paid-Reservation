@@ -201,7 +201,7 @@ Stripe 決済は、ブラウザの確定処理と Webhook の両方から同じ 
 - 予約作成・日時変更・キャンセル時の `kkpay_reservation_events` への監査ログ記録
 - Step 3 確認スクリプト
 - 当日予約 API の Service / Validator / Controller 追加
-- 当日予約の受付開始・停止、空き枠取得、作成、確認、キャンセル API 追加
+- 当日予約の自動受付状態取得、空き枠取得、作成、確認、キャンセル API 追加
 - 当日予約作成・キャンセル時の `kkpay_reservation_events` への監査ログ記録
 - Step 4 確認スクリプト
 - 当日予約確認・キャンセルページ用 shortcode `[kkpay_same_day_confirmation]` 追加

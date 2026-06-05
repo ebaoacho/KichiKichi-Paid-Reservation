@@ -58,12 +58,26 @@ foreach ( array( 'kkpay_reservations', 'kkpay_slot_capacities', 'kkpay_reservati
 }
 
 kkpay_step4_check( class_exists( 'KKPAY_Same_Day_Reservation_Service' ), 'KKPAY_Same_Day_Reservation_Service is loaded' );
-foreach ( array( 'get_status', 'start_accepting', 'stop_accepting', 'get_available_slots', 'create', 'find_by_email', 'cancel', 'build_response' ) as $method ) {
+foreach ( array( 'get_status', 'get_available_slots', 'create', 'find_by_email', 'cancel', 'build_response' ) as $method ) {
     kkpay_step4_check(
         method_exists( 'KKPAY_Same_Day_Reservation_Service', $method ),
         "same-day service method exists: {$method}"
     );
 }
+foreach ( array(
+    'KKPAY_SAME_DAY_LUNCH_START_HOUR',
+    'KKPAY_SAME_DAY_LUNCH_START_MINUTE',
+    'KKPAY_SAME_DAY_LUNCH_END_HOUR',
+    'KKPAY_SAME_DAY_LUNCH_END_MINUTE',
+    'KKPAY_SAME_DAY_DINNER_START_HOUR',
+    'KKPAY_SAME_DAY_DINNER_START_MINUTE',
+    'KKPAY_SAME_DAY_DINNER_END_HOUR',
+    'KKPAY_SAME_DAY_DINNER_END_MINUTE',
+) as $constant ) {
+    kkpay_step4_check( defined( $constant ), "same-day automatic accepting time constant is defined: {$constant}" );
+}
+$same_day_service = file_get_contents( $root . '/includes/Services/class-kkpay-same-day-reservation-service.php' );
+kkpay_step4_check( strpos( $same_day_service, 'allowed_slot_keys_for_time' ) !== false, 'same-day service uses server-time slot window' );
 
 kkpay_step4_check( class_exists( 'KKPAY_Same_Day_Reservation_Validator' ), 'KKPAY_Same_Day_Reservation_Validator is loaded' );
 foreach ( array( 'validate_available_slots', 'validate_create', 'validate_email_lookup' ) as $method ) {
@@ -77,7 +91,7 @@ $same_day_validator = file_get_contents( $root . '/includes/Validators/class-kkp
 kkpay_step4_check( strpos( $same_day_validator, 'max_people_for_seat' ) !== false, 'same-day validator applies seat-specific people limit' );
 
 kkpay_step4_check( class_exists( 'KKPAY_Same_Day_Reservation_Controller' ), 'KKPAY_Same_Day_Reservation_Controller is loaded' );
-foreach ( array( 'ajax_status', 'ajax_start', 'ajax_stop', 'ajax_available_slots', 'ajax_create', 'ajax_find', 'ajax_cancel' ) as $method ) {
+foreach ( array( 'ajax_status', 'ajax_available_slots', 'ajax_create', 'ajax_find', 'ajax_cancel' ) as $method ) {
     kkpay_step4_check(
         method_exists( 'KKPAY_Same_Day_Reservation_Controller', $method ),
         "same-day controller method exists: {$method}"
@@ -101,10 +115,6 @@ foreach ( array(
 ) as $action ) {
     kkpay_step4_check( has_action( 'wp_ajax_' . $action ), "AJAX action registered: wp_ajax_{$action}" );
     kkpay_step4_check( has_action( 'wp_ajax_nopriv_' . $action ), "AJAX action registered: wp_ajax_nopriv_{$action}" );
-}
-
-foreach ( array( 'kkpay_same_day_start', 'kkpay_same_day_stop' ) as $action ) {
-    kkpay_step4_check( has_action( 'wp_ajax_' . $action ), "admin AJAX action registered: wp_ajax_{$action}" );
 }
 
 echo "\n";

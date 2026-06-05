@@ -161,6 +161,7 @@
 
     var $language = $('#kkpay-same-day-language');
     var $status = $('#kkpay-same-day-status');
+    var $fields = $('#kkpay-same-day-fields');
     var $people = $('#kkpay-same-day-people');
     var $seat = $('#kkpay-same-day-seat');
     var $slots = $('#kkpay-same-day-slot-list');
@@ -194,6 +195,13 @@
 
     function setStatus(text, type) {
         $status.text(text).removeClass('is-open is-closed is-loading').addClass(type);
+    }
+
+    function setFormVisible(visible) {
+        if (!$fields.length) {
+            return;
+        }
+        $fields.prop('hidden', !visible);
     }
 
     function updateLabels() {
@@ -249,6 +257,7 @@
     }
 
     function refreshStatus() {
+        setFormVisible(false);
         setStatus(t('statusLoading'), 'is-loading');
         return $.post(kkpay_same_day.ajax_url, {
             action: 'kkpay_same_day_status',
@@ -256,6 +265,7 @@
         }).done(function (response) {
             if (!response || !response.success) {
                 isAccepting = false;
+                setFormVisible(false);
                 setStatus(msg('server_error'), 'is-closed');
                 return;
             }
@@ -263,6 +273,7 @@
                 isAccepting = true;
                 isAllFull = false;
                 currentDate = response.data.current_date || '';
+                setFormVisible(true);
                 setStatus(t('accepting'), 'is-open');
                 refreshSlots();
                 return;
@@ -270,11 +281,13 @@
             isAccepting = false;
             isAllFull = !!(response.data && response.data.all_full);
             currentDate = response.data && response.data.current_date ? response.data.current_date : '';
+            setFormVisible(false);
             setStatus(isAllFull ? t('allFull') : t('notAccepting'), 'is-closed');
             $slots.empty();
             $submit.prop('disabled', true);
         }).fail(function () {
             isAccepting = false;
+            setFormVisible(false);
             setStatus(msg('server_error'), 'is-closed');
         });
     }
