@@ -281,15 +281,15 @@ class KKPAY_Same_Day_Reservation_Service {
     }
 
     private static function allowed_slot_keys_for_time( DateTimeImmutable $now ) {
-        $lunch_start  = $now->setTime( 9, 30, 0 );
-        $lunch_end    = $now->setTime( 12, 0, 0 );
-        $dinner_start = $now->setTime( 13, 30, 0 );
-        $dinner_end   = $now->setTime( 16, 0, 0 );
+        $lunch_start  = $now->setTime( KKPAY_SAME_DAY_LUNCH_START_HOUR, KKPAY_SAME_DAY_LUNCH_START_MINUTE, 0 );
+        $lunch_end    = $now->setTime( KKPAY_SAME_DAY_LUNCH_END_HOUR, KKPAY_SAME_DAY_LUNCH_END_MINUTE, 59 );
+        $dinner_start = $now->setTime( KKPAY_SAME_DAY_DINNER_START_HOUR, KKPAY_SAME_DAY_DINNER_START_MINUTE, 0 );
+        $dinner_end   = $now->setTime( KKPAY_SAME_DAY_DINNER_END_HOUR, KKPAY_SAME_DAY_DINNER_END_MINUTE, 59 );
 
-        if ( $now >= $lunch_start && $now < $lunch_end ) {
+        if ( $now >= $lunch_start && $now <= $lunch_end ) {
             return array( 'slot_1', 'slot_2' );
         }
-        if ( $now >= $dinner_start && $now < $dinner_end ) {
+        if ( $now >= $dinner_start && $now <= $dinner_end ) {
             return array( 'slot_3', 'slot_4', 'slot_5', 'slot_6' );
         }
 
