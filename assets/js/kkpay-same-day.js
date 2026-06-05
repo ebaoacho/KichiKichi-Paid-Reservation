@@ -161,13 +161,13 @@
 
     var $language = $('#kkpay-same-day-language');
     var $status = $('#kkpay-same-day-status');
+    var $fields = $('#kkpay-same-day-fields');
     var $people = $('#kkpay-same-day-people');
     var $seat = $('#kkpay-same-day-seat');
     var $slots = $('#kkpay-same-day-slot-list');
     var $summary = $('#kkpay-same-day-summary');
     var $message = $('#kkpay-same-day-message');
     var $submit = $('#kkpay-same-day-submit');
-    var $fields = $('#kkpay-same-day-fields');
 
     function t(key) {
         return (LABELS[lang] && LABELS[lang][key]) ? LABELS[lang][key] : (LABELS.en[key] || key);

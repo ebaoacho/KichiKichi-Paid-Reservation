@@ -36,11 +36,11 @@
   → false なら 'not_yet_open' エラーを返す
         │
         ▼
-[KKPAY_Calendar_Service::get_available_slot_keys('2025-06-01')]
+[KKPAY_Calendar_Service::get_bookable_slot_keys('2025-06-01')]
   → KKPAY_Calendar_Repository::find_by_date('2025-06-01')
-  → { lunch:1, dinner:1 }
-  ├─ プレミアムモード: calendar のスロットと accepted_dates の enabled=1 スロットの積集合
-  └─ 通常モード: calendar のスロットをそのまま使用
+  → { lunch:1, dinner:1, premium:1 }
+  ├─ premium=0 または営業枠なしなら空配列
+  └─ accepted_dates がある場合は enabled=1 スロットとの積集合
   → ['slot_1','slot_2','slot_3','slot_4','slot_5','slot_6']
         │
         ▼
@@ -84,9 +84,9 @@
 [KKPAY_Calendar_Service::is_accepting_reservations('2025-06-01')]
   ├─ プレミアムモード: is_date_enabled() で enabled=1 レコードの存在確認
   └─ 通常モード: 3日前13:00 JST 以降かどうかを時刻比較
-[KKPAY_Calendar_Service::get_available_slot_keys('2025-06-01')]
-  ├─ プレミアムモード: accepted_dates の enabled=1 スロットに絞り込み
-  └─ 通常モード: calendar テーブルのスロットをそのまま使用
+[KKPAY_Calendar_Service::get_bookable_slot_keys('2025-06-01')]
+  ├─ 営業日かつプレミアム予約可能日であることを確認
+  └─ accepted_dates がある場合は enabled=1 スロットに絞り込み
   → slot_3 が有効リストに含まれることを確認
         │
         ▼

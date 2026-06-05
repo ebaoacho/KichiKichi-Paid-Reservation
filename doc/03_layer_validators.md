@@ -125,7 +125,7 @@ class KKPAY_{機能名}_Validator {
 | `language` | 許可リスト照合 | `en/ja/ko/zh-CN/zh-TW` のいずれか（デフォルト: `en`） |
 | `reservation_date` | `sanitize_text_field` | 空でないこと |
 | `time_slot` | `sanitize_text_field` | `KKPAY_SLOT_TYPES` のキーに存在すること |
-| `number_of_people` | `intval` | 1 以上 `KKPAY_MAX_PEOPLE`（4）以下 |
+| `number_of_people` | `intval` | 1 以上。上限は `KKPAY_Reservation_Service::get_remaining_capacity()` で動的に判定 |
 | `name` | `sanitize_text_field` | 空でないこと |
 | `email` | `sanitize_email` | 空でなく、`is_email()` が true |
 

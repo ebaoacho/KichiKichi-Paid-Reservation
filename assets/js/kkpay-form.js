@@ -182,7 +182,7 @@
     }
 
     function showMessage($el, text, type) {
-        $el.text(text).removeClass('success error').addClass(type).show();
+        $el.removeAttr('data-message-key').text(text).removeClass('success error').addClass(type).show();
     }
 
     // ================================================================
@@ -211,8 +211,8 @@
         $langSel.on('change', function () {
             lang = $(this).val();
             updateLabels();
-            renderDatePicker();
             resetFromSlot();
+            renderDatePicker();
         });
 
         function updateLabels() {
@@ -234,6 +234,7 @@
             var now_utc   = new Date();
             var now_jst   = new Date(now_utc.getTime() + (now_utc.getTimezoneOffset() + tz_offset) * 60000);
             var days      = kkpay.date_picker_days || kkpay.accept_days_before;
+            var bookableCount = 0;
 
             for (var i = 0; i <= days; i++) {
                 var d = new Date(now_jst);
@@ -253,6 +254,9 @@
                     ? !!(kkpay.accepted_dates && kkpay.accepted_dates[dateStr])
                     : now_jst >= openFrom;
                 var isBookable = !!(kkpay.bookable_dates && kkpay.bookable_dates[dateStr]);
+                if (isBookable) {
+                    bookableCount++;
+                }
 
                 var $btn = $('<button type="button" class="kkpay-date-btn"></button>');
                 $btn.attr('data-date', dateStr);
@@ -282,6 +286,14 @@
                 });
 
                 $dateGrid.append($btn);
+            }
+
+            if (bookableCount === 0) {
+                resetFromSlot();
+                showMessage($msg, msg('premium_no_available_dates'), 'error');
+                $msg.attr('data-message-key', 'premium_no_available_dates');
+            } else if ($msg.attr('data-message-key') === 'premium_no_available_dates') {
+                $msg.hide().removeAttr('data-message-key');
             }
         }
 

@@ -94,9 +94,9 @@ class KKPAY_Hold_Controller {
             wp_send_json_error( array( 'message' => kkpay_msg( 'date_unavailable', $lang ) ) );
         }
 
-        $valid_slots = KKPAY_Calendar_Service::get_available_slot_keys( $data['date'] );
+        $valid_slots = KKPAY_Calendar_Service::get_bookable_slot_keys( $data['date'] );
         if ( empty( $valid_slots ) ) {
-            wp_send_json_error( array( 'message' => kkpay_msg( 'closed', $lang ) ) );
+            wp_send_json_error( array( 'message' => kkpay_msg( 'date_unavailable', $lang ) ) );
         }
         if ( ! in_array( $data['slot'], $valid_slots, true ) ) {
             wp_send_json_error( array( 'message' => kkpay_msg( 'date_unavailable', $lang ) ) );

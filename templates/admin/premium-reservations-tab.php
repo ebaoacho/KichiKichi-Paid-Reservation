@@ -82,8 +82,13 @@ $schedule_max    = KKPAY_Premium_Reservation_Validator::one_month_later( $today 
                 $payment_status_label = $payment_status_labels[ $row->payment_status ] ?? $row->payment_status;
                 $slot_label   = KKPAY_SLOT_LABELS['ja'][ $row->time_slot ] ?? ( $row->time_slot ?? '―' );
                 ?>
-                <tr id="kkpay-premium-row-<?php echo (int) $row->id; ?>">
-                    <td><?php echo esc_html( $status_label ); ?></td>
+                <tr id="kkpay-premium-row-<?php echo (int) $row->id; ?>"<?php if ( $row->status === 'paid' ) : ?> style="background:#fff3cd;"<?php endif; ?>>
+                    <td>
+                        <?php echo esc_html( $status_label ); ?>
+                        <?php if ( $row->status === 'paid' ) : ?>
+                            <span style="display:inline-block;margin-left:6px;padding:2px 6px;background:#e67e22;color:#fff;border-radius:3px;font-size:11px;font-weight:bold;">日時未確定</span>
+                        <?php endif; ?>
+                    </td>
                     <td><?php echo esc_html( $row->name ?? '―' ); ?></td>
                     <td><?php echo esc_html( $row->email ?? '―' ); ?></td>
                     <td><?php echo esc_html( $row->language ); ?></td>

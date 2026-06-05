@@ -21,18 +21,18 @@ define( 'KKPAY_CURRENCY',           'usd' );
 define( 'KKPAY_STRIPE_AMOUNT_MULTIPLIER', 100 );
 define( 'KKPAY_MAX_CAPACITY',       8 );
 define( 'KKPAY_TABLE_MAX_CAPACITY', 6 );
-define( 'KKPAY_MAX_PEOPLE',         4 );
+define( 'KKPAY_MAX_PEOPLE',         8 );
 define( 'KKPAY_HOLD_MINUTES',       5 );
 define( 'KKPAY_ACCEPT_DAYS_BEFORE', 3 );
 define( 'KKPAY_ACCEPT_HOUR_JST',    13 );
 define( 'KKPAY_SAME_DAY_LUNCH_START_HOUR', 9 );
 define( 'KKPAY_SAME_DAY_LUNCH_START_MINUTE', 30 );
-define( 'KKPAY_SAME_DAY_LUNCH_END_HOUR', 12 );
-define( 'KKPAY_SAME_DAY_LUNCH_END_MINUTE', 0 );
+define( 'KKPAY_SAME_DAY_LUNCH_END_HOUR', 11 );
+define( 'KKPAY_SAME_DAY_LUNCH_END_MINUTE', 59 );
 define( 'KKPAY_SAME_DAY_DINNER_START_HOUR', 13 );
 define( 'KKPAY_SAME_DAY_DINNER_START_MINUTE', 30 );
-define( 'KKPAY_SAME_DAY_DINNER_END_HOUR', 16 );
-define( 'KKPAY_SAME_DAY_DINNER_END_MINUTE', 0 );
+define( 'KKPAY_SAME_DAY_DINNER_END_HOUR', 15 );
+define( 'KKPAY_SAME_DAY_DINNER_END_MINUTE', 59 );
 
 define( 'KKPAY_PREMIUM_AMOUNT',   32 );
 define( 'KKPAY_PREMIUM_CURRENCY', 'usd' );
@@ -304,7 +304,7 @@ function kkpay_get_bookable_dates_map() {
             continue;
         }
 
-        $slot_keys = KKPAY_Calendar_Service::get_available_slot_keys( $date );
+        $slot_keys = KKPAY_Calendar_Service::get_bookable_slot_keys( $date );
         if ( empty( $slot_keys ) ) {
             continue;
         }
