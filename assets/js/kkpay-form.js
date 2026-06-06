@@ -65,7 +65,7 @@
             total_label: '合計',
             pay_action: '決済する',
             product_label: '商品',
-            seat_price_notice: '1席あたり {price}（グッズ付き）',
+            seat_price_notice: '1席あたり {price}',
             remaining: '席残り',
             fullyBooked: '満席',
             notYetOpen: '受付前',
