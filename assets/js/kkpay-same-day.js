@@ -447,6 +447,15 @@
         }
         showMessage(t('success'), 'success');
         $wrap.find('input, select, button').prop('disabled', true);
+
+        var mypageUrl = kkpay_same_day.mypage_url || '';
+        var email = $('#kkpay-same-day-email').val().trim();
+
+        if (mypageUrl) {
+            window.location.href = mypageUrl
+                + '?email=' + encodeURIComponent(email)
+                + '&lang=' + encodeURIComponent(lang);
+        }
     }
 
     $language.on('change', function () {

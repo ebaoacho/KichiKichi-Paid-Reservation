@@ -419,6 +419,7 @@ function kkpay_enqueue_same_day_assets() {
         'messages'         => KKPAY_MESSAGES,
         'max_people'       => KKPAY_MAX_CAPACITY,
         'table_max_people' => KKPAY_TABLE_MAX_CAPACITY,
+        'mypage_url'       => kkpay_find_shortcode_page_url( 'kkpay_my_reservation' ),
     ) );
 }
 
