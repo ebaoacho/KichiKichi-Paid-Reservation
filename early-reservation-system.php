@@ -384,6 +384,7 @@ function kkpay_enqueue_premium_payment_assets() {
         'unit_amount'=> KKPAY_PREMIUM_AMOUNT,
         'currency'   => KKPAY_PREMIUM_CURRENCY,
         'max_people' => KKPAY_PREMIUM_MAX_PEOPLE,
+        'mypage_url' => kkpay_find_shortcode_page_url( 'kkpay_my_reservation' ),
     ) );
 }
 

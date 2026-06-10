@@ -169,6 +169,14 @@
             if ( res.success ) {
                 $( '#kkpay-premium-form-section' ).hide();
                 $( '#kkpay-premium-success-section' ).show();
+                var myPageUrl = kkpay_premium.mypage_url || '';
+                var lang = $( '#kkpay-premium-lang' ).val() || 'en';
+                var email = $.trim( $( '#kkpay-premium-email' ).val() );
+                if ( myPageUrl ) {
+                    window.location.href = myPageUrl
+                        + '?email=' + encodeURIComponent( email )
+                        + '&lang=' + encodeURIComponent( lang );
+                }
             } else {
                 showMessage( res.data.message || 'Confirmation failed.', true );
                 setLoading( false );
