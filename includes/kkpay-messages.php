@@ -102,6 +102,27 @@ define( 'KKPAY_MESSAGES', array(
         'zh-CN' => '目前没有可预约的高级预约名额。',
         'zh-TW' => '目前沒有可預約的高級預約名額。',
     ),
+    'no_available_dates' => array(
+        'en'    => 'There are currently no selectable dates. Gray dates are not system errors; reservations may not be open yet, the restaurant may be closed, or seats may be full.',
+        'ja'    => '現在、選択できる日付がありません。グレーの日付はシステムエラーではなく、受付開始前・休業日・満席のいずれかです。',
+        'ko'    => '현재 선택할 수 있는 날짜가 없습니다. 회색 날짜는 시스템 오류가 아니라 예약 시작 전, 휴무일 또는 만석 상태입니다.',
+        'zh-CN' => '目前没有可选择的日期。灰色日期不是系统错误，可能是尚未开放预约、休息日或已满席。',
+        'zh-TW' => '目前沒有可選擇的日期。灰色日期不是系統錯誤，可能是尚未開放預約、休息日或已滿席。',
+    ),
+    'date_picker_help' => array(
+        'en'    => 'Available dates are active. Gray dates are not selectable because reservations have not opened yet, the restaurant is closed, or seats are full.',
+        'ja'    => '選択できる日付のみ押せます。グレーの日付は、受付開始前・休業日・満席のいずれかです。',
+        'ko'    => '선택 가능한 날짜만 누를 수 있습니다. 회색 날짜는 예약 시작 전, 휴무일 또는 만석 상태입니다.',
+        'zh-CN' => '只有可预约的日期可以选择。灰色日期表示尚未开放预约、休息日或已满席。',
+        'zh-TW' => '只有可預約的日期可以選擇。灰色日期表示尚未開放預約、休息日或已滿席。',
+    ),
+    'date_unavailable_label' => array(
+        'en'    => 'Unavailable',
+        'ja'    => '選択不可',
+        'ko'    => '선택 불가',
+        'zh-CN' => '不可选择',
+        'zh-TW' => '不可選擇',
+    ),
     'duplicate_reservation' => array(
         'en'    => 'A reservation already exists for this email, date, and time slot.',
         'ja'    => 'このメール・日付・スロットの予約は既に存在します。',

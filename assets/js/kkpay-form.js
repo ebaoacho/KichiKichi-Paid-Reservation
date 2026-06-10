@@ -217,6 +217,7 @@
 
         function updateLabels() {
             $('#lbl-date').text(t('date'));
+            $('#kkpay-date-help').text(msg('date_picker_help'));
             $('#lbl-slot').text(t('slot'));
             $('#lbl-people').text(t('people'));
             $('#lbl-name').text(t('name'));
@@ -230,6 +231,12 @@
         // 日付ピッカーをレンダリング
         function renderDatePicker() {
             $dateGrid.empty();
+            var $dateHelp = $('#kkpay-date-help');
+            if (!$dateHelp.length) {
+                $dateHelp = $('<p id="kkpay-date-help" class="kkpay-date-help"></p>');
+                $dateGrid.before($dateHelp);
+            }
+            $dateHelp.text(msg('date_picker_help'));
             var tz_offset = 9 * 60; // JST offset in minutes
             var now_utc   = new Date();
             var now_jst   = new Date(now_utc.getTime() + (now_utc.getTimezoneOffset() + tz_offset) * 60000);
@@ -262,14 +269,22 @@
                 $btn.attr('data-date', dateStr);
 
                 var weekday = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()];
-                $btn.html(mm + '/' + dd + '<br><small>' + weekday + '</small>');
+                var disabledReason = '';
+                $btn.append($('<span class="kkpay-date-main"></span>').text(mm + '/' + dd));
+                $btn.append($('<small></small>').text(weekday));
 
                 if (!isOpen) {
+                    disabledReason = t('notYetOpen');
                     $btn.addClass('not-open').prop('disabled', true)
-                        .attr('title', t('notYetOpen'));
+                        .attr('title', disabledReason);
                 } else if (!isBookable) {
+                    disabledReason = msg('date_unavailable_label');
                     $btn.addClass('not-open').prop('disabled', true)
-                        .attr('title', t('fullyBooked'));
+                        .attr('title', disabledReason);
+                }
+
+                if (disabledReason) {
+                    $btn.append($('<span class="kkpay-date-reason"></span>').text(disabledReason));
                 }
 
                 if (selectedDate === dateStr) {
@@ -290,9 +305,9 @@
 
             if (bookableCount === 0) {
                 resetFromSlot();
-                showMessage($msg, msg('premium_no_available_dates'), 'error');
-                $msg.attr('data-message-key', 'premium_no_available_dates');
-            } else if ($msg.attr('data-message-key') === 'premium_no_available_dates') {
+                showMessage($msg, msg('no_available_dates'), 'error');
+                $msg.attr('data-message-key', 'no_available_dates');
+            } else if ($msg.attr('data-message-key') === 'no_available_dates') {
                 $msg.hide().removeAttr('data-message-key');
             }
         }

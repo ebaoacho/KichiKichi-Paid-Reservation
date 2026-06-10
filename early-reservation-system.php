@@ -2,7 +2,7 @@
 /**
  * Plugin Name: キチキチ 決済予約システム
  * Description: 営業カレンダー参照・Stripe決済対応の早期予約プラグイン
- * Version:     1.0.6
+ * Version:     2.0.3
  * Author:      Acho Systems
  */
 

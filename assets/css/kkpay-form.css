@@ -64,7 +64,19 @@
     gap: 8px;
 }
 
+.kkpay-date-help {
+    margin: 0 0 10px;
+    color: var(--kkpay-muted);
+    font-size: 0.88rem;
+    line-height: 1.5;
+}
+
 .kkpay-date-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
     padding: 10px 14px;
     border: 1.5px solid var(--kkpay-border);
     border-radius: var(--kkpay-radius);
@@ -76,6 +88,17 @@
     min-width: 80px;
     text-align: center;
     color: var(--kkpay-text);
+}
+
+.kkpay-date-main {
+    display: block;
+}
+
+.kkpay-date-reason {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.68rem;
+    line-height: 1.2;
 }
 
 .kkpay-date-btn:hover:not(:disabled) {
