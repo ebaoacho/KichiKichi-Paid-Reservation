@@ -57,6 +57,17 @@
     outline: none;
 }
 
+/* 日付ピッカー注釈 */
+.kkpay-date-note {
+    font-size: 0.82rem;
+    color: #888;
+    margin: 0 0 8px;
+}
+
+#lbl-date-note {
+    color: #c0392b;
+}
+
 /* 日付グリッド */
 .kkpay-date-grid {
     display: flex;

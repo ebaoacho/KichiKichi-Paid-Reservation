@@ -42,6 +42,8 @@
             notYetOpen: 'Not Yet Open',
             closed: 'Closed',
             cancel_policy: 'Cancellations are accepted at any time. No refund will be issued.',
+            date_picker_note: 'Only available dates are shown.',
+            slot_picker_note: 'Only available time slots are shown.',
         },
         ja: {
             date: '予約日を選択',
@@ -71,6 +73,8 @@
             notYetOpen: '受付前',
             closed: '定休日',
             cancel_policy: 'キャンセルはいつでも可能ですが、返金はございません。',
+            date_picker_note: '予約可能な日付のみ表示しています。',
+            slot_picker_note: '予約可能な時間枠のみ表示しています。',
         },
         ko: {
             date: '예약 날짜 선택',
@@ -100,6 +104,8 @@
             notYetOpen: '접수 전',
             closed: '휴무',
             cancel_policy: '취소는 언제든지 가능합니다. 단, 환불은 일절 불가합니다.',
+            date_picker_note: '예약 가능한 날짜만 표시됩니다.',
+            slot_picker_note: '예약 가능한 시간대만 표시됩니다.',
         },
         'zh-CN': {
             date: '选择预约日期',
@@ -129,6 +135,8 @@
             notYetOpen: '尚未开放',
             closed: '休息日',
             cancel_policy: '随时可取消，但概不退款。',
+            date_picker_note: '仅显示可预约的日期。',
+            slot_picker_note: '仅显示可预约的时间段。',
         },
         'zh-TW': {
             date: '選擇預約日期',
@@ -158,6 +166,8 @@
             notYetOpen: '尚未開放',
             closed: '休息日',
             cancel_policy: '隨時可取消，但概不退款。',
+            date_picker_note: '僅顯示可預約的日期。',
+            slot_picker_note: '僅顯示可預約的時間段。',
         },
     };
 
@@ -223,14 +233,16 @@
             $('#lbl-email').text(t('email'));
             $('#lbl-email-confirm').text(t('emailConfirm'));
             $('#lbl-submit').text(t('submit'));
+            $('#lbl-date-note').text(t('date_picker_note'));
+            $('#lbl-slot-note').text(t('slot_picker_note'));
             $('#lbl-seat-price').text(t('seat_price_notice').replace('{price}', '$' + kkpay.amount));
             $('#lbl-cancel-policy').text(t('cancel_policy'));
         }
 
-        // 日付ピッカーをレンダリング
+        // 日付ピッカーをレンダリング（予約可能日のみボタン表示）
         function renderDatePicker() {
             $dateGrid.empty();
-            var tz_offset = 9 * 60; // JST offset in minutes
+            var tz_offset = 9 * 60;
             var now_utc   = new Date();
             var now_jst   = new Date(now_utc.getTime() + (now_utc.getTimezoneOffset() + tz_offset) * 60000);
             var days      = kkpay.date_picker_days || kkpay.accept_days_before;
@@ -245,18 +257,11 @@
                 var dd    = ('0' + d.getDate()).slice(-2);
                 var dateStr = yyyy + '-' + mm + '-' + dd;
 
-                // 受付開始判定: 対象日の3日前 13:00 JST 以降
-                var openFrom = new Date(d.getTime());
-                openFrom.setDate(openFrom.getDate() - days);
-                openFrom.setHours(kkpay.accept_hour_jst, 0, 0, 0);
-
-                var isOpen = kkpay.accepted_dates_mode
-                    ? !!(kkpay.accepted_dates && kkpay.accepted_dates[dateStr])
-                    : now_jst >= openFrom;
                 var isBookable = !!(kkpay.bookable_dates && kkpay.bookable_dates[dateStr]);
-                if (isBookable) {
-                    bookableCount++;
+                if (!isBookable) {
+                    continue;
                 }
+                bookableCount++;
 
                 var $btn = $('<button type="button" class="kkpay-date-btn"></button>');
                 $btn.attr('data-date', dateStr);
@@ -264,20 +269,11 @@
                 var weekday = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()];
                 $btn.html(mm + '/' + dd + '<br><small>' + weekday + '</small>');
 
-                if (!isOpen) {
-                    $btn.addClass('not-open').prop('disabled', true)
-                        .attr('title', t('notYetOpen'));
-                } else if (!isBookable) {
-                    $btn.addClass('not-open').prop('disabled', true)
-                        .attr('title', t('fullyBooked'));
-                }
-
                 if (selectedDate === dateStr) {
                     $btn.addClass('selected');
                 }
 
                 $btn.on('click', function () {
-                    if ($(this).prop('disabled')) return;
                     selectedDate = $(this).data('date');
                     $('.kkpay-date-btn').removeClass('selected');
                     $(this).addClass('selected');
@@ -290,9 +286,9 @@
 
             if (bookableCount === 0) {
                 resetFromSlot();
-                showMessage($msg, msg('premium_no_available_dates'), 'error');
-                $msg.attr('data-message-key', 'premium_no_available_dates');
-            } else if ($msg.attr('data-message-key') === 'premium_no_available_dates') {
+                showMessage($msg, msg('no_available_dates'), 'error');
+                $msg.attr('data-message-key', 'no_available_dates');
+            } else if ($msg.attr('data-message-key') === 'no_available_dates') {
                 $msg.hide().removeAttr('data-message-key');
             }
         }
@@ -322,32 +318,34 @@
                     return;
                 }
                 $.each(slots, function (_, slot) {
+                    if (!slot.available) {
+                        return;
+                    }
                     var $item = $('<div class="kkpay-slot-item"></div>');
                     var $label = $('<span class="kkpay-slot-label"></span>').text(slot.label);
                     var $rem   = $('<span class="kkpay-slot-remaining"></span>');
 
-                    if (!slot.available) {
-                        $item.addClass('disabled');
-                        $rem.addClass('low').text(t('fullyBooked'));
-                    } else {
-                        $rem.text(slot.remaining + ' ' + t('remaining'));
-                        if (slot.remaining <= 2) $rem.addClass('low');
-                        $item.attr('data-slot', slot.key);
-                        $item.attr('data-remaining', slot.remaining);
-                        $item.on('click', function () {
-                            $('.kkpay-slot-item').removeClass('selected');
-                            $(this).addClass('selected');
-                            selectedSlot = $(this).data('slot');
-                            selectedSlotRemaining = parseInt($(this).data('remaining'), 10);
-                            if (isNaN(selectedSlotRemaining)) selectedSlotRemaining = 0;
-                            renderPeopleOptions(selectedSlotRemaining);
-                            showGuestInputs();
-                        });
-                    }
+                    $rem.text(slot.remaining + ' ' + t('remaining'));
+                    if (slot.remaining <= 2) $rem.addClass('low');
+                    $item.attr('data-slot', slot.key);
+                    $item.attr('data-remaining', slot.remaining);
+                    $item.on('click', function () {
+                        $('.kkpay-slot-item').removeClass('selected');
+                        $(this).addClass('selected');
+                        selectedSlot = $(this).data('slot');
+                        selectedSlotRemaining = parseInt($(this).data('remaining'), 10);
+                        if (isNaN(selectedSlotRemaining)) selectedSlotRemaining = 0;
+                        renderPeopleOptions(selectedSlotRemaining);
+                        showGuestInputs();
+                    });
 
                     $item.append($label).append($rem);
                     $slotList.append($item);
                 });
+
+                if ($slotList.children().length === 0) {
+                    $slotList.html('<p>' + msg('capacity_exceeded') + '</p>');
+                }
             }).fail(function () {
                 showMessage($msg, msg('server_error'), 'error');
                 $msg.show();
