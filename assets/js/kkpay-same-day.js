@@ -168,6 +168,12 @@
     var $summary = $('#kkpay-same-day-summary');
     var $message = $('#kkpay-same-day-message');
     var $submit = $('#kkpay-same-day-submit');
+    var $blockedGraphic = $('#kkpay-same-day-blocked-graphic');
+    var $blockedImage = $('#kkpay-same-day-blocked-image');
+    var $page = $wrap.closest('.kkpay-customer-page');
+    var $calendarSection = $page.length
+        ? $page.find('.kkpay-customer-page__section--calendar')
+        : $wrap.closest('.kkpay-customer-page__section--form').siblings('.kkpay-customer-page__section--calendar');
 
     function t(key) {
         return (LABELS[lang] && LABELS[lang][key]) ? LABELS[lang][key] : (LABELS.en[key] || key);
@@ -202,6 +208,45 @@
             return;
         }
         $fields.prop('hidden', !visible);
+    }
+
+    function setBlockedGraphic(mode) {
+        var imageUrl = '';
+        var altText = '';
+
+        if (mode === 'full') {
+            imageUrl = kkpay_same_day.full_image_url || '';
+            altText = msg('same_day_full_alt');
+        } else if (mode === 'closed') {
+            imageUrl = kkpay_same_day.close_image_url || '';
+            altText = msg('same_day_closed_alt');
+        }
+
+        if (!imageUrl) {
+            $wrap.removeClass('is-blocked');
+            $page.removeClass('kkpay-customer-page--blocked');
+            $blockedGraphic.prop('hidden', true);
+            $blockedImage.off('error.kkpayBlockedImage load.kkpayBlockedImage').removeAttr('src').attr('alt', '');
+            $calendarSection.show();
+            return;
+        }
+
+        $blockedImage
+            .off('error.kkpayBlockedImage load.kkpayBlockedImage')
+            .one('error.kkpayBlockedImage', function () {
+                $blockedGraphic.prop('hidden', true);
+                $blockedImage.removeAttr('src');
+                $wrap.removeClass('is-blocked');
+                $page.removeClass('kkpay-customer-page--blocked');
+                $calendarSection.show();
+            })
+            .one('load.kkpayBlockedImage', function () {
+                $blockedGraphic.prop('hidden', false);
+            })
+            .attr({ src: imageUrl, alt: altText });
+        $wrap.addClass('is-blocked');
+        $page.addClass('kkpay-customer-page--blocked');
+        $calendarSection.hide();
     }
 
     function updateLabels() {
@@ -266,6 +311,7 @@
             if (!response || !response.success) {
                 isAccepting = false;
                 setFormVisible(false);
+                setBlockedGraphic('');
                 setStatus(msg('server_error'), 'is-closed');
                 return;
             }
@@ -273,6 +319,7 @@
                 isAccepting = true;
                 isAllFull = false;
                 currentDate = response.data.current_date || '';
+                setBlockedGraphic('');
                 setFormVisible(true);
                 setStatus(t('accepting'), 'is-open');
                 refreshSlots();
@@ -282,12 +329,14 @@
             isAllFull = !!(response.data && response.data.all_full);
             currentDate = response.data && response.data.current_date ? response.data.current_date : '';
             setFormVisible(false);
+            setBlockedGraphic(isAllFull ? 'full' : 'closed');
             setStatus(isAllFull ? t('allFull') : t('notAccepting'), 'is-closed');
             $slots.empty();
             $submit.prop('disabled', true);
         }).fail(function () {
             isAccepting = false;
             setFormVisible(false);
+            setBlockedGraphic('');
             setStatus(msg('server_error'), 'is-closed');
         });
     }

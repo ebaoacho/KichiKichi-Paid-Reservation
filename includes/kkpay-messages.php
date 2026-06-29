@@ -88,6 +88,27 @@ define( 'KKPAY_MESSAGES', array(
         'zh-CN' => '当日预约已取消。',
         'zh-TW' => '當日預約已取消。',
     ),
+    'same_day_full_alt' => array(
+        'en'    => 'All available same-day reservation slots are fully booked.',
+        'ja'    => '本日の当日予約枠はすべて満席です。',
+        'ko'    => '오늘 당일 예약 가능한 시간대가 모두 만석입니다.',
+        'zh-CN' => '今天所有可预约的当日时段均已满。',
+        'zh-TW' => '今天所有可預約的當日時段均已滿。',
+    ),
+    'same_day_closed_alt' => array(
+        'en'    => 'Same-day reservations are closed.',
+        'ja'    => '当日予約の受付は終了しています。',
+        'ko'    => '당일 예약 접수가 종료되었습니다.',
+        'zh-CN' => '当日预约已停止受理。',
+        'zh-TW' => '當日預約已停止受理。',
+    ),
+    'same_day_back_to_guide' => array(
+        'en'    => 'Back to guide',
+        'ja'    => 'ガイドに戻る',
+        'ko'    => '가이드로 돌아가기',
+        'zh-CN' => '返回说明',
+        'zh-TW' => '返回說明',
+    ),
     'max_people_exceeded' => array(
         'en'    => 'The selected number of people exceeds the allowed limit.',
         'ja'    => '選択した人数が許可された上限を超えています。',
