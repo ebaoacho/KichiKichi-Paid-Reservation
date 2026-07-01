@@ -1,16 +1,25 @@
 .kkpay-same-day-wrap {
     max-width: 620px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
-.kkpay-same-day-blocked-graphic {
+.kkpay-same-day-blocked-graphic,
+#kkpay-same-day-gate-graphic {
+    box-sizing: border-box;
     width: min(520px, 100%);
     margin: 0 auto;
+    text-align: center;
 }
 
-.kkpay-same-day-blocked-graphic img {
+.kkpay-same-day-blocked-graphic img,
+#kkpay-same-day-gate-image {
     display: block;
     width: 100%;
+    max-width: 520px;
     height: auto;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .kkpay-same-day-wrap.is-blocked {
