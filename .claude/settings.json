@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($php = Get-ChildItem -Path C:\\\\xampp -Filter php.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName; if \\($php\\) { & $php -l \"includes\\\\kkpay-messages.php\"; & $php -l \"includes\\\\Controllers\\\\class-kkpay-same-day-reservation-controller.php\"; & $php -l \"early-reservation-system.php\"; & $php -l \"templates\\\\same-day-gate.php\"; & $php -l \"templates\\\\same-day-confirmation.php\" } else { \"php.exe not found\" })"
+    ]
+  }
+}

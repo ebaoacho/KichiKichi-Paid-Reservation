@@ -3,9 +3,8 @@
 (function () {
     'use strict';
 
-    // Per-link in-flight state (Map allows iteration for pageshow abort-all).
-    var inFlight = new Map();
     var linkSeqs = new WeakMap();
+    var inFlightStatus = null;
     var statusCache = null;
     var statusCacheExpiry = 0;
     var STATUS_CACHE_TTL = 15000;
@@ -45,6 +44,7 @@
             guide.style.display = '';
         }
         if (graphic) {
+            graphic.hidden = true;
             graphic.style.display = 'none';
         }
         if (image) {
@@ -120,39 +120,123 @@
         if (guide) {
             guide.style.display = 'none';
         }
+        var wasHidden = graphic.hidden;
+        graphic.hidden = false;
         graphic.style.display = 'block';
 
         if (page) {
             page.classList.add('kkpay-same-day-gate-blocked');
         }
 
-        graphic.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        if (wasHidden) {
+            graphic.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        }
     }
 
     function passThrough(link) {
         window.location.href = link.href;
     }
 
-    function cleanupLink(link) {
-        var req = inFlight.get(link);
-        if (req) {
+    function clearInFlightStatus(req) {
+        if (inFlightStatus === req) {
             window.clearTimeout(req.tid);
-            inFlight.delete(link);
+            inFlightStatus = null;
         }
+    }
+
+    function normalizeResponse(response) {
+        var data = response && response.success && response.data ? response.data : null;
+
+        if (!data) {
+            return null;
+        }
+        return {
+            accepting: !!data.accepting,
+            all_full: !!data.all_full,
+            current_date: data.current_date || '',
+            allowed_slots: Array.isArray(data.allowed_slots) ? data.allowed_slots : [],
+            open_slots: Array.isArray(data.open_slots) ? data.open_slots : []
+        };
+    }
+
+    function applyStatusForLink(link, status) {
+        if (!status) {
+            passThrough(link);
+            return;
+        }
+        statusCache = status;
+        statusCacheExpiry = Date.now() + STATUS_CACHE_TTL;
+
+        if (status.accepting) {
+            passThrough(link);
+            return;
+        }
+
+        showGraphic(link, status.all_full ? 'full' : 'closed');
+    }
+
+    function requestStatus(config, timeoutMs) {
+        var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        var req = { ctrl: ctrl, tid: null, promise: null };
+
+        req.promise = new Promise(function (resolve, reject) {
+            var settled = false;
+
+            function settle(callback, value) {
+                if (settled) {
+                    return;
+                }
+                settled = true;
+                clearInFlightStatus(req);
+                callback(value);
+            }
+
+            req.tid = window.setTimeout(function () {
+                if (req.ctrl) {
+                    req.ctrl.abort();
+                }
+                settle(reject, new Error('status request timeout'));
+            }, timeoutMs);
+
+            fetch(config.ajax_url, {
+                method: 'POST',
+                credentials: 'same-origin',
+                signal: ctrl ? ctrl.signal : undefined,
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                body: 'action=kkpay_same_day_status&nonce=' + encodeURIComponent(config.nonce)
+            }).then(function (response) {
+                if (!response.ok) {
+                    throw new Error('status request failed');
+                }
+                return response.json();
+            }).then(function (response) {
+                var status = normalizeResponse(response);
+
+                if (!status) {
+                    throw new Error('invalid status response');
+                }
+                settle(resolve, status);
+            }).catch(function (error) {
+                settle(reject, error);
+            });
+        });
+
+        inFlightStatus = req;
+        return req.promise;
     }
 
     function checkStatus(event) {
         var link = event.currentTarget;
         var config = settings();
         var timeoutMs = parseInt(config.timeout_ms, 10) || 8000;
-        var ctrl, seq, tid;
-
-        event.preventDefault();
+        var seq;
 
         if (typeof fetch === 'undefined') {
-            passThrough(link);
+            // Keep this before preventDefault so legacy browsers follow the link normally.
             return;
         }
+
+        event.preventDefault();
 
         if (statusCache && Date.now() < statusCacheExpiry) {
             if (statusCache.accepting) {
@@ -163,67 +247,20 @@
             return;
         }
 
-        if (inFlight.has(link)) {
-            return;
-        }
-
         if (!config.ajax_url || !config.nonce) {
             passThrough(link);
             return;
         }
 
-        ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
         seq = (linkSeqs.get(link) || 0) + 1;
         linkSeqs.set(link, seq);
 
-        tid = window.setTimeout(function () {
-            linkSeqs.set(link, seq + 1);
-            inFlight.delete(link);
-            if (ctrl) {
-                ctrl.abort();
-            }
-            passThrough(link);
-        }, timeoutMs);
-
-        inFlight.set(link, { ctrl: ctrl, tid: tid });
-
-        fetch(config.ajax_url, {
-            method: 'POST',
-            credentials: 'same-origin',
-            signal: ctrl ? ctrl.signal : undefined,
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-            body: 'action=kkpay_same_day_status&nonce=' + encodeURIComponent(config.nonce)
-        }).then(function (response) {
-            if (!response.ok) {
-                throw new Error('status request failed');
-            }
-            return response.json();
-        }).then(function (response) {
-            cleanupLink(link);
-
+        (inFlightStatus ? inFlightStatus.promise : requestStatus(config, timeoutMs)).then(function (status) {
             if (linkSeqs.get(link) !== seq) {
                 return;
             }
-
-            if (!response || !response.success || !response.data) {
-                passThrough(link);
-                return;
-            }
-
-            statusCache = {
-                accepting: !!response.data.accepting,
-                all_full:  !!response.data.all_full,
-            };
-            statusCacheExpiry = Date.now() + STATUS_CACHE_TTL;
-
-            if (response.data.accepting) {
-                passThrough(link);
-                return;
-            }
-
-            showGraphic(link, response.data.all_full ? 'full' : 'closed');
+            applyStatusForLink(link, status);
         }).catch(function () {
-            cleanupLink(link);
             if (linkSeqs.get(link) !== seq) {
                 return;
             }
@@ -241,13 +278,13 @@
 
     window.addEventListener('pageshow', function (event) {
         if (event.persisted) {
-            inFlight.forEach(function (req) {
-                window.clearTimeout(req.tid);
-                if (req.ctrl) {
-                    req.ctrl.abort();
+            if (inFlightStatus) {
+                window.clearTimeout(inFlightStatus.tid);
+                if (inFlightStatus.ctrl) {
+                    inFlightStatus.ctrl.abort();
                 }
-            });
-            inFlight = new Map();
+                inFlightStatus = null;
+            }
             linkSeqs = new WeakMap();
             statusCache = null;
             statusCacheExpiry = 0;

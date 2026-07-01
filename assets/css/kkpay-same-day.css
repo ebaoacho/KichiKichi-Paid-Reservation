@@ -4,16 +4,14 @@
     margin-right: auto;
 }
 
-.kkpay-same-day-blocked-graphic,
-#kkpay-same-day-gate-graphic {
+.kkpay-same-day-blocked-graphic {
     box-sizing: border-box;
     width: min(520px, 100%);
     margin: 0 auto;
     text-align: center;
 }
 
-.kkpay-same-day-blocked-graphic img,
-#kkpay-same-day-gate-image {
+.kkpay-same-day-blocked-graphic img {
     display: block;
     width: 100%;
     max-width: 520px;
@@ -44,11 +42,6 @@
 .kkpay-customer-page--blocked .kkpay-customer-page__section--form {
     max-width: 620px;
     padding: 0;
-}
-
-.kkpay-same-day-gate-blocked {
-    background: #f0eded !important;
-    padding-top: 96px !important;
 }
 
 .kkpay-same-day-status {

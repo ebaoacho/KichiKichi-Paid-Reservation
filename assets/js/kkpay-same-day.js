@@ -210,6 +210,14 @@
         $fields.prop('hidden', !visible);
     }
 
+    function clearBlockedGraphic() {
+        $wrap.removeClass('is-blocked');
+        $page.removeClass('kkpay-customer-page--blocked');
+        $blockedGraphic.prop('hidden', true);
+        $blockedImage.off('error.kkpayBlockedImage load.kkpayBlockedImage').removeAttr('src').attr('alt', '');
+        $calendarSection.show();
+    }
+
     function setBlockedGraphic(mode) {
         var imageUrl = '';
         var altText = '';
@@ -223,11 +231,7 @@
         }
 
         if (!imageUrl) {
-            $wrap.removeClass('is-blocked');
-            $page.removeClass('kkpay-customer-page--blocked');
-            $blockedGraphic.prop('hidden', true);
-            $blockedImage.off('error.kkpayBlockedImage load.kkpayBlockedImage').removeAttr('src').attr('alt', '');
-            $calendarSection.show();
+            clearBlockedGraphic();
             return;
         }
 
@@ -311,7 +315,7 @@
             if (!response || !response.success) {
                 isAccepting = false;
                 setFormVisible(false);
-                setBlockedGraphic('');
+                clearBlockedGraphic();
                 setStatus(msg('server_error'), 'is-closed');
                 return;
             }
@@ -319,7 +323,7 @@
                 isAccepting = true;
                 isAllFull = false;
                 currentDate = response.data.current_date || '';
-                setBlockedGraphic('');
+                clearBlockedGraphic();
                 setFormVisible(true);
                 setStatus(t('accepting'), 'is-open');
                 refreshSlots();
@@ -336,7 +340,7 @@
         }).fail(function () {
             isAccepting = false;
             setFormVisible(false);
-            setBlockedGraphic('');
+            clearBlockedGraphic();
             setStatus(msg('server_error'), 'is-closed');
         });
     }

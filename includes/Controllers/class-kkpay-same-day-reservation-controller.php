@@ -13,13 +13,16 @@ class KKPAY_Same_Day_Reservation_Controller {
 
         $status = KKPAY_Same_Day_Reservation_Service::get_status();
         if ( is_wp_error( $status ) ) {
-            wp_send_json_error( array( 'message' => $status->get_error_message() ) );
+            wp_send_json_error( array( 'message' => $status->get_error_message(), 'code' => $status->get_error_code() ) );
             return;
         }
+
         wp_send_json_success( array(
-            'accepting'    => $status['accepting'],
-            'all_full'     => $status['all_full'],
-            'current_date' => $status['current_date'],
+            'accepting'     => (bool) $status['accepting'],
+            'current_date'  => (string) $status['current_date'],
+            'allowed_slots' => array_values( $status['allowed_slots'] ),
+            'open_slots'    => array_values( $status['open_slots'] ),
+            'all_full'      => (bool) $status['all_full'],
         ) );
     }
 
@@ -73,6 +76,10 @@ class KKPAY_Same_Day_Reservation_Controller {
         }
 
         $reservation = KKPAY_Same_Day_Reservation_Service::find_by_email( $data['email'] );
+        if ( is_wp_error( $reservation ) ) {
+            wp_send_json_error( array( 'message' => $reservation->get_error_message(), 'code' => $reservation->get_error_code() ) );
+            return;
+        }
         if ( ! $reservation ) {
             wp_send_json_error( array( 'message' => kkpay_msg( 'reservation_not_found', $data['lang'] ), 'code' => 'not_found' ) );
             return;
@@ -101,10 +108,4 @@ class KKPAY_Same_Day_Reservation_Controller {
         wp_send_json_success( $result );
     }
 
-    private static function request_lang() {
-        $lang    = sanitize_text_field( wp_unslash( $_POST['language'] ?? 'en' ) );
-        $allowed = array( 'en', 'ja', 'ko', 'zh-CN', 'zh-TW' );
-
-        return in_array( $lang, $allowed, true ) ? $lang : 'en';
-    }
 }
