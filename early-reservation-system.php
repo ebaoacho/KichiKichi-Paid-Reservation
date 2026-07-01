@@ -227,13 +227,7 @@ function kkpay_render_same_day_reservation_form() {
 
 function kkpay_render_same_day_gate() {
     ob_start();
-    ?>
-    <div id="kkpay-same-day-gate-graphic" style="display:none;width:100%;max-width:620px;box-sizing:border-box;margin:0 auto;padding:0 24px 72px;">
-        <img id="kkpay-same-day-gate-image" alt="" style="display:block;width:100%;height:auto;" loading="eager" />
-        <p id="kkpay-same-day-gate-fallback" style="display:none;margin:0;padding:24px;border:1px solid #f3d9de;border-radius:14px;background:#ffffff;color:#1f2937;text-align:center;font-size:16px;font-weight:800;line-height:1.6;"></p>
-        <button type="button" class="kkpay-same-day-gate-back" style="display:block;box-sizing:border-box;width:100%;max-width:360px;margin:18px auto 0;padding:14px 18px;border:2px solid #c8102e;border-radius:10px;background:#ffffff;color:#c8102e;text-align:center;font-size:15px;font-weight:900;line-height:1.3;cursor:pointer;"></button>
-    </div>
-    <?php
+    include KKPAY_PLUGIN_DIR . 'templates/same-day-gate.php';
     return ob_get_clean();
 }
 
@@ -457,8 +451,7 @@ function kkpay_enqueue_same_day_gate_assets() {
         'same_day_back_to_guide' => true,
     );
 
-    wp_enqueue_style( 'kkpay-form', KKPAY_PLUGIN_URL . 'assets/css/kkpay-form.css', array(), KKPAY_VERSION );
-    wp_enqueue_style( 'kkpay-same-day', KKPAY_PLUGIN_URL . 'assets/css/kkpay-same-day.css', array( 'kkpay-form' ), KKPAY_VERSION );
+    wp_enqueue_style( 'kkpay-same-day-gate', KKPAY_PLUGIN_URL . 'assets/css/kkpay-same-day-gate.css', array(), KKPAY_VERSION );
     wp_enqueue_script( 'kkpay-same-day-gate', KKPAY_PLUGIN_URL . 'assets/js/kkpay-same-day-gate.js', array(), KKPAY_VERSION, true );
     wp_localize_script( 'kkpay-same-day-gate', 'kkpay_same_day_gate', array(
         'ajax_url'        => admin_url( 'admin-ajax.php' ),

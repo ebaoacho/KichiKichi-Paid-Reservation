@@ -3,7 +3,12 @@
 (function ($) {
     'use strict';
 
-    var lang = 'en';
+    // Initialize from ?lang= URL param to match PHP's server-side rendering.
+    var lang = (function () {
+        if (typeof URLSearchParams === 'undefined') { return 'en'; }
+        var p = new URLSearchParams(window.location.search).get('lang') || '';
+        return { en: 1, ja: 1, ko: 1, 'zh-CN': 1, 'zh-TW': 1 }[p] ? p : 'en';
+    }());
     var currentReservation = null;
 
     var LABELS = {
@@ -157,11 +162,21 @@
     }
 
     function updateLabels() {
+        $('#kkpay-same-day-confirmation-lbl-kicker').text(msg('same_day_confirmation_kicker'));
+        $('#kkpay-same-day-confirmation-lbl-title').text(msg('same_day_confirmation_title'));
+        $('#kkpay-same-day-confirmation-lbl-intro').text(msg('same_day_confirmation_intro'));
+        $('#kkpay-same-day-confirmation-lbl-lookup-title').text(msg('same_day_confirmation_lookup_title'));
+        $('#kkpay-same-day-confirmation-lbl-lookup-hint').text(msg('same_day_confirmation_lookup_hint'));
         $('#kkpay-same-day-confirmation-lbl-language').text(t('language'));
         $('#kkpay-same-day-confirmation-lbl-email').text(t('email'));
+        $('#kkpay-same-day-confirmation-lbl-email-help').text(msg('same_day_confirmation_email_help'));
         $('#kkpay-same-day-confirmation-lbl-search').text(t('search'));
+        $('#kkpay-same-day-confirmation-lbl-result-title').text(msg('same_day_confirmation_result_title'));
+        $('#kkpay-same-day-confirmation-lbl-result-hint').text(msg('same_day_confirmation_result_hint'));
+        $('#kkpay-same-day-confirmation-lbl-cancel-title').text(msg('same_day_confirmation_cancel_title'));
         $('#kkpay-same-day-confirmation-lbl-cancel').text(t('cancel'));
         $('#kkpay-same-day-confirmation-lbl-cancel-policy').text(t('cancelPolicy'));
+        $('#kkpay-same-day-confirmation-lbl-cancel-warning').text(msg('same_day_confirmation_cancel_warning'));
     }
 
     function row(label, value) {
@@ -193,7 +208,7 @@
 
         if (reservation.cancelled_at || reservation.status === 'cancelled') {
             $cancelSection.hide();
-            showMessage($cancelledNotice, t('cancelled'), 'success');
+            showMessage($cancelledNotice, msg('same_day_cancel_success'), 'success');
             return;
         }
 
@@ -207,6 +222,7 @@
     }
 
     var $language = $('#kkpay-same-day-confirmation-language');
+    $language.val(lang);
     var $email = $('#kkpay-same-day-confirmation-email');
     var $searchBtn = $('#kkpay-same-day-confirmation-search-btn');
     var $cancelBtn = $('#kkpay-same-day-confirmation-cancel-btn');
@@ -279,7 +295,7 @@
             currentReservation.status = 'cancelled';
             currentReservation.cancelled_at = (res.data && res.data.cancelled_at) ? res.data.cancelled_at : '';
             renderReservation(currentReservation);
-            showMessage($('#kkpay-same-day-confirmation-cancelled-notice'), (res.data && res.data.message) ? res.data.message : t('cancelled'), 'success');
+            showMessage($('#kkpay-same-day-confirmation-cancelled-notice'), (res.data && res.data.message) ? res.data.message : msg('same_day_cancel_success'), 'success');
         }).fail(function () {
             $cancelBtn.prop('disabled', false);
             showMessage($message, msg('server_error'), 'error');
