@@ -38,6 +38,9 @@ define( 'KKPAY_PREMIUM_AMOUNT',   32 );
 define( 'KKPAY_PREMIUM_CURRENCY', 'usd' );
 define( 'KKPAY_PREMIUM_MAX_PEOPLE', 8 );
 
+define( 'KKPAY_SAME_DAY_FULL_IMAGE_URL',  KKPAY_PLUGIN_URL . 'assets/image/full.png' );
+define( 'KKPAY_SAME_DAY_CLOSE_IMAGE_URL', KKPAY_PLUGIN_URL . 'assets/image/close.png' );
+
 define( 'KKPAY_SLOT_TYPES', array(
     'slot_1' => 'lunch',
     'slot_2' => 'lunch',
@@ -169,6 +172,7 @@ add_action( 'init', function () {
     add_shortcode( 'kkpay_premium_cancel',   'kkpay_render_premium_cancel' );
     add_shortcode( 'kkpay_same_day_confirmation', 'kkpay_render_same_day_confirmation' );
     add_shortcode( 'kkpay_same_day_reservation_form', 'kkpay_render_same_day_reservation_form' );
+    add_shortcode( 'kkpay_same_day_gate', 'kkpay_render_same_day_gate' );
     add_shortcode( 'kkpay_customer_calendar', 'kkpay_render_customer_calendar' );
     add_shortcode( 'kkpay_legal_policies', 'kkpay_render_legal_policies' );
 } );
@@ -218,6 +222,18 @@ function kkpay_render_same_day_confirmation() {
 function kkpay_render_same_day_reservation_form() {
     ob_start();
     include KKPAY_PLUGIN_DIR . 'templates/same-day-reservation-form.php';
+    return ob_get_clean();
+}
+
+function kkpay_render_same_day_gate() {
+    ob_start();
+    ?>
+    <div id="kkpay-same-day-gate-graphic" style="display:none;width:100%;max-width:620px;box-sizing:border-box;margin:0 auto;padding:0 24px 72px;">
+        <img id="kkpay-same-day-gate-image" alt="" style="display:block;width:100%;height:auto;" loading="eager" />
+        <p id="kkpay-same-day-gate-fallback" style="display:none;margin:0;padding:24px;border:1px solid #f3d9de;border-radius:14px;background:#ffffff;color:#1f2937;text-align:center;font-size:16px;font-weight:800;line-height:1.6;"></p>
+        <button type="button" class="kkpay-same-day-gate-back" style="display:block;box-sizing:border-box;width:100%;max-width:360px;margin:18px auto 0;padding:14px 18px;border:2px solid #c8102e;border-radius:10px;background:#ffffff;color:#c8102e;text-align:center;font-size:15px;font-weight:900;line-height:1.3;cursor:pointer;"></button>
+    </div>
+    <?php
     return ob_get_clean();
 }
 
@@ -337,6 +353,7 @@ function kkpay_enqueue_assets() {
     $has_same_day_confirmation = has_shortcode( $content, 'kkpay_same_day_confirmation' );
     $has_same_day        = has_shortcode( $content, 'kkpay_same_day_reservation_form' );
     $has_customer_calendar = has_shortcode( $content, 'kkpay_customer_calendar' );
+    $has_same_day_gate   = has_shortcode( $content, 'kkpay_same_day_gate' );
 
     if ( $has_form || $has_payment ) {
         kkpay_enqueue_form_assets( $has_payment );
@@ -358,6 +375,9 @@ function kkpay_enqueue_assets() {
     }
     if ( $has_customer_calendar ) {
         kkpay_enqueue_customer_calendar_assets();
+    }
+    if ( $has_same_day_gate ) {
+        kkpay_enqueue_same_day_gate_assets();
     }
 }
 
@@ -419,6 +439,8 @@ function kkpay_enqueue_same_day_assets() {
         'messages'         => KKPAY_MESSAGES,
         'max_people'       => KKPAY_MAX_CAPACITY,
         'table_max_people' => KKPAY_TABLE_MAX_CAPACITY,
+        'full_image_url'   => KKPAY_SAME_DAY_FULL_IMAGE_URL,
+        'close_image_url'  => KKPAY_SAME_DAY_CLOSE_IMAGE_URL,
     ) );
 }
 
@@ -426,6 +448,26 @@ function kkpay_enqueue_customer_calendar_assets() {
     wp_enqueue_style( 'kkpay-form', KKPAY_PLUGIN_URL . 'assets/css/kkpay-form.css', array(), KKPAY_VERSION );
     wp_enqueue_style( 'kkpay-customer-calendar', KKPAY_PLUGIN_URL . 'assets/css/kkpay-customer-calendar.css', array( 'kkpay-form' ), KKPAY_VERSION );
     wp_enqueue_script( 'kkpay-customer-calendar', KKPAY_PLUGIN_URL . 'assets/js/kkpay-customer-calendar.js', array(), KKPAY_VERSION, true );
+}
+
+function kkpay_enqueue_same_day_gate_assets() {
+    $message_keys = array(
+        'same_day_full_alt'      => true,
+        'same_day_closed_alt'    => true,
+        'same_day_back_to_guide' => true,
+    );
+
+    wp_enqueue_style( 'kkpay-form', KKPAY_PLUGIN_URL . 'assets/css/kkpay-form.css', array(), KKPAY_VERSION );
+    wp_enqueue_style( 'kkpay-same-day', KKPAY_PLUGIN_URL . 'assets/css/kkpay-same-day.css', array( 'kkpay-form' ), KKPAY_VERSION );
+    wp_enqueue_script( 'kkpay-same-day-gate', KKPAY_PLUGIN_URL . 'assets/js/kkpay-same-day-gate.js', array(), KKPAY_VERSION, true );
+    wp_localize_script( 'kkpay-same-day-gate', 'kkpay_same_day_gate', array(
+        'ajax_url'        => admin_url( 'admin-ajax.php' ),
+        'nonce'           => wp_create_nonce( 'kkpay_nonce' ),
+        'full_image_url'  => KKPAY_SAME_DAY_FULL_IMAGE_URL,
+        'close_image_url' => KKPAY_SAME_DAY_CLOSE_IMAGE_URL,
+        'messages'        => array_intersect_key( KKPAY_MESSAGES, $message_keys ),
+        'timeout_ms'      => 8000,
+    ) );
 }
 
 // AJAX ハンドラ登録（公開エンドポイント）

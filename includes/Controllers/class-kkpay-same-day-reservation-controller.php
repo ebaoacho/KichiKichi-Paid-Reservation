@@ -11,7 +11,16 @@ class KKPAY_Same_Day_Reservation_Controller {
     public static function ajax_status() {
         check_ajax_referer( 'kkpay_nonce', 'nonce' );
 
-        wp_send_json_success( KKPAY_Same_Day_Reservation_Service::get_status() );
+        $status = KKPAY_Same_Day_Reservation_Service::get_status();
+        if ( is_wp_error( $status ) ) {
+            wp_send_json_error( array( 'message' => $status->get_error_message() ) );
+            return;
+        }
+        wp_send_json_success( array(
+            'accepting'    => $status['accepting'],
+            'all_full'     => $status['all_full'],
+            'current_date' => $status['current_date'],
+        ) );
     }
 
     public static function ajax_available_slots() {

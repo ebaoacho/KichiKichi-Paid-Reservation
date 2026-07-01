@@ -5,9 +5,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 
 <div id="kkpay-same-day-form-wrap" class="kkpay-wrap kkpay-same-day-wrap">
+    <div id="kkpay-same-day-blocked-graphic" class="kkpay-same-day-blocked-graphic" hidden>
+        <img id="kkpay-same-day-blocked-image" alt="" loading="eager" />
+    </div>
+
     <div class="kkpay-same-day-status" id="kkpay-same-day-status" aria-live="polite"></div>
 
-    <div class="kkpay-field">
+    <div class="kkpay-field kkpay-field--language">
         <label class="kkpay-label" for="kkpay-same-day-language">Language / 日本語 / 한국어 / 简体中文 / 繁體中文</label>
         <select id="kkpay-same-day-language" class="kkpay-select">
             <option value="en">English</option>

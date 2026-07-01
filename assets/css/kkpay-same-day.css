@@ -2,6 +2,46 @@
     max-width: 620px;
 }
 
+.kkpay-same-day-blocked-graphic {
+    width: min(520px, 100%);
+    margin: 0 auto;
+}
+
+.kkpay-same-day-blocked-graphic img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.kkpay-same-day-wrap.is-blocked {
+    max-width: 620px;
+}
+
+.kkpay-same-day-wrap.is-blocked > .kkpay-field:not(.kkpay-field--language),
+.kkpay-same-day-wrap.is-blocked .kkpay-same-day-fields,
+.kkpay-same-day-wrap.is-blocked .kkpay-message {
+    display: none !important;
+}
+
+.kkpay-customer-page--blocked {
+    min-height: 100vh;
+    padding: 96px 20px 72px;
+}
+
+.kkpay-customer-page--blocked .kkpay-customer-page__section--calendar {
+    display: none;
+}
+
+.kkpay-customer-page--blocked .kkpay-customer-page__section--form {
+    max-width: 620px;
+    padding: 0;
+}
+
+.kkpay-same-day-gate-blocked {
+    background: #f0eded !important;
+    padding-top: 96px !important;
+}
+
 .kkpay-same-day-status {
     margin-bottom: 20px;
     padding: 12px 16px;
