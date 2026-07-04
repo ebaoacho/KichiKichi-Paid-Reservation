@@ -19,6 +19,8 @@ define( 'KKPAY_PLUGIN_URL',         plugin_dir_url( __FILE__ ) );
 define( 'KKPAY_AMOUNT',             13 );
 define( 'KKPAY_CURRENCY',           'usd' );
 define( 'KKPAY_STRIPE_AMOUNT_MULTIPLIER', 100 );
+define( 'KKPAY_SAME_DAY_DEPOSIT_AMOUNT', 13 );
+define( 'KKPAY_SAME_DAY_DEPOSIT_CURRENCY', 'usd' );
 define( 'KKPAY_MAX_CAPACITY',       8 );
 define( 'KKPAY_TABLE_MAX_CAPACITY', 6 );
 define( 'KKPAY_MAX_PEOPLE',         8 );

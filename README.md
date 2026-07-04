@@ -44,7 +44,7 @@ Controller
 
 | テーブル | 役割 |
 | --- | --- |
-| `kkpay_holds` | 決済前の仮押さえ |
+| `kkpay_holds` | 決済前の仮押さえ。`seating_preference` で `Bar` / `Table` を区別できる |
 | `kkpay_reservations` | 確定予約の正本。今後は全予約タイプをここに集約 |
 | `kkpay_cancellations` | 既存プレミアム予約のキャンセル履歴 |
 | `kkpay_accepted_dates` | 既存互換用の受付日・席数設定。段階的に `kkpay_slot_capacities` へ移行 |
@@ -228,6 +228,9 @@ Stripe 決済は、ブラウザの確定処理と Webhook の両方から同じ 
 - `kkpay_calendar_days` テーブルを追加し、営業日カレンダーの正本を移行
 - 既存 `{prefix}calendar` から `kkpay_calendar_days` への初期移行
 - Step 13 確認スクリプト
+- 当日予約デポジット制 PR1: `kkpay_holds.seating_preference` カラム追加
+- 当日予約デポジット単価定数 `KKPAY_SAME_DAY_DEPOSIT_AMOUNT = 13` / `KKPAY_SAME_DAY_DEPOSIT_CURRENCY = 'usd'` 追加
+- 当日予約デポジット制 PR1 のマイグレーションテスト追加
 
 Step 8 の席数設定保存では、表示中の営業スロットを全件送信する設計です。表示対象の営業スロットが送信されなかった場合は、古い席数を残さず `capacity = 0` / `enabled = 0` として無効化します。
 
@@ -238,6 +241,8 @@ Step 5 のフォーム固有文言（入力必須、メール不一致、スロ�
 Step 4 の当日予約作成では、同じメール・同じ日付に既存の active 行がある場合は `FOR UPDATE` でロックします。active 行がまだ存在しない場合、同じメール・同じ日付・別スロットへの完全な同時二重作成は行ロックだけでは防げないため、実運用上は低頻度の制約として扱い、同一スロットの最終防御は `email_date_slot` UNIQUE KEY に委ねます。
 
 Step 6 の当日予約確認は、現行仕様に合わせてメールアドレス照合で active な当日予約を検索します。`email_hash` は保存済みですが、検索条件のハッシュ化は後続の個人情報保護強化で扱います。
+
+当日予約デポジット制 PR1 では、決済中の当日予約ホールドで `Table` 席も正しく仮押さえできるように、`kkpay_holds` に `seating_preference VARCHAR(20) NOT NULL DEFAULT 'Bar'` を追加しています。既存の通常予約・プレミアム予約のホールド作成は席種を渡さなくても DB デフォルトにより `Bar` として保存されます。
 
 また、`doc/01_directory_structure.md` は Step 4 で追加したファイルだけでなく、Step 1〜3 で実態と乖離していた既存の追加ファイルも合わせて反映しています。
 
@@ -347,6 +352,7 @@ C:\xampp\php\php.exe tools\kkpay-step10-check.php
 C:\xampp\php\php.exe tools\kkpay-step11-check.php
 C:\xampp\php\php.exe tools\kkpay-step12-check.php
 C:\xampp\php\php.exe tools\kkpay-step13-check.php C:\xampp\htdocs\kichikichi\wp-load.php
+C:\xampp\php\php.exe tests\migrations\test-kkpay-holds-seating-preference.php C:\xampp\htdocs\kichikichi\wp-load.php
 ```
 
 期待結果:
@@ -364,6 +370,13 @@ Result: PASSED
 - `kkpay_reservation_events.event_payload` が `longtext` であること
 - 既存データのバックフィル漏れがないこと
 - 新規 Repository がロードされていること
+
+当日予約デポジット制 PR1 のマイグレーションテストは、実DB上に一時 prefix のテーブルを作成し、以下を確認します。終了時に一時テーブルは削除されます。
+
+- 新規インストールで `kkpay_holds.seating_preference` が作成されること
+- `seating_preference` が無い旧 `kkpay_holds` に対して `dbDelta()` でカラムが追加されること
+- カラムの型・NOT NULL・デフォルト値が `VARCHAR(20) NOT NULL DEFAULT 'Bar'` であること
+- 既存行と、席種未指定の新規INSERTが `Bar` になること
 
 PHP構文チェックの例:
 
@@ -397,6 +410,7 @@ C:\xampp\php\php.exe -l tools\kkpay-step10-check.php
 C:\xampp\php\php.exe -l tools\kkpay-step11-check.php
 C:\xampp\php\php.exe -l tools\kkpay-step12-check.php
 C:\xampp\php\php.exe -l tools\kkpay-step13-check.php
+C:\xampp\php\php.exe -l tests\migrations\test-kkpay-holds-seating-preference.php
 node --check assets\js\kkpay-same-day.js
 node --check assets\js\kkpay-admin-capacity.js
 node --check assets\js\kkpay-admin-calendar.js
@@ -428,3 +442,5 @@ node --check assets\js\kkpay-same-day-confirmation.js
 | `doc/15_same_day_reservation_current_spec.md` | 既存当日予約仕様 |
 | `doc/18_same_day_production_cutover.md` | 当日予約本番切り替え手順 |
 | `doc/19_calendar_integration_design.md` | カレンダー統合設計 |
+| `doc/20_same_day_deposit_design.md` | 当日予約デポジット制設計 |
+| `doc/22_same_day_deposit_migration_test.md` | 当日予約デポジット制 PR1 マイグレーションテスト手順 |

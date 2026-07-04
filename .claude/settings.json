@@ -2,6 +2,18 @@
   "permissions": {
     "allow": [
       "PowerShell($php = Get-ChildItem -Path C:\\\\xampp -Filter php.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName; if \\($php\\) { & $php -l \"includes\\\\kkpay-messages.php\"; & $php -l \"includes\\\\Controllers\\\\class-kkpay-same-day-reservation-controller.php\"; & $php -l \"early-reservation-system.php\"; & $php -l \"templates\\\\same-day-gate.php\"; & $php -l \"templates\\\\same-day-confirmation.php\" } else { \"php.exe not found\" })",
+      "Bash(which php *)",
+      "Read(//c/xampp/php/**)",
+      "Bash(/c/xampp/php/php.exe -l tests/migrations/test-kkpay-holds-seating-preference.php)",
+      "Bash(/c/xampp/php/php.exe -l includes/class-kkpay-activator.php)",
+      "Bash(/c/xampp/php/php.exe -l early-reservation-system.php)",
+      "Bash(ls /c/xampp/htdocs/kichikichi/wp-load.php 2>&1)",
+      "Read(//c/xampp/htdocs/kichikichi/**)",
+      "Bash(/c/xampp/php/php.exe tests/migrations/test-kkpay-holds-seating-preference.php /c/xampp/htdocs/kichikichi/wp-load.php)",
+      "Bash(/c/xampp/mysql/bin/mysql.exe -u root kichikichi -e \"DESCRIBE kichikichi_kkpay_holds;\")",
+      "Bash(/c/xampp/mysql/bin/mysql.exe -u root -e \"show databases;\")",
+      "Bash(/c/xampp/mysql/bin/mysql.exe -u root ebao0921_wp1 -e \"SHOW TABLES LIKE '%kkpay_holds%'; DESCRIBE ebao0921_wp1_kkpay_holds;\")",
+      "Bash(/c/xampp/mysql/bin/mysql.exe -u root ebao0921_wp1 -e \"DESCRIBE kichikichi_kkpay_holds;\")",
       "Bash(awk 'NR==18{print substr\\($0,330,80\\)}' page-templates/customer/06-same-day-guide.html)",
       "Bash(awk 'NR==18{print substr\\($0,340,30\\)}' page-templates/customer/06-same-day-guide.html)",
       "Bash(awk 'NR==18{print length\\($0\\)}' page-templates/customer/06-same-day-guide.html)",
