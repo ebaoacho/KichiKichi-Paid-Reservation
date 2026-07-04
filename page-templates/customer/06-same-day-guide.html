@@ -1,111 +1,146 @@
-<div style="position:relative;left:50%;width:100vw;max-width:100vw;margin-left:-50vw;box-sizing:border-box;padding-top:160px;">
+<div style="position:relative;left:50%;width:100vw;max-width:100vw;min-height:100vh;margin-left:-50vw;box-sizing:border-box;padding-top:clamp(28px,5vw,56px);background:#f0eded;color:#333;font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;line-height:1.65;">
   [kkpay_same_day_gate]
 
-  <div class="kkpay-customer-page__section--calendar" style="width:100%;max-width:90vw;box-sizing:border-box;margin:0 auto;text-align:left;">
+  <div class="kkpay-customer-page__section--calendar" style="width:100%;max-width:90vw;box-sizing:border-box;margin:0 auto 32px;text-align:left;">
     [kkpay_customer_calendar]
   </div>
 
-  <section id="kkpay-same-day-guide" style="width:100%;max-width:880px;box-sizing:border-box;margin:52px auto 0;padding:0 24px 64px;font-family:Arial,'Helvetica Neue',sans-serif;">
-    <div style="overflow:hidden;border:1px solid #ead7d7;border-radius:16px;background:#ffffff;box-shadow:0 10px 28px rgba(60,40,40,0.10);">
-      <div style="padding:32px 34px 28px;background:#b31224;color:#ffffff;">
-        <h1 style="margin:0;color:#ffffff;font-size:44px;line-height:1.12;letter-spacing:0;text-align:center;">Same-Day Reservation</h1>
+  <div id="kkpay-same-day-guide" style="width:min(860px,100%);min-height:100vh;margin:0 auto;box-sizing:border-box;background:#ffffff;box-shadow:0 4px 32px rgba(0,0,0,0.1);">
+    <div style="padding:48px 24px 52px;background:#b91c1c;text-align:center;color:#ffffff;">
+      <div style="margin:0 0 14px;color:#ffffff;font-size:11px;font-weight:700;letter-spacing:4px;text-transform:uppercase;">KICHIKICHI</div>
+      <div style="margin:0 0 14px;color:#ffffff;font-size:clamp(31px,6vw,40px);font-weight:400;line-height:1.18;letter-spacing:0;">Reservation Guide</div>
+      <div style="color:rgba(255,255,255,0.82);font-size:14.5px;">
+        <span data-guide-panel="en" style="display:block;">Choose the best reservation type for your visit.</span><span data-guide-panel="ja" style="display:none;">ご来店内容に合わせて予約方法をお選びください。</span><span data-guide-panel="ko" style="display:none;">방문 일정에 맞는 예약 방법을 선택해 주세요.</span><span data-guide-panel="zh-CN" style="display:none;">请选择最适合您到店时间的预约方式。</span><span data-guide-panel="zh-TW" style="display:none;">請選擇最適合您到店時間的預約方式。</span>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:center;flex-wrap:wrap;gap:8px;padding:22px 24px 0;background:#ffffff;">
+      <button type="button" data-guide-button="en" style="appearance:none;min-height:34px;padding:6px 20px;border:1.5px solid #b91c1c;border-radius:999px;background:#b91c1c;color:#ffffff;cursor:pointer;font:inherit;font-size:13.5px;font-weight:700;line-height:1.2;">EN</button>
+      <button type="button" data-guide-button="ja" style="appearance:none;min-height:34px;padding:6px 20px;border:1.5px solid #e8d4d6;border-radius:999px;background:#ffffff;color:#8c1d26;cursor:pointer;font:inherit;font-size:13.5px;font-weight:500;line-height:1.2;">日本語</button>
+      <button type="button" data-guide-button="ko" style="appearance:none;min-height:34px;padding:6px 20px;border:1.5px solid #e8d4d6;border-radius:999px;background:#ffffff;color:#8c1d26;cursor:pointer;font:inherit;font-size:13.5px;font-weight:500;line-height:1.2;">한국어</button>
+      <button type="button" data-guide-button="zh-CN" style="appearance:none;min-height:34px;padding:6px 20px;border:1.5px solid #e8d4d6;border-radius:999px;background:#ffffff;color:#8c1d26;cursor:pointer;font:inherit;font-size:13.5px;font-weight:500;line-height:1.2;">简体中文</button>
+      <button type="button" data-guide-button="zh-TW" style="appearance:none;min-height:34px;padding:6px 20px;border:1.5px solid #e8d4d6;border-radius:999px;background:#ffffff;color:#8c1d26;cursor:pointer;font:inherit;font-size:13.5px;font-weight:500;line-height:1.2;">繁體中文</button>
+    </div>
+
+    <div style="padding:18px 24px 10px;text-align:center;color:#666;font-size:14px;">
+      <span data-guide-panel="en" style="display:block;">Please choose the reservation type below.</span><span data-guide-panel="ja" style="display:none;">下記より予約方法をお選びください。</span><span data-guide-panel="ko" style="display:none;">아래에서 예약 방법을 선택해 주세요.</span><span data-guide-panel="zh-CN" style="display:none;">请从下方选择预约方式。</span><span data-guide-panel="zh-TW" style="display:none;">請從下方選擇預約方式。</span>
+    </div>
+
+    <div style="padding:4px clamp(12px,4vw,28px) 60px;">
+      <table role="presentation" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:separate;border-spacing:clamp(8px,2.2vw,20px) 0;table-layout:fixed;margin:4px 0 34px;">
+        <tr>
+          <td style="width:50%;vertical-align:top;">
+            <div style="min-height:354px;box-sizing:border-box;padding:clamp(20px,3vw,28px) clamp(10px,2.6vw,24px) 24px;border:2px solid #b91c1c;border-radius:20px;background:linear-gradient(160deg,#ffffff,#fff5f5);box-shadow:0 10px 26px rgba(185,28,28,0.1);text-align:center;color:#8f141b;display:flex;flex-direction:column;">
+              <div style="display:inline-block;align-self:center;margin-bottom:18px;padding:4px 14px;border-radius:999px;background:#b91c1c;color:#ffffff;font-size:10.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">
+                <span data-guide-panel="en" style="display:block;">Today</span><span data-guide-panel="ja" style="display:none;">今日</span><span data-guide-panel="ko" style="display:none;">오늘</span><span data-guide-panel="zh-CN" style="display:none;">今天</span><span data-guide-panel="zh-TW" style="display:none;">今天</span>
+              </div>
+              <div style="font-size:clamp(18px,3.2vw,24px);font-weight:800;line-height:1.25;margin-bottom:10px;">
+                <span data-guide-panel="en" style="display:block;">Same-Day Reservation</span><span data-guide-panel="ja" style="display:none;">当日予約</span><span data-guide-panel="ko" style="display:none;">당일 예약</span><span data-guide-panel="zh-CN" style="display:none;">当日预约</span><span data-guide-panel="zh-TW" style="display:none;">當日預約</span>
+              </div>
+              <div style="font-size:clamp(12px,2.1vw,14px);font-weight:700;line-height:1.5;margin-bottom:10px;">
+                <span data-guide-panel="en" style="display:block;">Book a seat for today.</span><span data-guide-panel="ja" style="display:none;">今日の席を予約します。</span><span data-guide-panel="ko" style="display:none;">오늘 좌석을 예약합니다.</span><span data-guide-panel="zh-CN" style="display:none;">预约今天的座位。</span><span data-guide-panel="zh-TW" style="display:none;">預約今天的座位。</span>
+              </div>
+              <div style="font-size:clamp(34px,8vw,54px);font-weight:800;line-height:1;letter-spacing:-0.03em;margin:4px 0 5px;color:#b91c1c;">
+                <span data-guide-panel="en" style="display:block;">Free</span><span data-guide-panel="ja" style="display:none;">無料</span><span data-guide-panel="ko" style="display:none;">무료</span><span data-guide-panel="zh-CN" style="display:none;">免费</span><span data-guide-panel="zh-TW" style="display:none;">免費</span>
+              </div>
+              <div style="min-height:20px;margin-bottom:18px;color:#777;font-size:12px;font-weight:600;">
+                <span data-guide-panel="en" style="display:block;">No reservation fee</span><span data-guide-panel="ja" style="display:none;">予約手数料なし</span><span data-guide-panel="ko" style="display:none;">예약 수수료 없음</span><span data-guide-panel="zh-CN" style="display:none;">无需预约费</span><span data-guide-panel="zh-TW" style="display:none;">無需預約費</span>
+              </div>
+              <div style="margin-bottom:20px;">
+                <span style="display:inline-block;margin:3px;padding:3px 10px;border-radius:999px;background:rgba(185,28,28,0.09);color:#8f141b;font-size:11px;font-weight:600;">Today only</span>
+                <span style="display:inline-block;margin:3px;padding:3px 10px;border-radius:999px;background:rgba(185,28,28,0.09);color:#8f141b;font-size:11px;font-weight:600;">Dinner 1:30 PM</span>
+                <span style="display:inline-block;margin:3px;padding:3px 10px;border-radius:999px;background:rgba(185,28,28,0.09);color:#8f141b;font-size:11px;font-weight:600;">Lunch 9:30 AM</span>
+              </div>
+              <a class="kkpay-same-day-gated-link" href="../same-day-reservation-form/" style="display:block;margin-top:auto;padding:12px 10px;border-radius:10px;background:#b91c1c;color:#ffffff;text-decoration:none;font-size:13px;font-weight:800;line-height:1.2;">
+                <span data-guide-panel="en" style="display:block;">Book today &gt;</span><span data-guide-panel="ja" style="display:none;">今日予約する &gt;</span><span data-guide-panel="ko" style="display:none;">오늘 예약 &gt;</span><span data-guide-panel="zh-CN" style="display:none;">预约今天 &gt;</span><span data-guide-panel="zh-TW" style="display:none;">預約今天 &gt;</span>
+              </a>
+            </div>
+          </td>
+          <td style="width:50%;vertical-align:top;">
+            <div style="min-height:354px;box-sizing:border-box;padding:clamp(20px,3vw,28px) clamp(10px,2.6vw,24px) 24px;border:2px solid #17263a;border-radius:20px;background:linear-gradient(160deg,#17263a,#09131f);box-shadow:0 12px 28px rgba(15,29,42,0.22);text-align:center;color:#ffffff;display:flex;flex-direction:column;">
+              <div style="display:inline-block;align-self:center;margin-bottom:18px;padding:4px 14px;border-radius:999px;background:#f6c945;color:#17202a;font-size:10.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">
+                <span data-guide-panel="en" style="display:block;">Future date</span><span data-guide-panel="ja" style="display:none;">未来日</span><span data-guide-panel="ko" style="display:none;">미래일</span><span data-guide-panel="zh-CN" style="display:none;">未来日期</span><span data-guide-panel="zh-TW" style="display:none;">未來日期</span>
+              </div>
+              <div style="font-size:clamp(18px,3.2vw,24px);font-weight:800;line-height:1.25;margin-bottom:10px;">
+                <span data-guide-panel="en" style="display:block;">Premium Reservation</span><span data-guide-panel="ja" style="display:none;">プレミアム予約</span><span data-guide-panel="ko" style="display:none;">프리미엄 예약</span><span data-guide-panel="zh-CN" style="display:none;">高级预约</span><span data-guide-panel="zh-TW" style="display:none;">高級預約</span>
+              </div>
+              <div style="color:rgba(255,255,255,0.78);font-size:clamp(12px,2.1vw,14px);font-weight:700;line-height:1.5;margin-bottom:10px;">
+                <span data-guide-panel="en" style="display:block;">Book from 3 days before your visit.</span><span data-guide-panel="ja" style="display:none;">来店日の3日前から予約できます。</span><span data-guide-panel="ko" style="display:none;">방문 3일 전부터 예약할 수 있습니다.</span><span data-guide-panel="zh-CN" style="display:none;">可从到店前3天开始预约。</span><span data-guide-panel="zh-TW" style="display:none;">可從到店前3天開始預約。</span>
+              </div>
+              <div style="font-size:clamp(34px,8vw,54px);font-weight:800;line-height:1;letter-spacing:-0.03em;margin:4px 0 5px;color:#f6c945;">$13</div>
+              <div style="min-height:20px;margin-bottom:18px;color:rgba(255,255,255,0.62);font-size:12px;font-weight:600;">
+                <span data-guide-panel="en" style="display:block;">per seat / non-refundable</span><span data-guide-panel="ja" style="display:none;">1席あたり / 返金不可</span><span data-guide-panel="ko" style="display:none;">좌석당 / 환불 불가</span><span data-guide-panel="zh-CN" style="display:none;">每席 / 不可退款</span><span data-guide-panel="zh-TW" style="display:none;">每席 / 不可退款</span>
+              </div>
+              <div style="margin-bottom:20px;">
+                <span style="display:inline-block;margin:3px;padding:3px 10px;border-radius:999px;background:rgba(255,255,255,0.1);color:#ffffff;font-size:11px;font-weight:600;">3 days before</span>
+                <span style="display:inline-block;margin:3px;padding:3px 10px;border-radius:999px;background:rgba(255,255,255,0.1);color:#ffffff;font-size:11px;font-weight:600;">Midnight</span>
+                <span style="display:inline-block;margin:3px;padding:3px 10px;border-radius:999px;background:rgba(255,255,255,0.1);color:#ffffff;font-size:11px;font-weight:600;">Blue dates</span>
+              </div>
+              <a href="https://kichikichi.com/premium-guide/" style="display:block;margin-top:auto;padding:12px 10px;border-radius:10px;background:#f6c945;color:#17202a;text-decoration:none;font-size:13px;font-weight:800;line-height:1.2;">
+                <span data-guide-panel="en" style="display:block;">Book ahead &gt;</span><span data-guide-panel="ja" style="display:none;">事前予約する &gt;</span><span data-guide-panel="ko" style="display:none;">미리 예약 &gt;</span><span data-guide-panel="zh-CN" style="display:none;">提前预约 &gt;</span><span data-guide-panel="zh-TW" style="display:none;">提前預約 &gt;</span>
+              </a>
+            </div>
+          </td>
+        </tr>
+      </table>
+
+      <div style="margin:0 0 34px;text-align:center;">
+        <a data-guide-text="check_cancel" href="../same-day-confirmation/" style="display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;width:100%;max-width:420px;min-height:64px;padding:14px 18px;border:2px solid #b91c1c;border-radius:10px;background:#ffffff;color:#b91c1c;text-align:center;text-decoration:none;font-size:13.5px;font-weight:800;line-height:1.35;">
+          <span data-guide-panel="en" style="display:block;">Check / Cancel reservation &gt;</span><span data-guide-panel="ja" style="display:none;">&#20104;&#32004;&#30906;&#35469;&#12539;&#12461;&#12515;&#12531;&#12475;&#12523; &gt;</span><span data-guide-panel="ko" style="display:none;">&#50696;&#50557; &#54869;&#51064;&#183;&#52712;&#49548; &gt;</span><span data-guide-panel="zh-CN" style="display:none;">&#26597;&#35810;&#183;&#21462;&#28040;&#39044;&#32422; &gt;</span><span data-guide-panel="zh-TW" style="display:none;">&#26597;&#35426;&#183;&#21462;&#28040;&#38928;&#32004; &gt;</span>
+        </a>
       </div>
 
-      <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;padding:18px 24px 0;background:#ffffff;">
-        <button type="button" data-guide-button="en" onclick="(function(root,lang){var panels=root.querySelectorAll('[data-guide-panel]');var buttons=root.querySelectorAll('[data-guide-button]');for(var i=0;i&lt;panels.length;i++){panels[i].style.display=panels[i].getAttribute('data-guide-panel')===lang?'block':'none';}for(var j=0;j&lt;buttons.length;j++){var active=buttons[j].getAttribute('data-guide-button')===lang;buttons[j].style.background=active?'#c8102e':'#fff7f8';buttons[j].style.color=active?'#ffffff':'#9f1239';buttons[j].style.borderColor=active?'#c8102e':'#f2c7ce';}})(this.closest('#kkpay-same-day-guide'),'en')" style="appearance:none;border:1px solid #c8102e;border-radius:999px;background:#c8102e;color:#ffffff;min-height:38px;padding:0 14px;font-size:14px;font-weight:800;cursor:pointer;">EN</button>
-        <button type="button" data-guide-button="ja" onclick="(function(root,lang){var panels=root.querySelectorAll('[data-guide-panel]');var buttons=root.querySelectorAll('[data-guide-button]');for(var i=0;i&lt;panels.length;i++){panels[i].style.display=panels[i].getAttribute('data-guide-panel')===lang?'block':'none';}for(var j=0;j&lt;buttons.length;j++){var active=buttons[j].getAttribute('data-guide-button')===lang;buttons[j].style.background=active?'#c8102e':'#fff7f8';buttons[j].style.color=active?'#ffffff':'#9f1239';buttons[j].style.borderColor=active?'#c8102e':'#f2c7ce';}})(this.closest('#kkpay-same-day-guide'),'ja')" style="appearance:none;border:1px solid #f2c7ce;border-radius:999px;background:#fff7f8;color:#9f1239;min-height:38px;padding:0 14px;font-size:14px;font-weight:800;cursor:pointer;">日本語</button>
-        <button type="button" data-guide-button="ko" onclick="(function(root,lang){var panels=root.querySelectorAll('[data-guide-panel]');var buttons=root.querySelectorAll('[data-guide-button]');for(var i=0;i&lt;panels.length;i++){panels[i].style.display=panels[i].getAttribute('data-guide-panel')===lang?'block':'none';}for(var j=0;j&lt;buttons.length;j++){var active=buttons[j].getAttribute('data-guide-button')===lang;buttons[j].style.background=active?'#c8102e':'#fff7f8';buttons[j].style.color=active?'#ffffff':'#9f1239';buttons[j].style.borderColor=active?'#c8102e':'#f2c7ce';}})(this.closest('#kkpay-same-day-guide'),'ko')" style="appearance:none;border:1px solid #f2c7ce;border-radius:999px;background:#fff7f8;color:#9f1239;min-height:38px;padding:0 14px;font-size:14px;font-weight:800;cursor:pointer;">한국어</button>
-        <button type="button" data-guide-button="zh-CN" onclick="(function(root,lang){var panels=root.querySelectorAll('[data-guide-panel]');var buttons=root.querySelectorAll('[data-guide-button]');for(var i=0;i&lt;panels.length;i++){panels[i].style.display=panels[i].getAttribute('data-guide-panel')===lang?'block':'none';}for(var j=0;j&lt;buttons.length;j++){var active=buttons[j].getAttribute('data-guide-button')===lang;buttons[j].style.background=active?'#c8102e':'#fff7f8';buttons[j].style.color=active?'#ffffff':'#9f1239';buttons[j].style.borderColor=active?'#c8102e':'#f2c7ce';}})(this.closest('#kkpay-same-day-guide'),'zh-CN')" style="appearance:none;border:1px solid #f2c7ce;border-radius:999px;background:#fff7f8;color:#9f1239;min-height:38px;padding:0 14px;font-size:14px;font-weight:800;cursor:pointer;">简体中文</button>
-        <button type="button" data-guide-button="zh-TW" onclick="(function(root,lang){var panels=root.querySelectorAll('[data-guide-panel]');var buttons=root.querySelectorAll('[data-guide-button]');for(var i=0;i&lt;panels.length;i++){panels[i].style.display=panels[i].getAttribute('data-guide-panel')===lang?'block':'none';}for(var j=0;j&lt;buttons.length;j++){var active=buttons[j].getAttribute('data-guide-button')===lang;buttons[j].style.background=active?'#c8102e':'#fff7f8';buttons[j].style.color=active?'#ffffff':'#9f1239';buttons[j].style.borderColor=active?'#c8102e':'#f2c7ce';}})(this.closest('#kkpay-same-day-guide'),'zh-TW')" style="appearance:none;border:1px solid #f2c7ce;border-radius:999px;background:#fff7f8;color:#9f1239;min-height:38px;padding:0 14px;font-size:14px;font-weight:800;cursor:pointer;">繁體中文</button>
+      <div style="margin:0 0 16px;padding:22px clamp(16px,3vw,24px);border-radius:18px;background:#fafafa;border:1px solid #e2e2e2;box-shadow:0 8px 24px rgba(0,0,0,0.06);">
+        <div data-guide-text="premium_dates_title" style="max-width:640px;min-height:50px;margin:0 auto 8px;color:#1a1a1a;font-size:19px;font-weight:800;line-height:1.3;text-align:center;">
+          <span data-guide-panel="en" style="display:block;">How to read premium dates</span><span data-guide-panel="ja" style="display:none;">プレミアム予約できる日付について</span><span data-guide-panel="ko" style="display:none;">프리미엄 예약 가능 날짜 안내</span><span data-guide-panel="zh-CN" style="display:none;">高级预约日期说明</span><span data-guide-panel="zh-TW" style="display:none;">高級預約日期說明</span>
+        </div>
+        <div data-guide-text="premium_dates_body" style="max-width:640px;min-height:82px;margin:0 auto;color:#555;font-size:13.5px;line-height:1.75;text-align:left;">
+          <span data-guide-panel="en" style="display:block;">Premium reservations can be made only for dates shown in blue on the calendar. If a date is not blue, it is not available for premium booking. Reservations open at midnight, 3 days before the visit date.</span><span data-guide-panel="ja" style="display:none;">プレミアム予約は、カレンダー上で青く表示されている日付のみ予約できます。青くない日付はプレミアム予約の対象外です。予約受付は来店日の3日前、午前0時に開始します。</span><span data-guide-panel="ko" style="display:none;">프리미엄 예약은 캘린더에서 파란색으로 표시된 날짜에만 가능합니다. 파란색이 아닌 날짜는 프리미엄 예약 대상이 아닙니다. 예약은 방문일 3일 전 자정에 시작됩니다.</span><span data-guide-panel="zh-CN" style="display:none;">高级预约仅可预约日历上以蓝色显示的日期。未显示为蓝色的日期不适用于高级预约。预约将在到店日前3天的0点开放。</span><span data-guide-panel="zh-TW" style="display:none;">高級預約僅可預約日曆上以藍色顯示的日期。未顯示為藍色的日期不適用於高級預約。預約會在到店日前3天的0點開放。</span>
+        </div>
       </div>
 
-      <div style="padding:26px 24px 28px;">
+      <div style="border-top:1.5px solid rgba(0,0,0,0.08);text-align:left;">
         <div data-guide-panel="en" style="display:block;">
-          <p style="margin:0 0 20px;color:#374151;font-size:17px;line-height:1.7;">A free seat reservation for today only. It opens during lunch and dinner booking time.</p>
-          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 20px;">
-            <div style="padding:16px;border:2px solid #c8102e;border-radius:14px;background:#fff4f5;text-align:center;"><span style="display:block;margin:0 0 4px;color:#9f1239;font-size:13px;font-weight:900;letter-spacing:0.08em;text-transform:uppercase;">Lunch Booking</span><strong style="display:block;color:#111827;font-size:24px;line-height:1.2;">9:30 AM - 11:59 AM</strong></div>
-            <div style="padding:16px;border:2px solid #c8102e;border-radius:14px;background:#fff4f5;text-align:center;"><span style="display:block;margin:0 0 4px;color:#9f1239;font-size:13px;font-weight:900;letter-spacing:0.08em;text-transform:uppercase;">Dinner Booking</span><strong style="display:block;color:#111827;font-size:24px;line-height:1.2;">1:30 PM - 3:59 PM</strong></div>
-          </div>
-          <div style="display:grid;gap:12px;margin:0 0 24px;">
-            <div style="display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start;padding:16px;border:1px solid #f3d9de;border-radius:14px;background:#fff8f9;color:#1f2937;font-size:15px;line-height:1.6;"><span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:999px;background:#c8102e;color:#ffffff;font-size:15px;font-weight:900;">1</span><span>Choose your seat, time, and people.</span></div>
-            <div style="display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start;padding:16px;border:1px solid #f3d9de;border-radius:14px;background:#fff8f9;color:#1f2937;font-size:15px;line-height:1.6;"><span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:999px;background:#c8102e;color:#ffffff;font-size:15px;font-weight:900;">2</span><span><strong style="display:block;color:#b91c1c;font-weight:900;">Arrive by your arrival time.</strong>Late arrival may cancel your booking.</span></div>
-            <div style="display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start;padding:16px;border:1px solid #f3d9de;border-radius:14px;background:#fff8f9;color:#1f2937;font-size:15px;line-height:1.6;"><span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:999px;background:#c8102e;color:#ffffff;font-size:15px;font-weight:900;">3</span><span>Wait at the <strong>waiting line（赤いライン）</strong>. Staff will guide you.</span></div>
-          </div>
-          <div style="display:block;text-align:center;">
-            <a class="kkpay-same-day-gated-link" href="https://kichikichi.com/same-day-reservation-form/" style="display:block;box-sizing:border-box;width:100%;max-width:460px;margin:0 auto 14px;padding:18px 20px;border-radius:14px;background:#c8102e;color:#ffffff;text-align:center;text-decoration:none;font-size:16px;font-weight:900;line-height:1.3;">Make a Same-Day Reservation<span style="display:block;margin-top:4px;font-size:12px;font-weight:700;opacity:0.78;">Open the reservation form</span></a>
-            <a href="https://kichikichi.com/same-day-confirmation/" style="display:block;box-sizing:border-box;width:100%;max-width:460px;margin:0 auto;padding:18px 20px;border:2px solid #c8102e;border-radius:14px;background:#ffffff;color:#c8102e;text-align:center;text-decoration:none;font-size:16px;font-weight:900;line-height:1.3;">Check or Cancel<span style="display:block;margin-top:4px;font-size:12px;font-weight:700;opacity:0.78;">Find your same-day reservation</span></a>
-          </div>
+          <div style="margin:0 0 9px;color:#1a1a1a;font-size:15px;font-weight:700;">1. Same-Day Reservation</div>
+          <ul style="list-style:none;margin:0 0 16px;padding:0;color:#444;font-size:14px;line-height:1.7;"><li>- Free of charge; no payment required.</li><li>- Available for today only; reservations cannot be made in advance.</li><li>- Lunch slots open at 9:30 AM. Dinner slots open at 1:30 PM.</li><li>- Once all slots are filled, reservations close for the day.</li></ul>
+          <div style="background:#fdf8f8;border:1.5px solid #f0e2e2;border-radius:14px;padding:18px 22px;margin:12px 0 18px;"><div style="font-size:12.5px;font-weight:700;color:#b91c1c;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Same-Day Booking Steps</div><ol style="list-style:none;margin:0;padding:0;"><li style="padding:9px 0;border-bottom:1px solid #f0e8e8;"><strong>1. Open the same-day reservation form</strong><br>Check availability and proceed only when seats are available.</li><li style="padding:9px 0;border-bottom:1px solid #f0e8e8;"><strong>2. Fill in your information</strong><br>Enter your name, email, time, seat type, and number of guests.</li><li style="padding:9px 0;"><strong>3. Submit and check for success</strong><br>When the success message appears, your reservation is complete.</li></ol></div>
+          <div style="margin:22px 0 9px;color:#1a1a1a;font-size:15px;font-weight:700;">2. Premium Reservation</div>
+          <ul style="list-style:none;margin:0 0 16px;padding:0;color:#444;font-size:14px;line-height:1.7;"><li>- Available only on dates shown in blue on the calendar.</li><li>- Reservations open at midnight, 3 days before your desired date.</li><li>- A non-refundable reservation fee of $13 per seat is required.</li><li>- Late arrival results in automatic cancellation.</li></ul>
         </div>
-
         <div data-guide-panel="ja" style="display:none;">
-          <p style="margin:0 0 20px;color:#374151;font-size:17px;line-height:1.7;">無料の当日席予約です。ランチ・ディナーの受付時間中だけ予約できます。</p>
-          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 20px;">
-            <div style="padding:16px;border:2px solid #c8102e;border-radius:14px;background:#fff4f5;text-align:center;"><span style="display:block;margin:0 0 4px;color:#9f1239;font-size:13px;font-weight:900;letter-spacing:0.08em;">ランチの予約受付</span><strong style="display:block;color:#111827;font-size:24px;line-height:1.2;">9:30 - 11:59</strong></div>
-            <div style="padding:16px;border:2px solid #c8102e;border-radius:14px;background:#fff4f5;text-align:center;"><span style="display:block;margin:0 0 4px;color:#9f1239;font-size:13px;font-weight:900;letter-spacing:0.08em;">ディナーの予約受付</span><strong style="display:block;color:#111827;font-size:24px;line-height:1.2;">13:30 - 15:59</strong></div>
-          </div>
-          <div style="display:grid;gap:12px;margin:0 0 24px;">
-            <div style="display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start;padding:16px;border:1px solid #f3d9de;border-radius:14px;background:#fff8f9;color:#1f2937;font-size:15px;line-height:1.6;"><span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:999px;background:#c8102e;color:#ffffff;font-size:15px;font-weight:900;">1</span><span>席・時間・人数を選んでください。</span></div>
-            <div style="display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start;padding:16px;border:1px solid #f3d9de;border-radius:14px;background:#fff8f9;color:#1f2937;font-size:15px;line-height:1.6;"><span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:999px;background:#c8102e;color:#ffffff;font-size:15px;font-weight:900;">2</span><span><strong style="display:block;color:#b91c1c;font-weight:900;">ご来店時間までにお越しください。</strong>遅刻はキャンセル扱いになる場合があります。</span></div>
-            <div style="display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start;padding:16px;border:1px solid #f3d9de;border-radius:14px;background:#fff8f9;color:#1f2937;font-size:15px;line-height:1.6;"><span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:999px;background:#c8102e;color:#ffffff;font-size:15px;font-weight:900;">3</span><span><strong>waiting line（赤いライン）</strong>でお待ちください。スタッフがご案内します。</span></div>
-          </div>
-          <div style="display:block;text-align:center;">
-            <a class="kkpay-same-day-gated-link" href="https://kichikichi.com/same-day-reservation-form/" style="display:block;box-sizing:border-box;width:100%;max-width:460px;margin:0 auto 14px;padding:18px 20px;border-radius:14px;background:#c8102e;color:#ffffff;text-align:center;text-decoration:none;font-size:16px;font-weight:900;line-height:1.3;">予約する<span style="display:block;margin-top:4px;font-size:12px;font-weight:700;opacity:0.78;">当日予約フォーム</span></a>
-            <a href="https://kichikichi.com/same-day-confirmation/" style="display:block;box-sizing:border-box;width:100%;max-width:460px;margin:0 auto;padding:18px 20px;border:2px solid #c8102e;border-radius:14px;background:#ffffff;color:#c8102e;text-align:center;text-decoration:none;font-size:16px;font-weight:900;line-height:1.3;">確認・キャンセル<span style="display:block;margin-top:4px;font-size:12px;font-weight:700;opacity:0.78;">当日予約を検索</span></a>
-          </div>
+          <div style="margin:0 0 9px;color:#1a1a1a;font-size:15px;font-weight:700;">1. 当日予約</div>
+          <ul style="list-style:none;margin:0 0 16px;padding:0;color:#444;font-size:14px;line-height:1.7;"><li>- 無料です。支払いは不要です。</li><li>- 当日のみ予約できます。事前予約はできません。</li><li>- ランチは9:30、ディナーは13:30に受付を開始します。</li><li>- 満席になり次第、その日の受付は終了します。</li></ul>
+          <div style="background:#fdf8f8;border:1.5px solid #f0e2e2;border-radius:14px;padding:18px 22px;margin:12px 0 18px;"><div style="font-size:12.5px;font-weight:700;color:#b91c1c;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">当日予約の流れ</div><ol style="list-style:none;margin:0;padding:0;"><li style="padding:9px 0;border-bottom:1px solid #f0e8e8;"><strong>1. 当日予約フォームを開く</strong><br>空席がある場合のみ予約フォームへ進みます。</li><li style="padding:9px 0;border-bottom:1px solid #f0e8e8;"><strong>2. 情報を入力する</strong><br>名前、メール、時間、席種、人数を入力します。</li><li style="padding:9px 0;"><strong>3. 送信して完了表示を確認する</strong><br>成功メッセージが表示されると予約完了です。</li></ol></div>
+          <div style="margin:22px 0 9px;color:#1a1a1a;font-size:15px;font-weight:700;">2. プレミアム予約</div>
+          <ul style="list-style:none;margin:0 0 16px;padding:0;color:#444;font-size:14px;line-height:1.7;"><li>- カレンダー上で青く表示されている日付のみ予約できます。</li><li>- 希望日の3日前0時から受付を開始します。</li><li>- 1席あたり$13の返金不可の予約料が必要です。</li><li>- 到着が遅れた場合は自動キャンセルになります。</li></ul>
         </div>
-
         <div data-guide-panel="ko" style="display:none;">
-          <p style="margin:0 0 20px;color:#374151;font-size:17px;line-height:1.7;">무료 당일 좌석 예약입니다. 점심/저녁 예약 시간에만 열립니다.</p>
-          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 20px;">
-            <div style="padding:16px;border:2px solid #c8102e;border-radius:14px;background:#fff4f5;text-align:center;"><span style="display:block;margin:0 0 4px;color:#9f1239;font-size:13px;font-weight:900;letter-spacing:0.08em;">점심 예약</span><strong style="display:block;color:#111827;font-size:24px;line-height:1.2;">9:30 AM - 11:59 AM</strong></div>
-            <div style="padding:16px;border:2px solid #c8102e;border-radius:14px;background:#fff4f5;text-align:center;"><span style="display:block;margin:0 0 4px;color:#9f1239;font-size:13px;font-weight:900;letter-spacing:0.08em;">저녁 예약</span><strong style="display:block;color:#111827;font-size:24px;line-height:1.2;">1:30 PM - 3:59 PM</strong></div>
-          </div>
-          <div style="display:grid;gap:12px;margin:0 0 24px;">
-            <div style="display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start;padding:16px;border:1px solid #f3d9de;border-radius:14px;background:#fff8f9;color:#1f2937;font-size:15px;line-height:1.6;"><span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:999px;background:#c8102e;color:#ffffff;font-size:15px;font-weight:900;">1</span><span>좌석, 시간, 인원을 선택하세요.</span></div>
-            <div style="display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start;padding:16px;border:1px solid #f3d9de;border-radius:14px;background:#fff8f9;color:#1f2937;font-size:15px;line-height:1.6;"><span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:999px;background:#c8102e;color:#ffffff;font-size:15px;font-weight:900;">2</span><span><strong style="display:block;color:#b91c1c;font-weight:900;">도착 시간까지 와 주세요.</strong>늦으면 예약이 취소될 수 있습니다.</span></div>
-            <div style="display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start;padding:16px;border:1px solid #f3d9de;border-radius:14px;background:#fff8f9;color:#1f2937;font-size:15px;line-height:1.6;"><span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:999px;background:#c8102e;color:#ffffff;font-size:15px;font-weight:900;">3</span><span><strong>waiting line（赤いライン）</strong>에서 기다려 주세요. 직원이 안내합니다.</span></div>
-          </div>
-          <div style="display:block;text-align:center;">
-            <a class="kkpay-same-day-gated-link" href="https://kichikichi.com/same-day-reservation-form/" style="display:block;box-sizing:border-box;width:100%;max-width:460px;margin:0 auto 14px;padding:18px 20px;border-radius:14px;background:#c8102e;color:#ffffff;text-align:center;text-decoration:none;font-size:16px;font-weight:900;line-height:1.3;">예약하기<span style="display:block;margin-top:4px;font-size:12px;font-weight:700;opacity:0.78;">당일 예약 양식</span></a>
-            <a href="https://kichikichi.com/same-day-confirmation/" style="display:block;box-sizing:border-box;width:100%;max-width:460px;margin:0 auto;padding:18px 20px;border:2px solid #c8102e;border-radius:14px;background:#ffffff;color:#c8102e;text-align:center;text-decoration:none;font-size:16px;font-weight:900;line-height:1.3;">확인・취소<span style="display:block;margin-top:4px;font-size:12px;font-weight:700;opacity:0.78;">당일 예약 찾기</span></a>
-          </div>
+          <div style="margin:0 0 9px;color:#1a1a1a;font-size:15px;font-weight:700;">1. 당일 예약</div>
+          <ul style="list-style:none;margin:0 0 16px;padding:0;color:#444;font-size:14px;line-height:1.7;"><li>- 무료이며 결제가 필요하지 않습니다.</li><li>- 당일 좌석만 예약할 수 있습니다.</li><li>- 점심은 오전 9시 30분, 저녁은 오후 1시 30분에 오픈합니다.</li><li>- 좌석이 모두 차면 당일 예약은 마감됩니다.</li></ul>
+          <div style="background:#fdf8f8;border:1.5px solid #f0e2e2;border-radius:14px;padding:18px 22px;margin:12px 0 18px;"><div style="font-size:12.5px;font-weight:700;color:#b91c1c;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">당일 예약 순서</div><ol style="list-style:none;margin:0;padding:0;"><li style="padding:9px 0;border-bottom:1px solid #f0e8e8;"><strong>1. 당일 예약 폼 열기</strong><br>좌석이 있을 때만 예약 폼으로 진행합니다.</li><li style="padding:9px 0;border-bottom:1px solid #f0e8e8;"><strong>2. 정보 입력</strong><br>이름, 이메일, 시간, 좌석 종류, 인원수를 입력합니다.</li><li style="padding:9px 0;"><strong>3. 제출 후 성공 메시지 확인</strong><br>성공 메시지가 표시되면 예약이 완료됩니다.</li></ol></div>
+          <div style="margin:22px 0 9px;color:#1a1a1a;font-size:15px;font-weight:700;">2. 프리미엄 예약</div>
+          <ul style="list-style:none;margin:0 0 16px;padding:0;color:#444;font-size:14px;line-height:1.7;"><li>- 캘린더에서 파란색으로 표시된 날짜만 예약할 수 있습니다.</li><li>- 희망일 3일 전 자정부터 오픈합니다.</li><li>- 좌석당 $13의 환불 불가 예약료가 필요합니다.</li><li>- 늦게 도착하면 자동으로 취소됩니다.</li></ul>
         </div>
-
         <div data-guide-panel="zh-CN" style="display:none;">
-          <p style="margin:0 0 20px;color:#374151;font-size:17px;line-height:1.7;">免费的当日座位预约。只在午餐和晚餐预约时间开放。</p>
-          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 20px;">
-            <div style="padding:16px;border:2px solid #c8102e;border-radius:14px;background:#fff4f5;text-align:center;"><span style="display:block;margin:0 0 4px;color:#9f1239;font-size:13px;font-weight:900;letter-spacing:0.08em;">午餐预约</span><strong style="display:block;color:#111827;font-size:24px;line-height:1.2;">9:30 AM - 11:59 AM</strong></div>
-            <div style="padding:16px;border:2px solid #c8102e;border-radius:14px;background:#fff4f5;text-align:center;"><span style="display:block;margin:0 0 4px;color:#9f1239;font-size:13px;font-weight:900;letter-spacing:0.08em;">晚餐预约</span><strong style="display:block;color:#111827;font-size:24px;line-height:1.2;">1:30 PM - 3:59 PM</strong></div>
-          </div>
-          <div style="display:grid;gap:12px;margin:0 0 24px;">
-            <div style="display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start;padding:16px;border:1px solid #f3d9de;border-radius:14px;background:#fff8f9;color:#1f2937;font-size:15px;line-height:1.6;"><span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:999px;background:#c8102e;color:#ffffff;font-size:15px;font-weight:900;">1</span><span>请选择座位、时间和人数。</span></div>
-            <div style="display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start;padding:16px;border:1px solid #f3d9de;border-radius:14px;background:#fff8f9;color:#1f2937;font-size:15px;line-height:1.6;"><span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:999px;background:#c8102e;color:#ffffff;font-size:15px;font-weight:900;">2</span><span><strong style="display:block;color:#b91c1c;font-weight:900;">请在到店时间前到达。</strong>迟到可能会被取消预约。</span></div>
-            <div style="display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start;padding:16px;border:1px solid #f3d9de;border-radius:14px;background:#fff8f9;color:#1f2937;font-size:15px;line-height:1.6;"><span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:999px;background:#c8102e;color:#ffffff;font-size:15px;font-weight:900;">3</span><span>请在 <strong>waiting line（赤いライン）</strong> 排队等候。工作人员会带您入座。</span></div>
-          </div>
-          <div style="display:block;text-align:center;">
-            <a class="kkpay-same-day-gated-link" href="https://kichikichi.com/same-day-reservation-form/" style="display:block;box-sizing:border-box;width:100%;max-width:460px;margin:0 auto 14px;padding:18px 20px;border-radius:14px;background:#c8102e;color:#ffffff;text-align:center;text-decoration:none;font-size:16px;font-weight:900;line-height:1.3;">立即预约<span style="display:block;margin-top:4px;font-size:12px;font-weight:700;opacity:0.78;">当日预约表单</span></a>
-            <a href="https://kichikichi.com/same-day-confirmation/" style="display:block;box-sizing:border-box;width:100%;max-width:460px;margin:0 auto;padding:18px 20px;border:2px solid #c8102e;border-radius:14px;background:#ffffff;color:#c8102e;text-align:center;text-decoration:none;font-size:16px;font-weight:900;line-height:1.3;">确认・取消<span style="display:block;margin-top:4px;font-size:12px;font-weight:700;opacity:0.78;">查找当日预约</span></a>
-          </div>
+          <div style="margin:0 0 9px;color:#1a1a1a;font-size:15px;font-weight:700;">1. 当日预约</div>
+          <ul style="list-style:none;margin:0 0 16px;padding:0;color:#444;font-size:14px;line-height:1.7;"><li>- 免费，无需付款。</li><li>- 仅限当天预约，不能提前预约。</li><li>- 午餐上午9:30开放，晚餐下午1:30开放。</li><li>- 座位满后当天预约关闭。</li></ul>
+          <div style="background:#fdf8f8;border:1.5px solid #f0e2e2;border-radius:14px;padding:18px 22px;margin:12px 0 18px;"><div style="font-size:12.5px;font-weight:700;color:#b91c1c;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">当日预约步骤</div><ol style="list-style:none;margin:0;padding:0;"><li style="padding:9px 0;border-bottom:1px solid #f0e8e8;"><strong>1. 打开当日预约表单</strong><br>有空位时才可继续预约。</li><li style="padding:9px 0;border-bottom:1px solid #f0e8e8;"><strong>2. 填写信息</strong><br>填写姓名、邮箱、时间、座位类型和人数。</li><li style="padding:9px 0;"><strong>3. 提交并确认成功提示</strong><br>显示成功信息后预约完成。</li></ol></div>
+          <div style="margin:22px 0 9px;color:#1a1a1a;font-size:15px;font-weight:700;">2. 高级预约</div>
+          <ul style="list-style:none;margin:0 0 16px;padding:0;color:#444;font-size:14px;line-height:1.7;"><li>- 仅可预约日历上以蓝色显示的日期。</li><li>- 希望日期前3天0点开放。</li><li>- 每席需支付$13不可退款预约费。</li><li>- 迟到将自动取消。</li></ul>
+        </div>
+        <div data-guide-panel="zh-TW" style="display:none;">
+          <div style="margin:0 0 9px;color:#1a1a1a;font-size:15px;font-weight:700;">1. 當日預約</div>
+          <ul style="list-style:none;margin:0 0 16px;padding:0;color:#444;font-size:14px;line-height:1.7;"><li>- 免費，無需付款。</li><li>- 僅限當天預約，不能提前預約。</li><li>- 午餐上午9:30開放，晚餐下午1:30開放。</li><li>- 座位滿後當天預約關閉。</li></ul>
+          <div style="background:#fdf8f8;border:1.5px solid #f0e2e2;border-radius:14px;padding:18px 22px;margin:12px 0 18px;"><div style="font-size:12.5px;font-weight:700;color:#b91c1c;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">當日預約步驟</div><ol style="list-style:none;margin:0;padding:0;"><li style="padding:9px 0;border-bottom:1px solid #f0e8e8;"><strong>1. 打開當日預約表單</strong><br>有空位時才可繼續預約。</li><li style="padding:9px 0;border-bottom:1px solid #f0e8e8;"><strong>2. 填寫資訊</strong><br>填寫姓名、信箱、時間、座位類型和人數。</li><li style="padding:9px 0;"><strong>3. 送出並確認成功提示</strong><br>顯示成功訊息後預約完成。</li></ol></div>
+          <div style="margin:22px 0 9px;color:#1a1a1a;font-size:15px;font-weight:700;">2. 高級預約</div>
+          <ul style="list-style:none;margin:0 0 16px;padding:0;color:#444;font-size:14px;line-height:1.7;"><li>- 僅可預約日曆上以藍色顯示的日期。</li><li>- 希望日期前3天0點開放。</li><li>- 每席需支付$13不可退款預約費。</li><li>- 遲到將自動取消。</li></ul>
         </div>
 
-        <div data-guide-panel="zh-TW" style="display:none;">
-          <p style="margin:0 0 20px;color:#374151;font-size:17px;line-height:1.7;">免費的當日座位預約。只在午餐和晚餐預約時間開放。</p>
-          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 20px;">
-            <div style="padding:16px;border:2px solid #c8102e;border-radius:14px;background:#fff4f5;text-align:center;"><span style="display:block;margin:0 0 4px;color:#9f1239;font-size:13px;font-weight:900;letter-spacing:0.08em;">午餐預約</span><strong style="display:block;color:#111827;font-size:24px;line-height:1.2;">9:30 AM - 11:59 AM</strong></div>
-            <div style="padding:16px;border:2px solid #c8102e;border-radius:14px;background:#fff4f5;text-align:center;"><span style="display:block;margin:0 0 4px;color:#9f1239;font-size:13px;font-weight:900;letter-spacing:0.08em;">晚餐預約</span><strong style="display:block;color:#111827;font-size:24px;line-height:1.2;">1:30 PM - 3:59 PM</strong></div>
-          </div>
-          <div style="display:grid;gap:12px;margin:0 0 24px;">
-            <div style="display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start;padding:16px;border:1px solid #f3d9de;border-radius:14px;background:#fff8f9;color:#1f2937;font-size:15px;line-height:1.6;"><span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:999px;background:#c8102e;color:#ffffff;font-size:15px;font-weight:900;">1</span><span>請選擇座位、時間和人數。</span></div>
-            <div style="display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start;padding:16px;border:1px solid #f3d9de;border-radius:14px;background:#fff8f9;color:#1f2937;font-size:15px;line-height:1.6;"><span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:999px;background:#c8102e;color:#ffffff;font-size:15px;font-weight:900;">2</span><span><strong style="display:block;color:#b91c1c;font-weight:900;">請在到店時間前抵達。</strong>遲到可能會被取消預約。</span></div>
-            <div style="display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start;padding:16px;border:1px solid #f3d9de;border-radius:14px;background:#fff8f9;color:#1f2937;font-size:15px;line-height:1.6;"><span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:999px;background:#c8102e;color:#ffffff;font-size:15px;font-weight:900;">3</span><span>請在 <strong>waiting line（赤いライン）</strong> 排隊等候。工作人員會帶您入座。</span></div>
-          </div>
-          <div style="display:block;text-align:center;">
-            <a class="kkpay-same-day-gated-link" href="https://kichikichi.com/same-day-reservation-form/" style="display:block;box-sizing:border-box;width:100%;max-width:460px;margin:0 auto 14px;padding:18px 20px;border-radius:14px;background:#c8102e;color:#ffffff;text-align:center;text-decoration:none;font-size:16px;font-weight:900;line-height:1.3;">立即預約<span style="display:block;margin-top:4px;font-size:12px;font-weight:700;opacity:0.78;">當日預約表單</span></a>
-            <a href="https://kichikichi.com/same-day-confirmation/" style="display:block;box-sizing:border-box;width:100%;max-width:460px;margin:0 auto;padding:18px 20px;border:2px solid #c8102e;border-radius:14px;background:#ffffff;color:#c8102e;text-align:center;text-decoration:none;font-size:16px;font-weight:900;line-height:1.3;">確認・取消<span style="display:block;margin-top:4px;font-size:12px;font-weight:700;opacity:0.78;">查找當日預約</span></a>
-          </div>
+        <div style="margin:16px 0 0;padding:18px 22px;border-radius:14px;background:#0f1d2a;color:#ffffff;">
+          <div style="margin-bottom:8px;color:rgba(255,255,255,0.55);font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">Important / Premium Policy</div>
+          <ul style="list-style:none;margin:0;padding:0;color:rgba(255,255,255,0.88);font-size:13px;line-height:1.65;"><li>- Reservation fee: $13 per seat, paid at booking.</li><li>- The reservation fee is non-refundable.</li><li>- Late arrival results in automatic cancellation.</li><li>- Guest count cannot be changed after confirmation.</li></ul>
         </div>
       </div>
     </div>
-  </section>
-
+  </div>
 </div>

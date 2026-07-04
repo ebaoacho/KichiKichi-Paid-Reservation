@@ -1,5 +1,5 @@
 /* kkpay-mypage.js – 予約照会・キャンセルページ制御 */
-/* globals kkpay_mypage, jQuery */
+/* globals kkpay_mypage, jQuery, KKPayLanguageSync */
 
 (function ($) {
     'use strict';
@@ -136,12 +136,22 @@
         $('#lbl-my-cancel-policy').text(t('cancel_policy'));
     }
 
-    $langSel.on('change', function () {
-        lang = $(this).val();
+    function applyLanguage(newLang) {
+        if (!LABELS[newLang] || newLang === lang) {
+            return;
+        }
+        lang = newLang;
+        $langSel.val(lang);
         updateLabels();
         if (currentReservation) {
             renderDetails(currentReservation);
         }
+    }
+
+    KKPayLanguageSync.bind({
+        $select: $langSel,
+        source: 'premium',
+        applyLanguage: applyLanguage,
     });
 
     // 予約照会
