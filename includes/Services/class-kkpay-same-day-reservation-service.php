@@ -8,6 +8,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class KKPAY_Same_Day_Reservation_Service {
 
+    public static function calculate_deposit_amount( $number_of_people ) {
+        $people      = max( 1, (int) $number_of_people );
+        $unit_amount = (int) KKPAY_SAME_DAY_DEPOSIT_AMOUNT;
+
+        return max( 0, $unit_amount ) * $people;
+    }
+
     public static function get_status() {
         $tz      = new DateTimeZone( 'Asia/Tokyo' );
         $now     = new DateTimeImmutable( 'now', $tz );
@@ -276,9 +283,7 @@ class KKPAY_Same_Day_Reservation_Service {
         }
 
         $confirmed = KKPAY_Reservation_Repository::sum_active_people_for_slot_and_seat( $date, $slot, $seating_preference );
-        // kkpay_holds にはまだ seating_preference カラムがないため、既存 hold は Bar hold として扱う。
-        // TODO: 当日予約で Table hold を導入する際は、kkpay_holds に席種別を追加してここを置き換える。
-        $held      = $seating_preference === 'Bar' ? KKPAY_Hold_Repository::sum_people_for_slot( $date, $slot ) : 0;
+        $held      = KKPAY_Hold_Repository::sum_people_for_slot_and_seat( $date, $slot, $seating_preference );
         $capacity  = max( 0, (int) $capacity_row->capacity );
 
         return max( 0, $capacity - $confirmed - $held );

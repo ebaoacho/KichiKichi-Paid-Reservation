@@ -82,7 +82,7 @@ Step 3（プレミアム予約・スペシャルプレミアム予約の `Bar` �
 - `kkpay_accepted_dates` ではなく `kkpay_slot_capacities` を参照していること
 - `enabled = 0` または行が存在しない場合に `0` を返していること
 - `sum_active_people_for_slot_and_seat('Bar')` で `seating_preference = 'Bar'` に絞って確定席数を計算していること
-- `KKPAY_Hold_Repository::sum_people_for_slot()` は `seating_preference` を区別しない（既知の暫定仕様）ため、`Bar` 以外の seating_preference を引数にした場合に `0` を返すことが CapacityService のコメントで明示されていること
+- `KKPAY_Hold_Repository::sum_people_for_slot_and_seat()` / `sum_people_for_slot_and_seat_with_lock()` で `seating_preference = 'Bar'` に絞って有効ホールド席数を計算していること
 
 ---
 

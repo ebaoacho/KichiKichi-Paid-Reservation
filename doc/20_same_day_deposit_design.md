@@ -437,14 +437,18 @@ flowchart TD
 
 - `includes/Services/class-kkpay-hold-service.php`
 - `includes/Services/class-kkpay-capacity-service.php`
-- `includes/Services/class-kkpay-reservation-service.php`（`create_from_same_day_hold()` の追加のみ）
+- `includes/Services/class-kkpay-reservation-service.php`
+- `includes/Services/class-kkpay-same-day-reservation-service.php`
 - `includes/Repositories/class-kkpay-hold-repository.php`（`seating_preference` を含めたINSERT/SELECT対応）
 
 実装内容:
 
 - `KKPAY_Hold_Service::create()` に `$seating_preference = 'Bar'` 引数を追加し、`KKPAY_Capacity_Service::check_available_for_update()` と `KKPAY_Hold_Repository::insert()` にそのまま渡す。
 - `KKPAY_Capacity_Service::sum_held_people_for_slot_and_seat()` の「`Bar` 以外は問答無用で0を返す」ハードコードを、`seating_preference` 条件付きのホールド集計に置き換える。
-- `KKPAY_Reservation_Service::get_remaining_capacity()`（`Bar` 固定で呼ばれている既存メソッド）は変更しないが、同ファイルに `create_from_same_day_hold( $hold, $pi_id, $charge_id, $status )` を新規追加する。`create_from_hold()` と同じトランザクション構造で、`reservation_type = 'same_day'`、`seating_preference = $hold->seating_preference`、`amount = KKPAY_Same_Day_Reservation_Service::calculate_deposit_amount( $hold->number_of_people )` を保存する。
+- 表示用残席計算も、ホールド分については席種別条件付き集計へ置き換える。`KKPAY_Reservation_Service::get_remaining_capacity()` は引き続き通常予約向けに `Bar` 固定で計算するが、`Table` ホールドが `Bar` 残席に混入しないようホールド集計だけ `Bar` 条件付きにする。
+- `KKPAY_Same_Day_Reservation_Service::remaining_capacity()` の同様のTODOハックも解消し、当日予約の `Table` / `Bar` 表示用残席がそれぞれのホールドだけを反映するようにする。
+- `KKPAY_Same_Day_Reservation_Service::calculate_deposit_amount( $number_of_people )` を新規追加する。
+- `KKPAY_Reservation_Service` に `create_from_same_day_hold( $hold, $pi_id, $charge_id, $status )` を新規追加する。`create_from_hold()` と同じトランザクション構造で、`reservation_type = 'same_day'`、`seating_preference = $hold->seating_preference`、`amount = KKPAY_Same_Day_Reservation_Service::calculate_deposit_amount( $hold->number_of_people )` を保存する。
 
 含めないもの:
 
@@ -454,6 +458,7 @@ flowchart TD
 レビュー観点:
 
 - 既存の通常予約・プレミアム予約の呼び出し（`seating_preference` を渡さない）で計算結果が1件たりとも変わらないこと。
+- `Table` ホールドが通常予約向けの `Bar` 残席表示に混入しないこと。
 - `create_from_hold()` と `create_from_same_day_hold()` の重複がやむを得ない範囲に収まっているか（無理な共通化で可読性を落としていないか）。
 - ロック順序・トランザクション境界が既存パターン（`START TRANSACTION` → `FOR UPDATE` → INSERT → COMMIT）を踏襲しているか。
 

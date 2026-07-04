@@ -97,12 +97,6 @@ class KKPAY_Capacity_Service {
     }
 
     private static function sum_held_people_for_slot_and_seat( $date, $slot, $seating_preference ) {
-        // kkpay_holds にはまだ seating_preference カラムがないため、既存の hold はプレミアム予約フローの Bar hold として扱う。
-        // 当日予約の Table hold を導入する際は、席種別の hold 集計に置き換えること。
-        if ( $seating_preference !== 'Bar' ) {
-            return 0;
-        }
-
-        return KKPAY_Hold_Repository::sum_people_for_slot( $date, $slot );
+        return KKPAY_Hold_Repository::sum_people_for_slot_and_seat_with_lock( $date, $slot, $seating_preference );
     }
 }
