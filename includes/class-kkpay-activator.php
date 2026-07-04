@@ -80,6 +80,22 @@ class KKPAY_Activator {
             return true;
         }
 
+        $required_hold_columns = array(
+            'reservation_date',
+            'time_slot',
+            'seating_preference',
+            'number_of_people',
+            'name',
+            'email',
+            'language',
+            'hold_token',
+            'expires_at',
+            'created_at',
+        );
+        if ( ! self::table_has_columns( $wpdb->prefix . 'kkpay_holds', $required_hold_columns ) ) {
+            return true;
+        }
+
         $required_slot_capacity_columns = array(
             'capacity_date',
             'time_slot',
@@ -166,6 +182,7 @@ class KKPAY_Activator {
             id                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             reservation_date  DATE            NOT NULL,
             time_slot         VARCHAR(20)     NOT NULL,
+            seating_preference VARCHAR(20)    NOT NULL DEFAULT 'Bar',
             number_of_people  TINYINT UNSIGNED NOT NULL,
             name              VARCHAR(100)    NOT NULL,
             email             VARCHAR(100)    NOT NULL,
