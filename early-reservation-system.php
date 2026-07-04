@@ -378,7 +378,8 @@ function kkpay_enqueue_assets() {
 function kkpay_enqueue_mypage_assets() {
     wp_enqueue_style( 'kkpay-form',   KKPAY_PLUGIN_URL . 'assets/css/kkpay-form.css',   array(), KKPAY_VERSION );
     wp_enqueue_style( 'kkpay-mypage', KKPAY_PLUGIN_URL . 'assets/css/kkpay-mypage.css', array( 'kkpay-form' ), KKPAY_VERSION );
-    wp_enqueue_script( 'kkpay-mypage', KKPAY_PLUGIN_URL . 'assets/js/kkpay-mypage.js', array( 'jquery' ), KKPAY_VERSION, true );
+    wp_enqueue_script( 'kkpay-language-sync', KKPAY_PLUGIN_URL . 'assets/js/kkpay-language-sync.js', array( 'jquery' ), KKPAY_VERSION, true );
+    wp_enqueue_script( 'kkpay-mypage', KKPAY_PLUGIN_URL . 'assets/js/kkpay-mypage.js', array( 'jquery', 'kkpay-language-sync' ), KKPAY_VERSION, true );
     wp_localize_script( 'kkpay-mypage', 'kkpay_mypage', array(
         'ajax_url'   => admin_url( 'admin-ajax.php' ),
         'nonce'      => wp_create_nonce( 'kkpay_nonce' ),
@@ -413,7 +414,8 @@ function kkpay_enqueue_premium_cancel_assets() {
 function kkpay_enqueue_same_day_confirmation_assets() {
     wp_enqueue_style( 'kkpay-form', KKPAY_PLUGIN_URL . 'assets/css/kkpay-form.css', array(), KKPAY_VERSION );
     wp_enqueue_style( 'kkpay-same-day-confirmation', KKPAY_PLUGIN_URL . 'assets/css/kkpay-same-day-confirmation.css', array( 'kkpay-form' ), KKPAY_VERSION );
-    wp_enqueue_script( 'kkpay-same-day-confirmation', KKPAY_PLUGIN_URL . 'assets/js/kkpay-same-day-confirmation.js', array( 'jquery' ), KKPAY_VERSION, true );
+    wp_enqueue_script( 'kkpay-language-sync', KKPAY_PLUGIN_URL . 'assets/js/kkpay-language-sync.js', array( 'jquery' ), KKPAY_VERSION, true );
+    wp_enqueue_script( 'kkpay-same-day-confirmation', KKPAY_PLUGIN_URL . 'assets/js/kkpay-same-day-confirmation.js', array( 'jquery', 'kkpay-language-sync' ), KKPAY_VERSION, true );
     wp_localize_script( 'kkpay-same-day-confirmation', 'kkpay_same_day_confirmation', array(
         'ajax_url'    => admin_url( 'admin-ajax.php' ),
         'nonce'       => wp_create_nonce( 'kkpay_nonce' ),

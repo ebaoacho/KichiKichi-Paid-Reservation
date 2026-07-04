@@ -14,7 +14,17 @@
     }
 
     function activeLang(link) {
-        var panel = link.closest('[data-guide-panel]');
+        var panels = link.querySelectorAll('[data-guide-panel]');
+        var panel;
+        var i;
+
+        for (i = 0; i < panels.length; i++) {
+            if (window.getComputedStyle(panels[i]).display !== 'none') {
+                return panels[i].getAttribute('data-guide-panel');
+            }
+        }
+
+        panel = link.closest('[data-guide-panel]');
         return panel ? panel.getAttribute('data-guide-panel') : 'en';
     }
 
@@ -61,6 +71,40 @@
         if (page) {
             page.classList.remove('kkpay-same-day-gate-blocked');
         }
+    }
+
+    function setGuideLanguage(root, lang) {
+        var panels;
+        var buttons;
+        var i;
+        var active;
+
+        if (!root || !lang) {
+            return;
+        }
+
+        panels = root.querySelectorAll('[data-guide-panel]');
+        buttons = root.querySelectorAll('[data-guide-button]');
+
+        for (i = 0; i < panels.length; i++) {
+            panels[i].style.display = panels[i].getAttribute('data-guide-panel') === lang ? 'block' : 'none';
+        }
+
+        for (i = 0; i < buttons.length; i++) {
+            active = buttons[i].getAttribute('data-guide-button') === lang;
+            buttons[i].style.background = active ? '#b91c1c' : '#ffffff';
+            buttons[i].style.color = active ? '#ffffff' : '#8c1d26';
+            buttons[i].style.borderColor = active ? '#b91c1c' : '#e8d4d6';
+            buttons[i].style.fontWeight = active ? '700' : '500';
+        }
+    }
+
+    function bindGuideLanguageButtons() {
+        document.querySelectorAll('#kkpay-same-day-guide [data-guide-button]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                setGuideLanguage(button.closest('#kkpay-same-day-guide'), button.getAttribute('data-guide-button'));
+            });
+        });
     }
 
     function showGraphic(link, type) {
@@ -271,6 +315,8 @@
     document.querySelectorAll('.kkpay-same-day-gated-link').forEach(function (link) {
         link.addEventListener('click', checkStatus);
     });
+
+    bindGuideLanguageButtons();
 
     document.querySelectorAll('.kkpay-same-day-gate-back').forEach(function (button) {
         button.addEventListener('click', resetBlockedView);
