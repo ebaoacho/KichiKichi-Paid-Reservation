@@ -66,9 +66,7 @@ class KKPAY_Same_Day_Reservation_Service {
         return $result;
     }
 
-    public static function create( array $data ) {
-        global $wpdb;
-
+    public static function create_hold( array $data ) {
         $tz    = new DateTimeZone( 'Asia/Tokyo' );
         $now   = new DateTimeImmutable( 'now', $tz );
         $today = $now->format( 'Y-m-d' );
@@ -77,9 +75,6 @@ class KKPAY_Same_Day_Reservation_Service {
         if ( empty( $slot_keys ) || ! self::is_accepting_window_open( $now ) ) {
             return new WP_Error( 'not_accepting', kkpay_msg( 'not_yet_open', $data['lang'] ) );
         }
-        // ここでは全席種をまたいだパフォーマンス上のショートサーキットだけを判定する。
-        // 選択席種の表示用残席は get_available_slots()、最終的な書き込み可否は
-        // トランザクション内の KKPAY_Capacity_Service で判定する。
         if ( ! self::has_any_remaining_capacity( $today, $slot_keys ) ) {
             return new WP_Error( 'capacity_exceeded', kkpay_msg( 'capacity_exceeded', $data['lang'] ) );
         }
@@ -87,87 +82,165 @@ class KKPAY_Same_Day_Reservation_Service {
             return new WP_Error( 'invalid_slot', kkpay_msg( 'date_unavailable', $data['lang'] ) );
         }
 
-        $wpdb->query( 'START TRANSACTION' );
-
-        // 既存の active 行がない場合はロック対象行がないため、同一メール・同日・別スロットの完全な同時二重作成は DB 制約では防げない。
-        // 実運用上は低頻度の限界として扱い、同一スロットの二重作成は email_date_slot UNIQUE KEY で最終防御する。
-        $existing = KKPAY_Reservation_Repository::find_active_same_day_by_email_for_update( $data['email'], $today );
+        $existing = KKPAY_Reservation_Repository::find_active_same_day_by_email( $data['email'], $today );
         if ( $existing ) {
-            $wpdb->query( 'ROLLBACK' );
             return new WP_Error( 'duplicate_reservation', kkpay_msg( 'duplicate_reservation', $data['lang'] ) );
         }
 
-        $capacity_check = KKPAY_Capacity_Service::check_available_for_update(
+        $hold_token = KKPAY_Hold_Service::create(
             $today,
             $data['time_slot'],
-            $data['seating_preference'],
-            $data['number_of_people']
+            $data['number_of_people'],
+            $data['name'],
+            $data['email'],
+            $data['lang'],
+            $data['seating_preference']
         );
-        if ( is_wp_error( $capacity_check ) ) {
-            $wpdb->query( 'ROLLBACK' );
-            error_log( '[KKPAY] Same-day capacity check failed. code=' . $capacity_check->get_error_code() . ' date=' . $today . ' slot=' . $data['time_slot'] . ' seat=' . $data['seating_preference'] );
-            return new WP_Error( $capacity_check->get_error_code(), kkpay_msg( 'capacity_exceeded', $data['lang'] ) );
+        if ( is_wp_error( $hold_token ) ) {
+            return $hold_token;
         }
 
-        $id = KKPAY_Reservation_Repository::insert( array(
-            'reservation_type'         => 'same_day',
-            'status'                   => 'active',
-            'reservation_date'         => $today,
-            'time_slot'                => $data['time_slot'],
-            'seating_preference'       => $data['seating_preference'],
-            'name'                     => $data['name'],
-            'email'                    => $data['email'],
-            'email_hash'               => hash( 'sha256', $data['email'] ),
-            'language'                 => $data['lang'],
-            'payment_status'           => 'not_required',
-            'amount'                   => 0,
-            'currency'                 => defined( 'KKPAY_CURRENCY' ) ? KKPAY_CURRENCY : 'usd',
-            'number_of_people'         => (int) $data['number_of_people'],
-            'created_ip_hash'          => self::current_ip_hash(),
-            'user_agent_hash'          => self::current_user_agent_hash(),
-            'created_at'               => $now->format( 'Y-m-d H:i:s' ),
-            'updated_at'               => $now->format( 'Y-m-d H:i:s' ),
+        $hold = KKPAY_Hold_Repository::find_by_token( $hold_token );
+
+        return array(
+            'hold_token'                => $hold_token,
+            'deposit_amount_per_person' => max( 0, (int) KKPAY_SAME_DAY_DEPOSIT_AMOUNT ),
+            'amount'                    => self::calculate_deposit_amount( $data['number_of_people'] ),
+            'currency'                  => KKPAY_SAME_DAY_DEPOSIT_CURRENCY,
+            'expires_in_seconds'        => self::expires_in_seconds( $hold ),
+        );
+    }
+
+    public static function create_payment_intent( $hold ) {
+        $amount = self::calculate_deposit_amount( $hold->number_of_people );
+        if ( $amount <= 0 ) {
+            return new WP_Error( 'payment_not_required', kkpay_msg( 'server_error', $hold->language ) );
+        }
+        if ( ! KKPAY_Stripe_Config::has_secret_key() ) {
+            return new WP_Error( 'server_error', kkpay_msg( 'server_error', $hold->language ) );
+        }
+
+        // ベストエフォートの事前チェック。別ホールド経由で同一メール・同日の予約が既に
+        // 確定済みなら、無駄な二重決済を避けるためここで弾く。並行して複数ホールドが
+        // 決済に進んだ場合の最終防御は create_from_same_day_hold() 側のロック付きチェック。
+        $existing_active = KKPAY_Reservation_Repository::find_active_same_day_by_email( $hold->email, $hold->reservation_date );
+        if ( $existing_active && (int) $existing_active->hold_id !== (int) $hold->id ) {
+            return new WP_Error( 'duplicate_reservation', kkpay_msg( 'duplicate_reservation', $hold->language ) );
+        }
+
+        $stripe_amount = $amount * KKPAY_STRIPE_AMOUNT_MULTIPLIER;
+        $pi = KKPAY_Stripe_Client::request( 'POST', '/v1/payment_intents', array(
+            'amount'                             => $stripe_amount,
+            'currency'                           => KKPAY_SAME_DAY_DEPOSIT_CURRENCY,
+            'description'                        => 'KichiKichi Same-Day Reservation Deposit',
+            'automatic_payment_methods[enabled]' => 'true',
+            'metadata[type]'                     => 'same_day_deposit',
+            'metadata[hold_token]'               => $hold->hold_token,
+            'metadata[reservation_date]'         => $hold->reservation_date,
+            'metadata[time_slot]'                => $hold->time_slot,
+            'metadata[seating_preference]'       => $hold->seating_preference,
+            'metadata[number_of_people]'         => (int) $hold->number_of_people,
+            'metadata[unit_amount]'              => max( 0, (int) KKPAY_SAME_DAY_DEPOSIT_AMOUNT ),
+            'metadata[total_amount]'             => $amount,
+            'metadata[stripe_amount]'            => $stripe_amount,
+            'metadata[currency]'                 => KKPAY_SAME_DAY_DEPOSIT_CURRENCY,
+            'metadata[email]'                    => $hold->email,
         ) );
 
-        if ( is_wp_error( $id ) ) {
-            $wpdb->query( 'ROLLBACK' );
-            if ( stripos( $id->get_error_message(), 'Duplicate entry' ) !== false ) {
-                return new WP_Error( 'duplicate_reservation', kkpay_msg( 'duplicate_reservation', $data['lang'] ) );
-            }
-            error_log( '[KKPAY] Same-day reservation insert failed. message=' . $id->get_error_message() );
-            return new WP_Error( 'db_error', kkpay_msg( 'server_error', $data['lang'] ) );
+        if ( is_wp_error( $pi ) ) {
+            return new WP_Error( 'stripe_error', kkpay_msg( 'server_error', $hold->language ) );
         }
 
-        $event_id = KKPAY_Reservation_Event_Repository::insert(
-            $id,
-            'reservation_created',
-            'customer',
-            array(
-                'source'             => 'same_day_create',
-                'reservation_type'   => 'same_day',
-                'reservation_date'   => $today,
-                'time_slot'          => $data['time_slot'],
-                'seating_preference' => $data['seating_preference'],
-                'number_of_people'   => (int) $data['number_of_people'],
-                // どの席数行・残席状態で作成を許可したかを後から調査できるように記録する。
-                'capacity_check'     => $capacity_check,
-            )
+        return array(
+            'client_secret'             => $pi['client_secret'],
+            'payment_intent_id'         => $pi['id'],
+            'deposit_amount_per_person' => max( 0, (int) KKPAY_SAME_DAY_DEPOSIT_AMOUNT ),
+            'amount'                    => $amount,
+            'currency'                  => KKPAY_SAME_DAY_DEPOSIT_CURRENCY,
+            'expires_in_seconds'        => self::expires_in_seconds( $hold ),
         );
-        if ( is_wp_error( $event_id ) ) {
-            $wpdb->query( 'ROLLBACK' );
-            error_log( '[KKPAY] Same-day reservation event insert failed for reservation_id=' . (int) $id . ' message=' . $event_id->get_error_message() );
-            return new WP_Error( 'db_error', kkpay_msg( 'server_error', $data['lang'] ) );
+    }
+
+    public static function confirm( $hold, $pi_id = '' ) {
+        $amount = self::calculate_deposit_amount( $hold->number_of_people );
+        if ( $amount <= 0 ) {
+            $reservation_id = KKPAY_Reservation_Service::create_from_same_day_hold( $hold, null, null, 'not_required' );
+            if ( is_wp_error( $reservation_id ) ) {
+                return $reservation_id;
+            }
+            KKPAY_Hold_Repository::delete_by_token( $hold->hold_token );
+            return KKPAY_Reservation_Repository::find_by_id( $reservation_id );
         }
 
-        $wpdb->query( 'COMMIT' );
-
-        $reservation = KKPAY_Reservation_Repository::find_by_id( $id );
-        if ( ! $reservation ) {
-            error_log( '[KKPAY] Same-day reservation created but could not be reloaded. reservation_id=' . (int) $id );
-            return new WP_Error( 'db_error', kkpay_msg( 'server_error', $data['lang'] ) );
+        if ( ! $pi_id ) {
+            return new WP_Error( 'payment_failed', kkpay_msg( 'payment_failed', $hold->language ) );
+        }
+        if ( ! KKPAY_Stripe_Config::has_secret_key() ) {
+            return new WP_Error( 'server_error', kkpay_msg( 'server_error', $hold->language ) );
         }
 
-        return $reservation;
+        $existing = KKPAY_Reservation_Repository::find_by_payment_intent( $pi_id );
+        if ( $existing ) {
+            return $existing;
+        }
+
+        $pi = KKPAY_Stripe_Client::request( 'GET', '/v1/payment_intents/' . rawurlencode( $pi_id ) );
+        if ( is_wp_error( $pi ) || ( $pi['status'] ?? '' ) !== 'succeeded' ) {
+            return new WP_Error( 'payment_failed', kkpay_msg( 'payment_failed', $hold->language ) );
+        }
+        if ( ! self::payment_intent_matches_hold( $pi, $hold ) ) {
+            return new WP_Error( 'payment_mismatch', kkpay_msg( 'server_error', $hold->language ) );
+        }
+
+        $reservation_id = KKPAY_Reservation_Service::create_from_same_day_hold( $hold, $pi_id, $pi['latest_charge'] ?? null, 'paid' );
+        if ( is_wp_error( $reservation_id ) ) {
+            return $reservation_id;
+        }
+
+        KKPAY_Hold_Repository::delete_by_token( $hold->hold_token );
+
+        return KKPAY_Reservation_Repository::find_by_id( $reservation_id );
+    }
+
+    public static function handle_webhook_payment_intent_succeeded( array $pi ) {
+        $pi_id = $pi['id'] ?? '';
+        if ( ! $pi_id ) {
+            return;
+        }
+
+        $existing = KKPAY_Reservation_Repository::find_by_payment_intent( $pi_id );
+        if ( $existing ) {
+            if ( $existing->payment_status === 'pending' ) {
+                KKPAY_Reservation_Repository::update_payment_status( $existing->id, 'paid', $pi['latest_charge'] ?? null );
+            }
+            return;
+        }
+
+        $hold_token = $pi['metadata']['hold_token'] ?? '';
+        if ( ! $hold_token ) {
+            return;
+        }
+
+        $hold = KKPAY_Hold_Repository::find_by_token_any( $hold_token );
+        if ( ! $hold || ! self::payment_intent_matches_hold( $pi, $hold ) ) {
+            return;
+        }
+
+        $reservation_id = KKPAY_Reservation_Service::create_from_same_day_hold( $hold, $pi_id, $pi['latest_charge'] ?? null, 'paid' );
+        if ( ! is_wp_error( $reservation_id ) ) {
+            KKPAY_Hold_Repository::delete_by_token( $hold_token );
+        }
+    }
+
+    public static function handle_webhook_charge_refunded( array $charge ) {
+        $pi_id = $charge['payment_intent'] ?? '';
+        if ( ! $pi_id ) {
+            return;
+        }
+        $reservation = KKPAY_Reservation_Repository::find_by_payment_intent( $pi_id );
+        if ( $reservation && $reservation->reservation_type === 'same_day' ) {
+            KKPAY_Reservation_Repository::update_payment_status( $reservation->id, 'refunded', null );
+        }
     }
 
     public static function find_by_email( $email ) {
@@ -244,8 +317,64 @@ class KKPAY_Same_Day_Reservation_Service {
             'number_of_people'   => (int) $reservation->number_of_people,
             'language'           => $reservation->language,
             'status'             => $reservation->status,
+            'payment_status'     => $reservation->payment_status,
+            'amount'             => (int) $reservation->amount,
+            'currency'           => $reservation->currency,
             'cancelled_at'       => $reservation->cancelled_at,
         );
+    }
+
+    private static function payment_intent_matches_hold( array $pi, $hold ) {
+        if ( ( $pi['currency'] ?? '' ) !== KKPAY_SAME_DAY_DEPOSIT_CURRENCY ) {
+            return false;
+        }
+
+        $expected_amount = self::calculate_deposit_amount( $hold->number_of_people ) * KKPAY_STRIPE_AMOUNT_MULTIPLIER;
+        $amount_received = isset( $pi['amount_received'] ) ? (int) $pi['amount_received'] : 0;
+        $amount          = isset( $pi['amount'] ) ? (int) $pi['amount'] : 0;
+        if ( $amount_received !== $expected_amount && $amount !== $expected_amount ) {
+            return false;
+        }
+
+        $metadata = $pi['metadata'] ?? array();
+        if ( ( $metadata['type'] ?? '' ) !== 'same_day_deposit' ) {
+            return false;
+        }
+        if ( ( $metadata['hold_token'] ?? '' ) !== $hold->hold_token ) {
+            return false;
+        }
+        if ( ( $metadata['reservation_date'] ?? '' ) !== $hold->reservation_date ) {
+            return false;
+        }
+        if ( ( $metadata['time_slot'] ?? '' ) !== $hold->time_slot ) {
+            return false;
+        }
+        if ( ( $metadata['seating_preference'] ?? '' ) !== $hold->seating_preference ) {
+            return false;
+        }
+        if ( (string) ( $metadata['number_of_people'] ?? '' ) !== (string) (int) $hold->number_of_people ) {
+            return false;
+        }
+        if ( (string) ( $metadata['unit_amount'] ?? '' ) !== (string) max( 0, (int) KKPAY_SAME_DAY_DEPOSIT_AMOUNT ) ) {
+            return false;
+        }
+        if ( ( $metadata['email'] ?? '' ) !== $hold->email ) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static function expires_in_seconds( $hold ) {
+        if ( ! $hold || empty( $hold->expires_at ) ) {
+            return 0;
+        }
+
+        $tz         = new DateTimeZone( 'Asia/Tokyo' );
+        $now        = new DateTimeImmutable( 'now', $tz );
+        $expires_at = new DateTimeImmutable( $hold->expires_at, $tz );
+
+        return max( 0, $expires_at->getTimestamp() - $now->getTimestamp() );
     }
 
     private static function is_accepting_window_open( DateTimeImmutable $now ) {
@@ -306,21 +435,5 @@ class KKPAY_Same_Day_Reservation_Service {
         $now = new DateTimeImmutable( 'now', $tz );
 
         return $now->format( 'Y-m-d' );
-    }
-
-    private static function current_ip_hash() {
-        if ( empty( $_SERVER['REMOTE_ADDR'] ) ) {
-            return null;
-        }
-
-        return hash( 'sha256', sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) );
-    }
-
-    private static function current_user_agent_hash() {
-        if ( empty( $_SERVER['HTTP_USER_AGENT'] ) ) {
-            return null;
-        }
-
-        return hash( 'sha256', sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ) );
     }
 }

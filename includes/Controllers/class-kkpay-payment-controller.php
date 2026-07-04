@@ -101,6 +101,8 @@ class KKPAY_Payment_Controller {
         if ( $type === 'payment_intent.succeeded' ) {
             if ( ( $object['metadata']['type'] ?? '' ) === 'premium_reservation' ) {
                 KKPAY_Premium_Reservation_Service::handle_webhook_payment_intent_succeeded( $object );
+            } elseif ( ( $object['metadata']['type'] ?? '' ) === 'same_day_deposit' ) {
+                KKPAY_Same_Day_Reservation_Service::handle_webhook_payment_intent_succeeded( $object );
             } else {
                 KKPAY_Payment_Service::handle_payment_intent_succeeded( $object );
             }
@@ -109,6 +111,8 @@ class KKPAY_Payment_Controller {
             $is_premium = $pi_id && KKPAY_Premium_Reservation_Repository::find_by_payment_intent( $pi_id );
             if ( $is_premium ) {
                 KKPAY_Premium_Reservation_Service::handle_webhook_charge_refunded( $object );
+            } elseif ( $pi_id && ( $reservation = KKPAY_Reservation_Repository::find_by_payment_intent( $pi_id ) ) && $reservation->reservation_type === 'same_day' ) {
+                KKPAY_Same_Day_Reservation_Service::handle_webhook_charge_refunded( $object );
             } else {
                 KKPAY_Payment_Service::handle_charge_refunded( $object );
             }
