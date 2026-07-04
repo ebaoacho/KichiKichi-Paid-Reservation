@@ -54,9 +54,7 @@ class KKPAY_Reservation_Service {
         }
 
         $confirmed = KKPAY_Reservation_Repository::sum_active_people_for_slot_and_seat( $date, $slot, 'Bar' );
-        // kkpay_holds にはまだ seating_preference カラムがないため、表示用残席でも既存 hold は Bar hold として扱う。
-        // 当日予約の Table hold を導入する際は、席種別の hold 集計に置き換えること。
-        $held      = KKPAY_Hold_Repository::sum_people_for_slot( $date, $slot );
+        $held      = KKPAY_Hold_Repository::sum_people_for_slot_and_seat( $date, $slot, 'Bar' );
         $capacity  = max( 0, (int) $capacity_row->capacity );
 
         return max( 0, $capacity - $confirmed - $held );
@@ -114,6 +112,76 @@ class KKPAY_Reservation_Service {
                 'seating_preference' => 'Bar',
                 'number_of_people'   => (int) $hold->number_of_people,
                 'payment_intent_id'  => $pi_id,
+            )
+        );
+        if ( is_wp_error( $event_id ) ) {
+            $wpdb->query( 'ROLLBACK' );
+            return new WP_Error( 'db_error', kkpay_msg( 'server_error', $hold->language ) );
+        }
+
+        $wpdb->query( 'COMMIT' );
+
+        return $id;
+    }
+
+    /**
+     * 当日予約デポジット用ホールドから予約レコードを作成し、予約 ID を返す。
+     */
+    public static function create_from_same_day_hold( $hold, $pi_id, $charge_id, $status ) {
+        global $wpdb;
+
+        $tz                 = new DateTimeZone( 'Asia/Tokyo' );
+        $now                = new DateTimeImmutable( 'now', $tz );
+        $seating_preference = $hold->seating_preference ?: 'Bar';
+        $payment_status     = $status ?: 'paid';
+        $amount             = KKPAY_Same_Day_Reservation_Service::calculate_deposit_amount( $hold->number_of_people );
+
+        $wpdb->query( 'START TRANSACTION' );
+
+        $id = KKPAY_Reservation_Repository::insert( array(
+            'hold_id'                  => (int) $hold->id,
+            'reservation_type'         => 'same_day',
+            'status'                   => 'active',
+            'seating_preference'       => $seating_preference,
+            'reservation_date'         => $hold->reservation_date,
+            'time_slot'                => $hold->time_slot,
+            'name'                     => $hold->name,
+            'email'                    => $hold->email,
+            'language'                 => $hold->language,
+            'stripe_payment_intent_id' => $pi_id,
+            'stripe_charge_id'         => $charge_id,
+            'payment_status'           => $payment_status,
+            'amount'                   => $amount,
+            'number_of_people'         => (int) $hold->number_of_people,
+            'created_at'               => $now->format( 'Y-m-d H:i:s' ),
+        ) );
+
+        if ( is_wp_error( $id ) ) {
+            if ( $pi_id ) {
+                $existing = KKPAY_Reservation_Repository::find_by_payment_intent( $pi_id );
+                if ( $existing ) {
+                    $wpdb->query( 'ROLLBACK' );
+                    return $existing->id;
+                }
+            }
+            $wpdb->query( 'ROLLBACK' );
+            return new WP_Error( 'db_error', kkpay_msg( 'duplicate_reservation', $hold->language ) );
+        }
+
+        $event_id = KKPAY_Reservation_Event_Repository::insert(
+            $id,
+            'reservation_created',
+            'customer',
+            array(
+                'source'             => 'same_day_hold',
+                'reservation_type'   => 'same_day',
+                'reservation_date'   => $hold->reservation_date,
+                'time_slot'          => $hold->time_slot,
+                'seating_preference' => $seating_preference,
+                'number_of_people'   => (int) $hold->number_of_people,
+                'payment_intent_id'  => $pi_id,
+                'payment_status'     => $payment_status,
+                'amount'             => $amount,
             )
         );
         if ( is_wp_error( $event_id ) ) {

@@ -34,12 +34,26 @@ class KKPAY_Hold_Repository {
     /** ホールドレコードを挿入し、挿入した ID を返す（失敗時は false） */
     public static function insert( array $data ) {
         global $wpdb;
+
+        $formats = array();
+        foreach ( array_keys( $data ) as $column ) {
+            $formats[] = self::format_for_column( $column );
+        }
+
         $inserted = $wpdb->insert(
             self::table(),
             $data,
-            array( '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s' )
+            $formats
         );
         return $inserted ? $wpdb->insert_id : false;
+    }
+
+    private static function format_for_column( $column ) {
+        $integer_columns = array(
+            'number_of_people',
+        );
+
+        return in_array( $column, $integer_columns, true ) ? '%d' : '%s';
     }
 
     public static function delete_by_token( $token ) {
@@ -53,30 +67,34 @@ class KKPAY_Hold_Repository {
         $wpdb->query( 'DELETE FROM ' . self::table() . ' WHERE expires_at < NOW()' );
     }
 
-    /**
-     * 指定スロットの有効ホールド合計人数を返す（ロックなし）
-     * 残席表示などの参照用
-     */
-    public static function sum_people_for_slot( $date, $slot ) {
+    /** 指定スロット・席種別の有効ホールド合計人数を返す（ロックなし） */
+    public static function sum_people_for_slot_and_seat( $date, $slot, $seating_preference ) {
         global $wpdb;
         return (int) $wpdb->get_var( $wpdb->prepare(
             'SELECT COALESCE(SUM(number_of_people), 0) FROM ' . self::table() . '
-             WHERE reservation_date = %s AND time_slot = %s AND expires_at > NOW()',
-            $date, $slot
+             WHERE reservation_date = %s
+               AND time_slot = %s
+               AND seating_preference = %s
+               AND expires_at > NOW()',
+            $date,
+            $slot,
+            $seating_preference
         ) );
     }
 
-    /**
-     * 指定スロットの有効ホールド合計人数を FOR UPDATE ロック付きで返す
-     * 必ずオープン中のトランザクション内で呼ぶこと
-     */
-    public static function sum_people_for_slot_with_lock( $date, $slot ) {
+    /** 指定スロット・席種別の有効ホールド合計人数を FOR UPDATE ロック付きで返す */
+    public static function sum_people_for_slot_and_seat_with_lock( $date, $slot, $seating_preference ) {
         global $wpdb;
         return (int) $wpdb->get_var( $wpdb->prepare(
             'SELECT COALESCE(SUM(number_of_people), 0) FROM ' . self::table() . '
-             WHERE reservation_date = %s AND time_slot = %s AND expires_at > NOW()
+             WHERE reservation_date = %s
+               AND time_slot = %s
+               AND seating_preference = %s
+               AND expires_at > NOW()
              FOR UPDATE',
-            $date, $slot
+            $date,
+            $slot,
+            $seating_preference
         ) );
     }
 }

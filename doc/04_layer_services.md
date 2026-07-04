@@ -112,7 +112,7 @@ COMMIT → hold_token を返す
 ```
 
 > FOR UPDATE は必ず **同じトランザクション内** で実行されます。  
-> `sum_people_for_slot_with_lock()` を単独で呼ぶことは意味がありません。
+> `sum_people_for_slot_and_seat_with_lock()` を単独で呼ぶことは意味がありません。
 
 ---
 
@@ -245,7 +245,7 @@ public static function create( ... ) {
 
     // Repository の _with_lock 版を呼ぶ
     $confirmed = KKPAY_Reservation_Repository::sum_people_for_slot_with_lock( $date, $slot );
-    $held      = KKPAY_Hold_Repository::sum_people_for_slot_with_lock( $date, $slot );
+    $held      = KKPAY_Hold_Repository::sum_people_for_slot_and_seat_with_lock( $date, $slot, 'Bar' );
 
     if ( 条件 ) {
         $wpdb->query( 'ROLLBACK' );

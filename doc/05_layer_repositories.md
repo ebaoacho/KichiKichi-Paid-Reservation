@@ -51,8 +51,8 @@ Repositories 層は **データベースへのすべてのアクセスを担当*
 | 挿入 | `insert( array $data )` | `int（挿入ID） \| false` |
 | 更新 | `update_{何を}( $id, ...values )` | `void` |
 | 削除 | `delete_by_{条件}( $value )` | `void` |
-| 合計（ロックなし） | `sum_people_for_slot( $date, $slot )` | `int` |
-| 合計（FOR UPDATE） | `sum_people_for_slot_with_lock( $date, $slot )` | `int` |
+| 合計（ロックなし） | `sum_people_for_slot_and_seat( $date, $slot, $seating_preference )` | `int` |
+| 合計（FOR UPDATE） | `sum_people_for_slot_and_seat_with_lock( $date, $slot, $seating_preference )` | `int` |
 
 ---
 
@@ -67,14 +67,14 @@ $confirmed = KKPAY_Reservation_Repository::sum_people_for_slot_with_lock( $date,
 // ✅ 必ず Service 側でトランザクションを開いた後に呼ぶ
 $wpdb->query( 'START TRANSACTION' );
 $confirmed = KKPAY_Reservation_Repository::sum_people_for_slot_with_lock( $date, $slot );
-$held      = KKPAY_Hold_Repository::sum_people_for_slot_with_lock( $date, $slot );
+$held      = KKPAY_Hold_Repository::sum_people_for_slot_and_seat_with_lock( $date, $slot, 'Bar' );
 // ... INSERT ...
 $wpdb->query( 'COMMIT' );
 ```
 
 > `_with_lock` と通常版の使い分け：  
-> - **残席表示**（読み取りのみ）→ ロックなし版（`sum_people_for_slot`）  
-> - **仮予約作成**（競合防止が必要）→ ロックあり版（`sum_people_for_slot_with_lock`）
+> - **残席表示**（読み取りのみ）→ ロックなし版（`sum_people_for_slot_and_seat`）  
+> - **仮予約作成**（競合防止が必要）→ ロックあり版（`sum_people_for_slot_and_seat_with_lock`）
 
 ---
 
@@ -89,8 +89,8 @@ $wpdb->query( 'COMMIT' );
 | `insert( array $data )` | ホールドを挿入 |
 | `delete_by_token( $token )` | ホールドを削除（予約確定後に呼ぶ） |
 | `delete_expired()` | 期限切れホールドを一括削除（Cron 用） |
-| `sum_people_for_slot( $date, $slot )` | 有効ホールド人数の合計（ロックなし） |
-| `sum_people_for_slot_with_lock( $date, $slot )` | 有効ホールド人数の合計（FOR UPDATE） |
+| `sum_people_for_slot_and_seat( $date, $slot, $seating_preference )` | 有効ホールド人数の合計（ロックなし） |
+| `sum_people_for_slot_and_seat_with_lock( $date, $slot, $seating_preference )` | 有効ホールド人数の合計（FOR UPDATE） |
 
 ### KKPAY_Reservation_Repository
 

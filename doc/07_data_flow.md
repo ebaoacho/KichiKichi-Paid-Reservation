@@ -47,7 +47,7 @@
 [KKPAY_Reservation_Service::build_slot_list(date, slot_keys, lang)]
   各スロットに対して:
   → KKPAY_Reservation_Repository::sum_people_for_slot(date, slot)
-  → KKPAY_Hold_Repository::sum_people_for_slot(date, slot)
+  → KKPAY_Hold_Repository::sum_people_for_slot_and_seat(date, slot, 'Bar')
   → remaining = 8 - confirmed - held
   → [{ key:'slot_3', label:'ご来店: 4:40 PM...', remaining:6, available:true }, ...]
         │
@@ -95,7 +95,7 @@
   START TRANSACTION;
     ┌─ KKPAY_Reservation_Repository::sum_people_for_slot_with_lock(date, slot)
     │    SELECT SUM(number_of_people) ... FOR UPDATE → 2（人）
-    └─ KKPAY_Hold_Repository::sum_people_for_slot_with_lock(date, slot)
+    └─ KKPAY_Hold_Repository::sum_people_for_slot_and_seat_with_lock(date, slot, 'Bar')
          SELECT SUM(number_of_people) ... FOR UPDATE → 0（人）
   2 + 0 + 2 = 4 ≦ 8 → OK
   hold_token = bin2hex(random_bytes(32))  → 64 文字のランダム文字列
