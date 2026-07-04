@@ -138,6 +138,22 @@ class KKPAY_Reservation_Service {
 
         $wpdb->query( 'START TRANSACTION' );
 
+        // 同一メール・同日で既に別ホールド由来のアクティブな当日予約が確定していないかを、
+        // 行ロック付きで最終確認する。ホールド作成時点の重複チェックはロック無しのため、
+        // 複数ホールドが並行して決済・確定に進んだ場合はここが最後の砦になる。
+        $existing_active = KKPAY_Reservation_Repository::find_active_same_day_by_email_for_update( $hold->email, $hold->reservation_date );
+        if ( $existing_active ) {
+            if ( (int) $existing_active->hold_id === (int) $hold->id ) {
+                $wpdb->query( 'ROLLBACK' );
+                return (int) $existing_active->id;
+            }
+            $wpdb->query( 'ROLLBACK' );
+            if ( $pi_id ) {
+                error_log( '[KKPAY] Same-day duplicate reservation blocked after payment. existing_reservation_id=' . (int) $existing_active->id . ' hold_id=' . (int) $hold->id . ' payment_intent_id=' . $pi_id );
+            }
+            return new WP_Error( 'duplicate_reservation', kkpay_msg( 'duplicate_reservation', $hold->language ) );
+        }
+
         $id = KKPAY_Reservation_Repository::insert( array(
             'hold_id'                  => (int) $hold->id,
             'reservation_type'         => 'same_day',
@@ -152,6 +168,7 @@ class KKPAY_Reservation_Service {
             'stripe_charge_id'         => $charge_id,
             'payment_status'           => $payment_status,
             'amount'                   => $amount,
+            'currency'                 => KKPAY_SAME_DAY_DEPOSIT_CURRENCY,
             'number_of_people'         => (int) $hold->number_of_people,
             'created_at'               => $now->format( 'Y-m-d H:i:s' ),
         ) );

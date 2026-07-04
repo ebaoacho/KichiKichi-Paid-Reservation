@@ -27,7 +27,7 @@ class KKPAY_Same_Day_Reservation_Validator {
         );
     }
 
-    public static function validate_create( array $input ) {
+    public static function validate_create_hold( array $input ) {
         $lang               = self::sanitize_lang( $input['language'] ?? 'en' );
         $name               = sanitize_text_field( $input['name'] ?? '' );
         $email              = sanitize_email( $input['email'] ?? '' );
@@ -65,6 +65,40 @@ class KKPAY_Same_Day_Reservation_Validator {
             'number_of_people'   => $number_of_people,
             'seating_preference' => $seating_preference,
             'time_slot'          => $time_slot,
+        );
+    }
+
+    public static function validate_payment_intent( array $input ) {
+        $lang       = self::sanitize_lang( $input['language'] ?? 'en' );
+        $hold_token = sanitize_text_field( $input['hold_token'] ?? '' );
+
+        if ( ! $hold_token ) {
+            return new WP_Error( 'invalid_hold', kkpay_msg( 'hold_expired', $lang ) );
+        }
+
+        return array(
+            'lang'       => $lang,
+            'hold_token' => $hold_token,
+        );
+    }
+
+    public static function validate_confirm( array $input ) {
+        $lang              = self::sanitize_lang( $input['language'] ?? 'en' );
+        $hold_token        = sanitize_text_field( $input['hold_token'] ?? '' );
+        $payment_intent_id = sanitize_text_field( $input['payment_intent_id'] ?? '' );
+        $email             = sanitize_email( $input['email'] ?? '' );
+
+        if ( ! $hold_token ) {
+            return new WP_Error( 'invalid_hold', kkpay_msg( 'hold_expired', $lang ) );
+        }
+
+        return array(
+            'lang'              => $lang,
+            'hold_token'        => $hold_token,
+            'payment_intent_id' => $payment_intent_id,
+            // デポジット0円フローは payment_intent_id を持たないため、hold 消費後の
+            // 再送を冪等に扱うための予備キーとして email を任意で受け取る。
+            'email'             => $email,
         );
     }
 

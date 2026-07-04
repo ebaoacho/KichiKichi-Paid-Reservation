@@ -47,10 +47,17 @@
       "Bash(cat \"c:/xampp/htdocs/kichikichi/wp-content/plugins/KichiKichi-Paid-Reservation/.claude/settings.json\" 2>/dev/null | head -60; echo ---; ls \"c:/xampp/htdocs/kichikichi/\" 2>/dev/null | head -30)",
       "Bash(php -r ' *)",
       "Bash(awk '/kkpay_holds/{print NR\": \"$0}' includes/class-kkpay-activator.php)",
-      "PowerShell($php = \"C:\\\\xampp\\\\php\\\\php.exe\"; if \\(Test-Path $php\\) { foreach \\($f in @\\(\"includes/Repositories/class-kkpay-hold-repository.php\",\"includes/Services/class-kkpay-capacity-service.php\",\"includes/Services/class-kkpay-hold-service.php\",\"includes/Services/class-kkpay-reservation-service.php\",\"includes/Services/class-kkpay-same-day-reservation-service.php\"\\)\\) { & $php -l $f } } else { \"php.exe not found at $php\" })"
+      "PowerShell($php = \"C:\\\\xampp\\\\php\\\\php.exe\"; if \\(Test-Path $php\\) { foreach \\($f in @\\(\"includes/Repositories/class-kkpay-hold-repository.php\",\"includes/Services/class-kkpay-capacity-service.php\",\"includes/Services/class-kkpay-hold-service.php\",\"includes/Services/class-kkpay-reservation-service.php\",\"includes/Services/class-kkpay-same-day-reservation-service.php\"\\)\\) { & $php -l $f } } else { \"php.exe not found at $php\" })",
+      "Bash(timeout 1 cmd /c \"exit 0\" 2>nul; echo idle)",
+      "Bash(grep -n 'function insert\\\\|function find_active_same_day_by_email\\\\|function find_by_payment_intent\\\\|function find_by_id\\\\|function update_payment_status\\\\|\\\\$columns\\\\|integer_columns\\\\|allowed_columns' includes/Repositories/class-kkpay-reservation-repository.php)",
+      "Bash(/c/xampp/php/php.exe -l includes/Services/class-kkpay-same-day-reservation-service.php)",
+      "Bash(/c/xampp/php/php.exe -l includes/Controllers/class-kkpay-same-day-reservation-controller.php)",
+      "Bash(/c/xampp/php/php.exe -l includes/Validators/class-kkpay-same-day-reservation-validator.php)",
+      "Bash(/c/xampp/php/php.exe -l includes/Services/class-kkpay-reservation-service.php)"
     ],
     "additionalDirectories": [
-      "C:\\Users\\kandai\\AppData\\Local\\Temp\\claude\\c--xampp-htdocs-kichikichi-wp-content-plugins-KichiKichi-Paid-Reservation\\d54d169b-5d76-4c45-82f5-05117d4ec2cc\\scratchpad"
+      "C:\\Users\\kandai\\AppData\\Local\\Temp\\claude\\c--xampp-htdocs-kichikichi-wp-content-plugins-KichiKichi-Paid-Reservation\\d54d169b-5d76-4c45-82f5-05117d4ec2cc\\scratchpad",
+      "C:\\xampp\\htdocs\\kichikichi\\wp-content\\plugins\\KichiKichi-Paid-Reservation"
     ]
   }
 }

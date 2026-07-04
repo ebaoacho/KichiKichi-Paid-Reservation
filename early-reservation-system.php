@@ -480,7 +480,9 @@ $kkpay_public_actions = array(
     'kkpay_premium_cancel_reservation'     => array( 'KKPAY_Premium_Reservation_Controller', 'ajax_cancel_reservation' ),
     'kkpay_same_day_status'                => array( 'KKPAY_Same_Day_Reservation_Controller', 'ajax_status' ),
     'kkpay_same_day_available_slots'       => array( 'KKPAY_Same_Day_Reservation_Controller', 'ajax_available_slots' ),
-    'kkpay_same_day_create'                => array( 'KKPAY_Same_Day_Reservation_Controller', 'ajax_create' ),
+    'kkpay_same_day_create_hold'           => array( 'KKPAY_Same_Day_Reservation_Controller', 'ajax_create_hold' ),
+    'kkpay_same_day_create_payment_intent' => array( 'KKPAY_Same_Day_Reservation_Controller', 'ajax_create_payment_intent' ),
+    'kkpay_same_day_confirm'               => array( 'KKPAY_Same_Day_Reservation_Controller', 'ajax_confirm' ),
     'kkpay_same_day_find'                  => array( 'KKPAY_Same_Day_Reservation_Controller', 'ajax_find' ),
     'kkpay_same_day_cancel'                => array( 'KKPAY_Same_Day_Reservation_Controller', 'ajax_cancel' ),
 );
