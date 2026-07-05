@@ -223,3 +223,7 @@ templates/
       reservations-tab.php
       calendar-tab.php
 ```
+
+## PR7 追加ドキュメント
+
+- `doc/21_same_day_deposit_cutover.md`: 当日予約デポジット制の本番切替手順。
