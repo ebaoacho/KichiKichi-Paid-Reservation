@@ -142,6 +142,32 @@
     margin-top: 6px;
 }
 
+.kkpay-same-day-deposit-amount {
+    margin: 4px 0 16px;
+    padding: 10px 14px;
+    border-radius: var(--kkpay-radius);
+    background: var(--kkpay-yellow-light);
+    border: 1px solid var(--kkpay-yellow);
+    color: #7a5800;
+    font-weight: 700;
+    font-size: 0.92rem;
+}
+
+.kkpay-same-day-payment-section .kkpay-countdown-wrap {
+    text-align: center;
+    margin-bottom: 12px;
+}
+
+#kkpay-same-day-lbl-countdown {
+    margin: 0;
+    color: var(--kkpay-muted);
+    font-weight: 600;
+}
+
+#kkpay-same-day-pay-btn {
+    margin-top: 6px;
+}
+
 @media (max-width: 560px) {
     .kkpay-same-day-grid {
         grid-template-columns: 1fr;

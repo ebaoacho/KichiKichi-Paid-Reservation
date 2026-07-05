@@ -23,6 +23,8 @@ if ( ! defined( 'ABSPATH' ) ) {
     </div>
 
     <div id="kkpay-same-day-fields" class="kkpay-same-day-fields" hidden>
+        <div class="kkpay-price-notice" id="kkpay-same-day-deposit-notice"></div>
+
         <div class="kkpay-field">
             <label class="kkpay-same-day-check-row">
                 <input type="checkbox" id="kkpay-same-day-agree-first" />
@@ -64,10 +66,12 @@ if ( ! defined( 'ABSPATH' ) ) {
             <div id="kkpay-same-day-slot-list" class="kkpay-same-day-slot-list" role="group" aria-labelledby="kkpay-same-day-lbl-slot"></div>
         </div>
 
+        <div class="kkpay-same-day-deposit-amount" id="kkpay-same-day-deposit-amount"></div>
+
         <div class="kkpay-field">
             <label class="kkpay-same-day-check-row">
                 <input type="checkbox" id="kkpay-same-day-agree-final" />
-                <span id="kkpay-same-day-lbl-agree-final">I confirm the details above.</span>
+                <span id="kkpay-same-day-lbl-agree-final">I confirm the details above. The deposit is non-refundable.</span>
             </label>
         </div>
 
@@ -75,6 +79,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 
         <button type="button" id="kkpay-same-day-submit" class="kkpay-btn kkpay-btn-primary">
             <span id="kkpay-same-day-lbl-submit">Reserve</span>
+        </button>
+    </div>
+
+    <div id="kkpay-same-day-payment-section" class="kkpay-same-day-payment-section" hidden>
+        <div id="kkpay-same-day-countdown-wrap" class="kkpay-countdown-wrap">
+            <p id="kkpay-same-day-lbl-countdown">Time remaining:</p>
+            <div id="kkpay-same-day-countdown" class="kkpay-countdown">5:00</div>
+        </div>
+
+        <div id="kkpay-same-day-payment-summary" class="kkpay-summary" style="display:none;"></div>
+
+        <div class="kkpay-field">
+            <label class="kkpay-label" id="kkpay-same-day-lbl-card">Card Details</label>
+            <div id="kkpay-same-day-card-element" class="kkpay-card-element"></div>
+            <div id="kkpay-same-day-card-errors" class="kkpay-error" role="alert"></div>
+        </div>
+
+        <button type="button" id="kkpay-same-day-pay-btn" class="kkpay-btn kkpay-btn-primary" disabled>
+            <span id="kkpay-same-day-lbl-pay">Pay</span>
         </button>
     </div>
 
