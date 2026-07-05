@@ -9,6 +9,21 @@ $seat_labels = array(
     'Bar'   => 'カウンター',
     'Table' => 'テーブル',
 );
+$payment_status_labels = array(
+    'pending'      => 'デポジット決済待ち',
+    'paid'         => 'デポジット決済済み',
+    'refunded'     => '外部返金済み',
+    'not_required' => 'デポジット不要',
+    'none'         => '決済なし',
+);
+$format_deposit_amount = function ( $row ) {
+    $currency = isset( $row->currency ) ? strtoupper( (string) $row->currency ) : '';
+    if ( $currency === '' ) {
+        $currency = defined( 'KKPAY_SAME_DAY_DEPOSIT_CURRENCY' ) ? strtoupper( (string) KKPAY_SAME_DAY_DEPOSIT_CURRENCY ) : 'USD';
+    }
+
+    return $currency . ' ' . number_format( (int) ( $row->amount ?? 0 ) );
+};
 
 foreach ( $results as $row ) {
     $slot = $row->time_slot;
@@ -87,6 +102,8 @@ foreach ( $results as $row ) {
                     <th>名前</th>
                     <th>メール</th>
                     <th>人数</th>
+                    <th>デポジット金額</th>
+                    <th>決済状況</th>
                     <th>言語</th>
                     <th>作成日時</th>
                     <th>キャンセル日時</th>
@@ -98,6 +115,11 @@ foreach ( $results as $row ) {
                     $is_cancelled = $row->status === 'cancelled' || $row->cancelled_at !== null;
                     $seat_key     = $row->seating_preference ?: 'Bar';
                     $seat_label   = $seat_labels[ $seat_key ] ?? $seat_key;
+                    $payment_key  = $row->payment_status ?? '';
+                    $payment_label = $payment_status_labels[ $payment_key ] ?? ( $payment_key ?: '決済状態未設定' );
+                    if ( $is_cancelled && $payment_key === 'paid' ) {
+                        $payment_label .= '（返金なし）';
+                    }
                     ?>
                     <tr data-kkpay-cancelled="<?php echo $is_cancelled ? '1' : '0'; ?>" style="<?php echo $is_cancelled ? 'opacity:.65;' : ''; ?>">
                         <td><?php echo esc_html( $row->status ?: ( $is_cancelled ? 'cancelled' : 'active' ) ); ?></td>
@@ -105,6 +127,8 @@ foreach ( $results as $row ) {
                         <td><?php echo esc_html( $row->name ); ?></td>
                         <td><?php echo esc_html( $row->email ); ?></td>
                         <td><?php echo (int) $row->number_of_people; ?>名</td>
+                        <td><?php echo esc_html( $format_deposit_amount( $row ) ); ?></td>
+                        <td><?php echo esc_html( $payment_label ); ?></td>
                         <td><?php echo esc_html( $row->language ); ?></td>
                         <td><?php echo esc_html( $row->created_at ); ?></td>
                         <td><?php echo esc_html( $row->cancelled_at ?: '-' ); ?></td>
