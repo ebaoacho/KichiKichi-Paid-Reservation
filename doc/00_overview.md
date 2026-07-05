@@ -144,3 +144,7 @@ WordPress AJAX / REST API
 | [17_step3_review_criteria.md](17_step3_review_criteria.md) | Step 3 レビュー観点 |
 | [18_same_day_production_cutover.md](18_same_day_production_cutover.md) | 当日予約本番切り替え手順 |
 | [19_calendar_integration_design.md](19_calendar_integration_design.md) | カレンダー統合設計 |
+
+## PR7 デポジット制切替手順
+
+- [21_same_day_deposit_cutover.md](21_same_day_deposit_cutover.md): 当日予約デポジット制の本番切替、限定 URL 確認、0ドルロールバック、初日監視の手順。
