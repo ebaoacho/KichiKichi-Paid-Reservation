@@ -429,16 +429,21 @@ function kkpay_enqueue_same_day_confirmation_assets() {
 function kkpay_enqueue_same_day_assets() {
     wp_enqueue_style( 'kkpay-form', KKPAY_PLUGIN_URL . 'assets/css/kkpay-form.css', array(), KKPAY_VERSION );
     wp_enqueue_style( 'kkpay-same-day', KKPAY_PLUGIN_URL . 'assets/css/kkpay-same-day.css', array( 'kkpay-form' ), KKPAY_VERSION );
-    wp_enqueue_script( 'kkpay-same-day', KKPAY_PLUGIN_URL . 'assets/js/kkpay-same-day.js', array( 'jquery' ), KKPAY_VERSION, true );
+    wp_enqueue_script( 'stripe-js', 'https://js.stripe.com/v3/', array(), null, true );
+    wp_enqueue_script( 'kkpay-same-day', KKPAY_PLUGIN_URL . 'assets/js/kkpay-same-day.js', array( 'jquery', 'stripe-js' ), KKPAY_VERSION, true );
     wp_localize_script( 'kkpay-same-day', 'kkpay_same_day', array(
-        'ajax_url'         => admin_url( 'admin-ajax.php' ),
-        'nonce'            => wp_create_nonce( 'kkpay_nonce' ),
-        'slot_labels'      => KKPAY_SLOT_LABELS,
-        'messages'         => KKPAY_MESSAGES,
-        'max_people'       => KKPAY_MAX_CAPACITY,
-        'table_max_people' => KKPAY_TABLE_MAX_CAPACITY,
-        'full_image_url'   => KKPAY_SAME_DAY_FULL_IMAGE_URL,
-        'close_image_url'  => KKPAY_SAME_DAY_CLOSE_IMAGE_URL,
+        'ajax_url'                  => admin_url( 'admin-ajax.php' ),
+        'nonce'                     => wp_create_nonce( 'kkpay_nonce' ),
+        'slot_labels'               => KKPAY_SLOT_LABELS,
+        'messages'                  => KKPAY_MESSAGES,
+        'max_people'                => KKPAY_MAX_CAPACITY,
+        'table_max_people'          => KKPAY_TABLE_MAX_CAPACITY,
+        'full_image_url'            => KKPAY_SAME_DAY_FULL_IMAGE_URL,
+        'close_image_url'           => KKPAY_SAME_DAY_CLOSE_IMAGE_URL,
+        'stripe_pk'                 => KKPAY_Stripe_Config::publishable_key(),
+        'deposit_amount_per_person' => max( 0, (int) KKPAY_SAME_DAY_DEPOSIT_AMOUNT ),
+        'currency'                  => KKPAY_SAME_DAY_DEPOSIT_CURRENCY,
+        'hold_minutes'              => KKPAY_HOLD_MINUTES,
     ) );
 }
 

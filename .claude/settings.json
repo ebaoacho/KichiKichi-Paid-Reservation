@@ -53,7 +53,11 @@
       "Bash(/c/xampp/php/php.exe -l includes/Services/class-kkpay-same-day-reservation-service.php)",
       "Bash(/c/xampp/php/php.exe -l includes/Controllers/class-kkpay-same-day-reservation-controller.php)",
       "Bash(/c/xampp/php/php.exe -l includes/Validators/class-kkpay-same-day-reservation-validator.php)",
-      "Bash(/c/xampp/php/php.exe -l includes/Services/class-kkpay-reservation-service.php)"
+      "Bash(/c/xampp/php/php.exe -l includes/Services/class-kkpay-reservation-service.php)",
+      "PowerShell($php = \"C:\\\\xampp\\\\php\\\\php.exe\"; if \\(Test-Path $php\\) { & $php -l \"early-reservation-system.php\"; & $php -l \"includes\\\\kkpay-messages.php\"; & $php -l \"templates\\\\same-day-reservation-form.php\" } else { \"php.exe not found at $php\" })",
+      "Bash(node --check assets/js/kkpay-same-day.js)",
+      "Bash(node -e \"require\\('fs'\\).readFileSync\\('assets/js/kkpay-same-day.js'\\)\")",
+      "PowerShell(& \"C:\\\\xampp\\\\php\\\\php.exe\" -l \"templates\\\\same-day-reservation-form.php\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\kandai\\AppData\\Local\\Temp\\claude\\c--xampp-htdocs-kichikichi-wp-content-plugins-KichiKichi-Paid-Reservation\\d54d169b-5d76-4c45-82f5-05117d4ec2cc\\scratchpad",

@@ -81,6 +81,20 @@ define( 'KKPAY_MESSAGES', array(
         'zh-CN' => '预约已取消。概不退款。',
         'zh-TW' => '預約已取消。概不退款。',
     ),
+    'same_day_deposit_notice' => array(
+        'en'    => 'A deposit of USD {unit} per person is required to reserve. The deposit will be applied toward your food bill at the restaurant. It is non-refundable, whether you cancel or do not show up.',
+        'ja'    => 'ご予約には1名あたりUSD {unit}のデポジットが必要です。デポジットは来店時のお会計（お料理代）の一部に充当されます。キャンセル・無断キャンセルを問わず返金はいたしません。',
+        'ko'    => '예약을 위해 1인당 USD {unit}의 디포짓이 필요합니다. 디포짓은 매장 방문 시 음식값 결제에 사용됩니다. 취소 또는 노쇼 여부와 관계없이 환불되지 않습니다.',
+        'zh-CN' => '预约需支付每人USD {unit}的押金。押金将用于抵扣到店后的餐费。无论取消或未到店，押金概不退还。',
+        'zh-TW' => '預約需支付每人USD {unit}的訂金。訂金將用於抵扣到店後的餐費。無論取消或未到店，訂金概不退還。',
+    ),
+    'same_day_deposit_amount_label' => array(
+        'en'    => 'Deposit: USD {unit} per person (Total: USD {total})',
+        'ja'    => 'デポジット: 1名あたりUSD {unit}（合計: USD {total}）',
+        'ko'    => '디포짓: 1인당 USD {unit}（합계: USD {total}）',
+        'zh-CN' => '押金：每人USD {unit}（合计：USD {total}）',
+        'zh-TW' => '訂金：每人USD {unit}（合計：USD {total}）',
+    ),
     'same_day_cancel_success' => array(
         'en'    => 'Your same-day reservation has been cancelled.',
         'ja'    => '当日予約をキャンセルしました。',
