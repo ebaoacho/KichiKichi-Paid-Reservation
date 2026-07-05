@@ -444,3 +444,7 @@ node --check assets\js\kkpay-same-day-confirmation.js
 | `doc/19_calendar_integration_design.md` | カレンダー統合設計 |
 | `doc/20_same_day_deposit_design.md` | 当日予約デポジット制設計 |
 | `doc/22_same_day_deposit_migration_test.md` | 当日予約デポジット制 PR1 マイグレーションテスト手順 |
+
+## PR7 デポジット制切替手順
+
+- `doc/21_same_day_deposit_cutover.md`: 当日予約デポジット制の本番切替、限定 URL 確認、0ドルロールバック、初日監視の手順。
