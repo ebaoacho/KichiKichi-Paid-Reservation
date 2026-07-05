@@ -172,6 +172,7 @@ add_action( 'init', function () {
     add_shortcode( 'kkpay_my_reservation',   'kkpay_render_my_reservation' );
     add_shortcode( 'kkpay_premium_payment',  'kkpay_render_premium_payment' );
     add_shortcode( 'kkpay_premium_cancel',   'kkpay_render_premium_cancel' );
+    add_shortcode( 'kkpay_premium_guide',    'kkpay_render_premium_guide' );
     add_shortcode( 'kkpay_same_day_confirmation', 'kkpay_render_same_day_confirmation' );
     add_shortcode( 'kkpay_same_day_reservation_form', 'kkpay_render_same_day_reservation_form' );
     add_shortcode( 'kkpay_same_day_gate', 'kkpay_render_same_day_gate' );
@@ -212,6 +213,13 @@ function kkpay_render_premium_cancel() {
     ob_start();
     include KKPAY_PLUGIN_DIR . 'templates/premium-cancel.php';
     return ob_get_clean();
+}
+
+function kkpay_render_premium_guide() {
+    kkpay_enqueue_customer_calendar_assets();
+    ob_start();
+    include KKPAY_PLUGIN_DIR . 'page-templates/premium/03-premium-guide.html';
+    return do_shortcode( ob_get_clean() );
 }
 
 function kkpay_render_same_day_confirmation() {
@@ -346,6 +354,7 @@ function kkpay_enqueue_assets() {
     $has_mypage          = has_shortcode( $content, 'kkpay_my_reservation' );
     $has_premium_payment = has_shortcode( $content, 'kkpay_premium_payment' );
     $has_premium_cancel  = has_shortcode( $content, 'kkpay_premium_cancel' );
+    $has_premium_guide   = has_shortcode( $content, 'kkpay_premium_guide' );
     $has_same_day_confirmation = has_shortcode( $content, 'kkpay_same_day_confirmation' );
     $has_same_day        = has_shortcode( $content, 'kkpay_same_day_reservation_form' );
     $has_customer_calendar = has_shortcode( $content, 'kkpay_customer_calendar' );
@@ -369,7 +378,7 @@ function kkpay_enqueue_assets() {
     if ( $has_same_day ) {
         kkpay_enqueue_same_day_assets();
     }
-    if ( $has_customer_calendar ) {
+    if ( $has_customer_calendar || $has_premium_guide ) {
         kkpay_enqueue_customer_calendar_assets();
     }
     if ( $has_same_day_gate ) {

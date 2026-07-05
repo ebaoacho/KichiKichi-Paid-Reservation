@@ -23,6 +23,12 @@
             slot: 'Time Slot',
             seat: 'Seat',
             people: 'Number of People',
+            amount: 'Deposit Amount',
+            paymentStatus: 'Payment Status',
+            paymentStatusPaid: 'Paid',
+            paymentStatusPending: 'Payment pending',
+            paymentStatusNotRequired: 'Not required',
+            paymentStatusRefunded: 'Refunded (external)',
             status: 'Status',
             cancelledAt: 'Cancelled At',
             active: 'Active',
@@ -40,7 +46,7 @@
             guideCancelText: 'Please cancel only when necessary so another guest can use the seat.',
             guideNotice: 'Late arrival may be treated as an automatic cancellation. If your plans change, please cancel from this page as early as possible.',
             tabSameDay: 'Same-day reservation',
-            tabSameDayHint: 'Free reservation for today',
+            tabSameDayHint: 'Deposit reservation for today',
             tabPremium: 'Premium reservation',
             tabPremiumHint: 'Paid future-date reservation',
             premiumGuideKicker: 'Premium reservation',
@@ -65,6 +71,12 @@
             slot: '時間枠',
             seat: '席種別',
             people: '人数',
+            amount: 'デポジット金額',
+            paymentStatus: '決済状況',
+            paymentStatusPaid: '決済済み',
+            paymentStatusPending: '決済待ち',
+            paymentStatusNotRequired: '不要',
+            paymentStatusRefunded: '外部返金済み',
             status: 'ステータス',
             cancelledAt: 'キャンセル日時',
             active: '予約中',
@@ -82,7 +94,7 @@
             guideCancelText: '他のお客様が席を利用できるよう、必要な場合のみキャンセルしてください。',
             guideNotice: '到着が遅れた場合は自動キャンセル扱いになることがあります。予定が変わった場合は、できるだけ早くこのページからキャンセルしてください。',
             tabSameDay: '当日予約',
-            tabSameDayHint: '今日の無料予約',
+            tabSameDayHint: '今日のデポジット予約',
             tabPremium: 'プレミアム予約',
             tabPremiumHint: '有料の未来日予約',
             premiumGuideKicker: 'プレミアム予約',
@@ -107,6 +119,12 @@
             slot: '시간대',
             seat: '좌석 종류',
             people: '인원',
+            amount: '디포짓 금액',
+            paymentStatus: '결제 상태',
+            paymentStatusPaid: '결제 완료',
+            paymentStatusPending: '결제 대기',
+            paymentStatusNotRequired: '불필요',
+            paymentStatusRefunded: '외부 환불 완료',
             status: '상태',
             cancelledAt: '취소 일시',
             active: '예약 중',
@@ -124,7 +142,7 @@
             guideCancelText: '다른 손님이 좌석을 이용할 수 있도록 필요한 경우에만 취소해 주세요.',
             guideNotice: '늦게 도착하면 자동 취소로 처리될 수 있습니다. 일정이 변경된 경우 가능한 한 빨리 이 페이지에서 취소해 주세요.',
             tabSameDay: '당일 예약',
-            tabSameDayHint: '오늘의 무료 예약',
+            tabSameDayHint: '오늘의 디포짓 예약',
             tabPremium: '프리미엄 예약',
             tabPremiumHint: '유료 미래일 예약',
             premiumGuideKicker: '프리미엄 예약',
@@ -149,6 +167,12 @@
             slot: '时间段',
             seat: '座位类型',
             people: '人数',
+            amount: '押金金额',
+            paymentStatus: '付款状态',
+            paymentStatusPaid: '已支付',
+            paymentStatusPending: '待支付',
+            paymentStatusNotRequired: '无需支付',
+            paymentStatusRefunded: '外部已退款',
             status: '状态',
             cancelledAt: '取消时间',
             active: '预约中',
@@ -166,7 +190,7 @@
             guideCancelText: '请仅在必要时取消，以便其他客人可以使用该座位。',
             guideNotice: '迟到可能会被视为自动取消。如行程有变，请尽早在此页面取消预约。',
             tabSameDay: '当日预约',
-            tabSameDayHint: '今天的免费预约',
+            tabSameDayHint: '今天的押金预约',
             tabPremium: '高级预约',
             tabPremiumHint: '付费的未来日期预约',
             premiumGuideKicker: '高级预约',
@@ -191,6 +215,12 @@
             slot: '時間段',
             seat: '座位類型',
             people: '人數',
+            amount: '訂金金額',
+            paymentStatus: '付款狀態',
+            paymentStatusPaid: '已支付',
+            paymentStatusPending: '待支付',
+            paymentStatusNotRequired: '無需支付',
+            paymentStatusRefunded: '外部已退款',
             status: '狀態',
             cancelledAt: '取消時間',
             active: '預約中',
@@ -208,7 +238,7 @@
             guideCancelText: '請僅在必要時取消，以便其他客人可以使用該座位。',
             guideNotice: '遲到可能會被視為自動取消。如行程有變，請盡早在此頁面取消預約。',
             tabSameDay: '當日預約',
-            tabSameDayHint: '今天的免費預約',
+            tabSameDayHint: '今天的訂金預約',
             tabPremium: '高級預約',
             tabPremiumHint: '付費的未來日期預約',
             premiumGuideKicker: '高級預約',
@@ -271,6 +301,22 @@
         return t('active');
     }
 
+    function formatAmount(reservation) {
+        var amount = parseInt(reservation.amount, 10) || 0;
+        var currency = (reservation.currency || 'usd').toUpperCase();
+        return currency + ' ' + amount.toLocaleString('en-US');
+    }
+
+    function paymentStatusLabel(reservation) {
+        var key = {
+            paid: 'paymentStatusPaid',
+            pending: 'paymentStatusPending',
+            not_required: 'paymentStatusNotRequired',
+            refunded: 'paymentStatusRefunded'
+        }[reservation.payment_status];
+        return (key && t(key)) || reservation.payment_status || '';
+    }
+
     function updateLabels() {
         $('[data-confirmation-guide-text]').each(function () {
             var key = $(this).attr('data-confirmation-guide-text');
@@ -312,6 +358,8 @@
             .append(row(t('slot'), slotLabel(reservation)))
             .append(row(t('seat'), seatLabel(reservation.seating_preference)))
             .append(row(t('people'), reservation.number_of_people))
+            .append(row(t('amount'), formatAmount(reservation)))
+            .append(row(t('paymentStatus'), paymentStatusLabel(reservation)))
             .append(row(t('status'), statusLabel(reservation)));
 
         // Cancelled records are not returned by lookup; this branch is for the post-cancel state in the current page.
