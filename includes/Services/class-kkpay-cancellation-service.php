@@ -18,6 +18,19 @@ class KKPAY_Cancellation_Service {
 
         $wpdb->query( 'START TRANSACTION' );
 
+        $reservation = KKPAY_Reservation_Repository::find_by_id_for_update( (int) $reservation->id );
+        if ( ! $reservation ) {
+            $wpdb->query( 'ROLLBACK' );
+            return new WP_Error( 'not_found', kkpay_msg( 'reservation_not_found', $lang ) );
+        }
+        if ( $reservation->cancelled_at !== null || $reservation->status === 'cancelled' ) {
+            $wpdb->query( 'ROLLBACK' );
+            return new WP_Error( 'already_cancelled', kkpay_msg( 'already_cancelled', $lang ) );
+        }
+
+        $reservation_type = $reservation->reservation_type ?: 'premium';
+        $event_source     = $reservation_type === 'same_day' ? 'same_day_cancel' : 'premium_cancel';
+
         $log_id = KKPAY_Cancellation_Repository::insert( array(
             'reservation_id'   => (int) $reservation->id,
             'cancelled_at'     => $cancelled_at,
@@ -49,8 +62,8 @@ class KKPAY_Cancellation_Service {
             'reservation_cancelled',
             'customer',
             array(
-                'source'             => 'premium_cancel',
-                'reservation_type'   => $reservation->reservation_type ?: 'premium',
+                'source'             => $event_source,
+                'reservation_type'   => $reservation_type,
                 'reservation_date'   => $reservation->reservation_date,
                 'time_slot'          => $reservation->time_slot,
                 'seating_preference' => $reservation->seating_preference ?: 'Bar',
@@ -69,16 +82,21 @@ class KKPAY_Cancellation_Service {
 
         $wpdb->query( 'COMMIT' );
 
-        KKPAY_Email_Service::send_cancellation_confirmation(
-            $reservation,
-            $refund_status,
-            $refund_amount
-        );
+        if ( $reservation_type === 'same_day' ) {
+            KKPAY_Email_Service::send_same_day_deposit_cancellation( $reservation, $refund_status, $refund_amount );
+        } else {
+            KKPAY_Email_Service::send_cancellation_confirmation(
+                $reservation,
+                $refund_status,
+                $refund_amount
+            );
+        }
 
         return array(
             'refund_status' => $refund_status,
             'refund_amount' => $refund_amount,
-            'message'       => kkpay_msg( 'cancel_success_no_refund', $lang ),
+            'message'       => kkpay_msg( $reservation_type === 'same_day' ? 'same_day_deposit_cancel_success' : 'cancel_success_no_refund', $lang ),
+            'cancelled_at'  => $cancelled_at,
         );
     }
 }

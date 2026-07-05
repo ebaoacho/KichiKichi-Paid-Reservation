@@ -564,15 +564,18 @@ flowchart TD
 変更対象:
 
 - `includes/Services/class-kkpay-same-day-reservation-service.php`（`cancel()` の内部実装のみ）
+- `includes/Services/class-kkpay-cancellation-service.php`（`reservation_type` に応じたメッセージキー・メール送信の出し分けを追加）
 - `includes/Services/class-kkpay-email-service.php`（同日予約向けメソッド追加）
 - `templates/same-day-confirmation.php` / `assets/js/kkpay-same-day-confirmation.js`（文言更新）
 - `includes/kkpay-messages.php`
+- `includes/Services/class-kkpay-reservation-service.php`（`create_from_same_day_hold()` の戻り値のみ拡張。下記参照）
 
 実装内容:
 
 - `KKPAY_Same_Day_Reservation_Service::cancel()` を、独自の `update_cancelled()` 直接呼び出しから `KKPAY_Cancellation_Service::cancel( $reservation, $lang )` 呼び出しに置き換える。
 - `KKPAY_Cancellation_Service` 側は `reservation_type` に応じてメッセージキーを出し分けられるよう、最小限の分岐を追加する（既存のプレミアム予約向けメッセージは変更しない）。
 - 決済確認メール（`send_same_day_deposit_confirmation`）とキャンセル確認メール（`send_same_day_deposit_cancellation`）を新規追加する。
+- 本PRで決済確認メールの送信箇所を `confirm()` / `handle_webhook_payment_intent_succeeded()` に追加するのに伴い、AJAX確定とWebhookフォールバックの両方が同じ予約に対して届いた場合に確認メールを二重送信しないよう、`KKPAY_Reservation_Service::create_from_same_day_hold()` の戻り値を `int`（予約ID）から `array( 'id' => int, 'created' => bool )` に拡張する。`created` が `false` の場合（冪等性チェックにより既存予約を返した場合）は呼び出し元がメール再送信をスキップする。この関数は同日予約サービスからしか呼ばれないため、通常予約・プレミアム予約への影響はない。
 
 含めないもの:
 

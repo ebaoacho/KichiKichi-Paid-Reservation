@@ -17,9 +17,7 @@
             email: 'Email Address',
             search: 'Check Reservation',
             cancel: 'Cancel Reservation',
-            cancelPolicy: 'Same-day reservations can be cancelled from this page.',
             confirmCancel: 'Are you sure you want to cancel this same-day reservation?',
-            cancelled: 'Your same-day reservation has been cancelled.',
             name: 'Name',
             date: 'Date',
             slot: 'Time Slot',
@@ -61,9 +59,7 @@
             email: 'メールアドレス',
             search: '予約を確認する',
             cancel: '予約をキャンセルする',
-            cancelPolicy: '当日予約はこのページからキャンセルできます。',
             confirmCancel: '当日予約をキャンセルしてよろしいですか？',
-            cancelled: '当日予約をキャンセルしました。',
             name: '名前',
             date: '日付',
             slot: '時間枠',
@@ -105,9 +101,7 @@
             email: '이메일 주소',
             search: '예약 확인',
             cancel: '예약 취소',
-            cancelPolicy: '당일 예약은 이 페이지에서 취소할 수 있습니다.',
             confirmCancel: '당일 예약을 취소하시겠습니까?',
-            cancelled: '당일 예약이 취소되었습니다.',
             name: '이름',
             date: '날짜',
             slot: '시간대',
@@ -149,9 +143,7 @@
             email: '电子邮箱',
             search: '查询预约',
             cancel: '取消预约',
-            cancelPolicy: '当日预约可在此页面取消。',
             confirmCancel: '确定要取消该当日预约吗？',
-            cancelled: '当日预约已取消。',
             name: '姓名',
             date: '日期',
             slot: '时间段',
@@ -193,9 +185,7 @@
             email: '電子郵件',
             search: '查詢預約',
             cancel: '取消預約',
-            cancelPolicy: '當日預約可在此頁面取消。',
             confirmCancel: '確定要取消該當日預約嗎？',
-            cancelled: '當日預約已取消。',
             name: '姓名',
             date: '日期',
             slot: '時間段',
@@ -299,7 +289,8 @@
         $('#kkpay-same-day-confirmation-lbl-result-hint').text(msg('same_day_confirmation_result_hint'));
         $('#kkpay-same-day-confirmation-lbl-cancel-title').text(msg('same_day_confirmation_cancel_title'));
         $('#kkpay-same-day-confirmation-lbl-cancel').text(t('cancel'));
-        $('#kkpay-same-day-confirmation-lbl-cancel-policy').text(t('cancelPolicy'));
+        $('#kkpay-same-day-confirmation-lbl-cancel-policy').text(msg('same_day_deposit_cancel_policy'));
+        $('#kkpay-same-day-confirmation-lbl-deposit-warning').text(msg('same_day_deposit_cancel_warning'));
         $('#kkpay-same-day-confirmation-lbl-cancel-warning').text(msg('same_day_confirmation_cancel_warning'));
     }
 
@@ -332,7 +323,7 @@
 
         if (reservation.cancelled_at || reservation.status === 'cancelled') {
             $cancelSection.hide();
-            showMessage($cancelledNotice, msg('same_day_cancel_success'), 'success');
+            showMessage($cancelledNotice, msg('same_day_deposit_cancel_success'), 'success');
             return;
         }
 
@@ -457,7 +448,7 @@
         if (!currentReservation) {
             return;
         }
-        if (!window.confirm(t('confirmCancel'))) {
+        if (!window.confirm(t('confirmCancel') + ' ' + msg('same_day_deposit_cancel_warning'))) {
             return;
         }
 
@@ -479,7 +470,7 @@
             currentReservation.status = 'cancelled';
             currentReservation.cancelled_at = (res.data && res.data.cancelled_at) ? res.data.cancelled_at : '';
             renderReservation(currentReservation);
-            showMessage($('#kkpay-same-day-confirmation-cancelled-notice'), (res.data && res.data.message) ? res.data.message : msg('same_day_cancel_success'), 'success');
+            showMessage($('#kkpay-same-day-confirmation-cancelled-notice'), (res.data && res.data.message) ? res.data.message : msg('same_day_deposit_cancel_success'), 'success');
         }).fail(function () {
             $cancelBtn.prop('disabled', false);
             showMessage($message, msg('server_error'), 'error');

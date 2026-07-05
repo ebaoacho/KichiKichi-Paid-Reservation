@@ -125,7 +125,10 @@ class KKPAY_Reservation_Service {
     }
 
     /**
-     * 当日予約デポジット用ホールドから予約レコードを作成し、予約 ID を返す。
+     * 当日予約デポジット用ホールドから予約レコードを作成する。
+     * 冪等性チェックにより既存予約を返す場合と新規作成の場合を呼び出し元が区別できるよう、
+     * 成功時は array( 'id' => int, 'created' => bool ) を返す（'created' が false の場合は
+     * 既に他のリクエストが確定済みの予約を指しており、確認メール等の再送信を避ける必要がある）。
      */
     public static function create_from_same_day_hold( $hold, $pi_id, $charge_id, $status ) {
         global $wpdb;
@@ -145,7 +148,7 @@ class KKPAY_Reservation_Service {
         if ( $existing_active ) {
             if ( (int) $existing_active->hold_id === (int) $hold->id ) {
                 $wpdb->query( 'ROLLBACK' );
-                return (int) $existing_active->id;
+                return array( 'id' => (int) $existing_active->id, 'created' => false );
             }
             $wpdb->query( 'ROLLBACK' );
             if ( $pi_id ) {
@@ -178,7 +181,7 @@ class KKPAY_Reservation_Service {
                 $existing = KKPAY_Reservation_Repository::find_by_payment_intent( $pi_id );
                 if ( $existing ) {
                     $wpdb->query( 'ROLLBACK' );
-                    return $existing->id;
+                    return array( 'id' => (int) $existing->id, 'created' => false );
                 }
             }
             $wpdb->query( 'ROLLBACK' );
@@ -208,7 +211,7 @@ class KKPAY_Reservation_Service {
 
         $wpdb->query( 'COMMIT' );
 
-        return $id;
+        return array( 'id' => (int) $id, 'created' => true );
     }
 
     /**

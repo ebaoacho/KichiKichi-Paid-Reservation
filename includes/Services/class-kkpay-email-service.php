@@ -90,6 +90,81 @@ class KKPAY_Email_Service {
     }
 
     // ------------------------------------------------------------------
+    // 同日予約デポジット用メール
+    // ------------------------------------------------------------------
+
+    /**
+     * 入金完了メール（To: お客様、CC: マスター）
+     */
+    public static function send_same_day_deposit_confirmation( $reservation ) {
+        if ( ! $reservation ) {
+            return;
+        }
+
+        $lang   = self::normalize_lang( $reservation->language ?? 'en' );
+        $amount = self::format_currency_amount( (int) $reservation->amount, $reservation->currency ?? KKPAY_SAME_DAY_DEPOSIT_CURRENCY );
+
+        $subjects = array(
+            'en'    => 'Same-Day Reservation Deposit Received - KichiKichi',
+            'ja'    => '【KichiKichi】当日予約デポジットを受け付けました',
+            'ko'    => '[KichiKichi] 당일 예약 보증금 결제가 완료되었습니다',
+            'zh-CN' => '【KichiKichi】当日预约订金已支付',
+            'zh-TW' => '【KichiKichi】當日預約訂金已付款',
+        );
+
+        $bodies = array(
+            'en'    => "Dear {$reservation->name},\n\nYour same-day reservation deposit has been received. The deposit will be applied toward your food bill at the restaurant.\n\n{{DETAILS}}\n\nAt checkout, please pay the remaining balance after the deposit has been deducted from your total food bill.\n\nCancellation Policy:\nThe deposit is non-refundable if you cancel or do not show up.\n\nKichiKichi",
+            'ja'    => "{$reservation->name} 様\n\n当日予約のデポジットを受け付けました。デポジットはご来店時のお食事代の一部に充当されます。\n\n{{DETAILS}}\n\n当日のお会計時に、ご注文金額からデポジット分を差し引いた残額をお支払いください。\n\nキャンセルポリシー:\nキャンセルまたは無断キャンセルの場合も、デポジットは返金されません。\n\nKichiKichi",
+            'ko'    => "{$reservation->name} 님\n\n당일 예약 보증금 결제가 완료되었습니다. 보증금은 매장에서 식사 요금의 일부로 사용됩니다.\n\n{{DETAILS}}\n\n결제 시, 주문 금액에서 보증금을 제외한 잔액을 결제해 주세요.\n\n취소 정책:\n취소하거나 방문하지 않는 경우에도 보증금은 환불되지 않습니다.\n\nKichiKichi",
+            'zh-CN' => "亲爱的 {$reservation->name}：\n\n您的当日预约订金已支付。订金将在到店时抵扣餐费的一部分。\n\n{{DETAILS}}\n\n请在到店结账时，支付从餐费中扣除订金后的差额。\n\n取消政策：\n如果取消或未到店，订金不予退还。\n\nKichiKichi",
+            'zh-TW' => "親愛的 {$reservation->name}：\n\n您的當日預約訂金已付款。訂金將於到店時折抵餐費的一部分。\n\n{{DETAILS}}\n\n請於到店結帳時，支付餐費扣除訂金後的差額。\n\n取消政策：\n若取消或未到店，訂金恕不退還。\n\nKichiKichi",
+        );
+
+        self::send_with_cc(
+            $reservation->email,
+            $subjects[ $lang ] ?? $subjects['en'],
+            $bodies[ $lang ] ?? $bodies['en'],
+            $lang,
+            true,
+            self::same_day_details( $reservation, $lang, $amount )
+        );
+    }
+
+    public static function send_same_day_deposit_cancellation( $reservation, $refund_status, $refund_amount ) {
+        if ( ! $reservation ) {
+            return;
+        }
+
+        $lang   = self::normalize_lang( $reservation->language ?? 'en' );
+        $amount = self::format_currency_amount( (int) $reservation->amount, $reservation->currency ?? KKPAY_SAME_DAY_DEPOSIT_CURRENCY );
+
+        $subjects = array(
+            'en'    => 'Same-Day Reservation Cancelled - KichiKichi',
+            'ja'    => '【KichiKichi】当日予約キャンセルのお知らせ',
+            'ko'    => '[KichiKichi] 당일 예약 취소 안내',
+            'zh-CN' => '【KichiKichi】当日预约取消通知',
+            'zh-TW' => '【KichiKichi】當日預約取消通知',
+        );
+
+        $bodies = array(
+            'en'    => "Dear {$reservation->name},\n\nYour same-day reservation has been cancelled.\n\n{{DETAILS}}\n\nThe deposit is non-refundable and will not be refunded after cancellation.\n\nKichiKichi",
+            'ja'    => "{$reservation->name} 様\n\n当日予約をキャンセルしました。\n\n{{DETAILS}}\n\nデポジットは返金対象外のため、キャンセル後の返金はありません。\n\nKichiKichi",
+            'ko'    => "{$reservation->name} 님\n\n당일 예약이 취소되었습니다.\n\n{{DETAILS}}\n\n보증금은 환불 대상이 아니므로 취소 후 환불되지 않습니다.\n\nKichiKichi",
+            'zh-CN' => "亲爱的 {$reservation->name}：\n\n您的当日预约已取消。\n\n{{DETAILS}}\n\n订金不予退还，取消后不会退款。\n\nKichiKichi",
+            'zh-TW' => "親愛的 {$reservation->name}：\n\n您的當日預約已取消。\n\n{{DETAILS}}\n\n訂金恕不退還，取消後不會退款。\n\nKichiKichi",
+        );
+
+        self::send_with_cc(
+            $reservation->email,
+            $subjects[ $lang ] ?? $subjects['en'],
+            $bodies[ $lang ] ?? $bodies['en'],
+            $lang,
+            false,
+            self::same_day_details( $reservation, $lang, $amount )
+        );
+    }
+
+    // ------------------------------------------------------------------
     // プレミアム予約用メール
     // ------------------------------------------------------------------
 
@@ -335,6 +410,15 @@ class KKPAY_Email_Service {
         return KKPAY_CURRENCY === 'usd' ? '$' . number_format( $amount ) : '¥' . number_format( $amount );
     }
 
+    private static function format_currency_amount( $amount, $currency ) {
+        $currency = strtoupper( (string) $currency );
+        if ( $currency === '' ) {
+            $currency = 'USD';
+        }
+
+        return $currency . ' ' . number_format( $amount );
+    }
+
     private static function send( $to, $subject, $message, $lang = 'en', $include_arrival_notice = false, $details = array() ) {
         $from_name  = KKPAY_Email_Config::from_name();
         $from_email = KKPAY_Email_Config::from_email();
@@ -433,6 +517,32 @@ class KKPAY_Email_Service {
             'zh-TW' => array( 'date' => '預約日期',         'slot' => '時間段',     'people' => '席數',            'amount' => '支付金額'     ),
         );
         return $map[ $lang ] ?? $map['en'];
+    }
+
+    private static function detail_labels_same_day( $lang ) {
+        $map = array(
+            'en'    => array( 'date' => 'Reservation Date', 'slot' => 'Time Slot', 'seat' => 'Seat', 'people' => 'Number of Seats', 'amount' => 'Deposit Paid', 'name' => 'Name', 'email' => 'Email Address' ),
+            'ja'    => array( 'date' => '予約日', 'slot' => '時間枠', 'seat' => '席種', 'people' => '席数', 'amount' => '支払い済みデポジット', 'name' => '氏名', 'email' => 'メールアドレス' ),
+            'ko'    => array( 'date' => '예약일', 'slot' => '시간대', 'seat' => '좌석', 'people' => '좌석 수', 'amount' => '결제된 보증금', 'name' => '이름', 'email' => '이메일 주소' ),
+            'zh-CN' => array( 'date' => '预约日期', 'slot' => '时间段', 'seat' => '座位', 'people' => '人数', 'amount' => '已支付订金', 'name' => '姓名', 'email' => '电子邮箱' ),
+            'zh-TW' => array( 'date' => '預約日期', 'slot' => '時段', 'seat' => '座位', 'people' => '人數', 'amount' => '已付款訂金', 'name' => '姓名', 'email' => '電子郵件' ),
+        );
+        return $map[ $lang ] ?? $map['en'];
+    }
+
+    private static function same_day_details( $reservation, $lang, $amount ) {
+        $label = KKPAY_SLOT_LABELS[ $lang ][ $reservation->time_slot ] ?? $reservation->time_slot;
+        $dl    = self::detail_labels_same_day( $lang );
+
+        return array(
+            array( 'label' => $dl['date'],   'value' => $reservation->reservation_date ),
+            array( 'label' => $dl['slot'],   'value' => $label ),
+            array( 'label' => $dl['seat'],   'value' => $reservation->seating_preference ?: 'Bar' ),
+            array( 'label' => $dl['people'], 'value' => self::people_value( $reservation->number_of_people, $lang ) ),
+            array( 'label' => $dl['amount'], 'value' => $amount ),
+            array( 'label' => $dl['name'],   'value' => $reservation->name ),
+            array( 'label' => $dl['email'],  'value' => $reservation->email ),
+        );
     }
 
     private static function detail_labels_date_slot( $lang ) {
