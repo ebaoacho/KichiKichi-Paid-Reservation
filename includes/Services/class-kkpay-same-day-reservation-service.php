@@ -164,12 +164,16 @@ class KKPAY_Same_Day_Reservation_Service {
     public static function confirm( $hold, $pi_id = '' ) {
         $amount = self::calculate_deposit_amount( $hold->number_of_people );
         if ( $amount <= 0 ) {
-            $reservation_id = KKPAY_Reservation_Service::create_from_same_day_hold( $hold, null, null, 'not_required' );
-            if ( is_wp_error( $reservation_id ) ) {
-                return $reservation_id;
+            $result = KKPAY_Reservation_Service::create_from_same_day_hold( $hold, null, null, 'not_required' );
+            if ( is_wp_error( $result ) ) {
+                return $result;
             }
             KKPAY_Hold_Repository::delete_by_token( $hold->hold_token );
-            return KKPAY_Reservation_Repository::find_by_id( $reservation_id );
+            $reservation = KKPAY_Reservation_Repository::find_by_id( $result['id'] );
+            if ( $result['created'] ) {
+                KKPAY_Email_Service::send_same_day_deposit_confirmation( $reservation );
+            }
+            return $reservation;
         }
 
         if ( ! $pi_id ) {
@@ -192,14 +196,19 @@ class KKPAY_Same_Day_Reservation_Service {
             return new WP_Error( 'payment_mismatch', kkpay_msg( 'server_error', $hold->language ) );
         }
 
-        $reservation_id = KKPAY_Reservation_Service::create_from_same_day_hold( $hold, $pi_id, $pi['latest_charge'] ?? null, 'paid' );
-        if ( is_wp_error( $reservation_id ) ) {
-            return $reservation_id;
+        $result = KKPAY_Reservation_Service::create_from_same_day_hold( $hold, $pi_id, $pi['latest_charge'] ?? null, 'paid' );
+        if ( is_wp_error( $result ) ) {
+            return $result;
         }
 
         KKPAY_Hold_Repository::delete_by_token( $hold->hold_token );
 
-        return KKPAY_Reservation_Repository::find_by_id( $reservation_id );
+        $reservation = KKPAY_Reservation_Repository::find_by_id( $result['id'] );
+        if ( $result['created'] ) {
+            KKPAY_Email_Service::send_same_day_deposit_confirmation( $reservation );
+        }
+
+        return $reservation;
     }
 
     public static function handle_webhook_payment_intent_succeeded( array $pi ) {
@@ -226,9 +235,13 @@ class KKPAY_Same_Day_Reservation_Service {
             return;
         }
 
-        $reservation_id = KKPAY_Reservation_Service::create_from_same_day_hold( $hold, $pi_id, $pi['latest_charge'] ?? null, 'paid' );
-        if ( ! is_wp_error( $reservation_id ) ) {
+        $result = KKPAY_Reservation_Service::create_from_same_day_hold( $hold, $pi_id, $pi['latest_charge'] ?? null, 'paid' );
+        if ( ! is_wp_error( $result ) ) {
             KKPAY_Hold_Repository::delete_by_token( $hold_token );
+            if ( $result['created'] ) {
+                $reservation = KKPAY_Reservation_Repository::find_by_id( $result['id'] );
+                KKPAY_Email_Service::send_same_day_deposit_confirmation( $reservation );
+            }
         }
     }
 
@@ -248,58 +261,15 @@ class KKPAY_Same_Day_Reservation_Service {
     }
 
     public static function cancel( $email, $lang = 'en' ) {
-        global $wpdb;
-
         $tz           = new DateTimeZone( 'Asia/Tokyo' );
         $now          = new DateTimeImmutable( 'now', $tz );
-        $cancelled_at = $now->format( 'Y-m-d H:i:s' );
 
-        $wpdb->query( 'START TRANSACTION' );
-
-        $reservation = KKPAY_Reservation_Repository::find_active_same_day_by_email_for_update( $email, $now->format( 'Y-m-d' ) );
+        $reservation = KKPAY_Reservation_Repository::find_active_same_day_by_email( $email, $now->format( 'Y-m-d' ) );
         if ( ! $reservation ) {
-            $wpdb->query( 'ROLLBACK' );
             return new WP_Error( 'not_found', kkpay_msg( 'reservation_not_found', $lang ) );
         }
 
-        $updated = KKPAY_Reservation_Repository::update_cancelled(
-            (int) $reservation->id,
-            $cancelled_at,
-            $reservation->payment_status
-        );
-        if ( $updated === false ) {
-            $wpdb->query( 'ROLLBACK' );
-            return new WP_Error( 'cancel_failed', kkpay_msg( 'server_error', $lang ) );
-        }
-
-        $event_id = KKPAY_Reservation_Event_Repository::insert(
-            (int) $reservation->id,
-            'reservation_cancelled',
-            'customer',
-            array(
-                'source'             => 'same_day_cancel',
-                'reservation_type'   => 'same_day',
-                'reservation_date'   => $reservation->reservation_date,
-                'time_slot'          => $reservation->time_slot,
-                'seating_preference' => $reservation->seating_preference,
-                'number_of_people'   => (int) $reservation->number_of_people,
-                'cancelled_at'       => $cancelled_at,
-                'refund_status'      => 'none',
-                'refund_amount'      => 0,
-            )
-        );
-        if ( is_wp_error( $event_id ) ) {
-            $wpdb->query( 'ROLLBACK' );
-            error_log( '[KKPAY] Same-day cancellation event insert failed for reservation_id=' . (int) $reservation->id . ' message=' . $event_id->get_error_message() );
-            return new WP_Error( 'cancel_failed', kkpay_msg( 'server_error', $lang ) );
-        }
-
-        $wpdb->query( 'COMMIT' );
-
-        return array(
-            'message'      => kkpay_msg( 'same_day_cancel_success', $lang ),
-            'cancelled_at' => $cancelled_at,
-        );
+        return KKPAY_Cancellation_Service::cancel( $reservation, $lang );
     }
 
     public static function build_response( $reservation, $lang = 'en' ) {

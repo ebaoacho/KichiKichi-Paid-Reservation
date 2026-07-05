@@ -60,7 +60,8 @@ $confirmation_lang = in_array( $confirmation_lang, array( 'en', 'ja', 'ko', 'zh-
 
         <div id="kkpay-same-day-confirmation-cancel-section" class="kkpay-same-day-confirmation-cancel" style="display:none;">
             <h2 id="kkpay-same-day-confirmation-lbl-cancel-title"><?php echo esc_html( kkpay_msg( 'same_day_confirmation_cancel_title', $confirmation_lang ) ); ?></h2>
-            <p id="kkpay-same-day-confirmation-lbl-cancel-policy" class="kkpay-cancel-policy"><?php echo esc_html( kkpay_msg( 'same_day_confirmation_cancel_policy', $confirmation_lang ) ); ?></p>
+            <p id="kkpay-same-day-confirmation-lbl-cancel-policy" class="kkpay-cancel-policy"><?php echo esc_html( kkpay_msg( 'same_day_deposit_cancel_policy', $confirmation_lang ) ); ?></p>
+            <p id="kkpay-same-day-confirmation-lbl-deposit-warning" class="kkpay-same-day-confirmation-warning"><?php echo esc_html( kkpay_msg( 'same_day_deposit_cancel_warning', $confirmation_lang ) ); ?></p>
             <p id="kkpay-same-day-confirmation-lbl-cancel-warning" class="kkpay-same-day-confirmation-warning"><?php echo esc_html( kkpay_msg( 'same_day_confirmation_cancel_warning', $confirmation_lang ) ); ?></p>
             <button type="button" id="kkpay-same-day-confirmation-cancel-btn" class="kkpay-btn kkpay-btn-danger">
                 <span id="kkpay-same-day-confirmation-lbl-cancel">Cancel Reservation</span>

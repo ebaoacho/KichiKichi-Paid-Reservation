@@ -95,12 +95,12 @@ define( 'KKPAY_MESSAGES', array(
         'zh-CN' => '押金：每人USD {unit}（合计：USD {total}）',
         'zh-TW' => '訂金：每人USD {unit}（合計：USD {total}）',
     ),
-    'same_day_cancel_success' => array(
-        'en'    => 'Your same-day reservation has been cancelled.',
-        'ja'    => '当日予約をキャンセルしました。',
-        'ko'    => '당일 예약이 취소되었습니다.',
-        'zh-CN' => '当日预约已取消。',
-        'zh-TW' => '當日預約已取消。',
+    'same_day_deposit_cancel_success' => array(
+        'en'    => 'Your same-day reservation has been cancelled. The deposit is non-refundable.',
+        'ja'    => '当日予約をキャンセルしました。デポジットは返金されません。',
+        'ko'    => '당일 예약이 취소되었습니다. 보증금은 환불되지 않습니다.',
+        'zh-CN' => '当日预约已取消。订金不予退还。',
+        'zh-TW' => '當日預約已取消。訂金恕不退還。',
     ),
     'same_day_full_alt' => array(
         'en'    => 'All available same-day reservation slots are fully booked.',
@@ -186,12 +186,19 @@ define( 'KKPAY_MESSAGES', array(
         'zh-CN' => '取消此预约',
         'zh-TW' => '取消此預約',
     ),
-    'same_day_confirmation_cancel_policy' => array(
+    'same_day_deposit_cancel_policy' => array(
         'en'    => 'Same-day reservations can be cancelled from this page.',
         'ja'    => '当日予約はこのページからキャンセルできます。',
         'ko'    => '당일 예약은 이 페이지에서 취소할 수 있습니다.',
         'zh-CN' => '当日预约可在此页面取消。',
         'zh-TW' => '當日預約可在此頁面取消。',
+    ),
+    'same_day_deposit_cancel_warning' => array(
+        'en'    => 'The deposit is non-refundable, even after cancellation.',
+        'ja'    => 'デポジットはキャンセル後も返金されません。',
+        'ko'    => '보증금은 취소 후에도 환불되지 않습니다.',
+        'zh-CN' => '订金即使取消也不予退还。',
+        'zh-TW' => '訂金即使取消也不予退還。',
     ),
     'same_day_confirmation_cancel_warning' => array(
         'en'    => 'Cancellation cannot be undone.',
