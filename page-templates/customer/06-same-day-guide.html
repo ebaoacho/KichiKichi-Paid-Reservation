@@ -43,23 +43,39 @@
             <span style="display:inline-block;margin:3px;padding:3px 10px;border-radius:999px;background:rgba(185,28,28,0.09);color:#8f141b;font-size:11px;font-weight:600;">Dinner 1:30 PM</span>
             <span style="display:inline-block;margin:3px;padding:3px 10px;border-radius:999px;background:rgba(185,28,28,0.09);color:#8f141b;font-size:11px;font-weight:600;">Lunch 9:30 AM</span>
           </div>
+          <form action="../same-day-reservation-form/" method="get" style="display:block;margin-top:auto;">
+          <style>
+            #kkpay-same-day-guide .kkpay-same-day-submit {
+              display: none !important;
+            }
+            #kkpay-same-day-guide form:has(input[name="same_day_late_policy"]:checked):has(input[name="same_day_refund_policy"]:checked):has(input[name="same_day_deposit_policy"]:checked) .kkpay-same-day-submit {
+              display: block !important;
+            }
+            #kkpay-same-day-guide form:has(input[name="same_day_late_policy"]:checked):has(input[name="same_day_refund_policy"]:checked):has(input[name="same_day_deposit_policy"]:checked) .kkpay-same-day-disabled {
+              display: none !important;
+            }
+          </style>
           <div id="kkpay-same-day-guide-agreements" style="text-align:left;margin:0 0 16px;">
             <label style="display:flex;align-items:flex-start;gap:8px;margin:0 0 10px;cursor:pointer;font-size:12px;color:#555;line-height:1.5;">
-              <input type="checkbox" data-guide-agree style="margin-top:3px;flex-shrink:0;width:16px;height:16px;">
+              <input type="checkbox" name="same_day_late_policy" required style="margin-top:3px;flex-shrink:0;width:16px;height:16px;">
               <span><span data-guide-panel="en" style="display:block;">If you are late, your reservation may be cancelled.</span><span data-guide-panel="ja" style="display:none;">遅れた場合、予約はキャンセル扱いとなります。</span><span data-guide-panel="ko" style="display:none;">늦으시면 예약이 취소될 수 있습니다.</span><span data-guide-panel="zh-CN" style="display:none;">迟到时，预约可能会被视为取消。</span><span data-guide-panel="zh-TW" style="display:none;">遲到時，預約可能會被視為取消。</span></span>
             </label>
             <label style="display:flex;align-items:flex-start;gap:8px;margin:0 0 10px;cursor:pointer;font-size:12px;color:#555;line-height:1.5;">
-              <input type="checkbox" data-guide-agree style="margin-top:3px;flex-shrink:0;width:16px;height:16px;">
+              <input type="checkbox" name="same_day_refund_policy" required style="margin-top:3px;flex-shrink:0;width:16px;height:16px;">
               <span><span data-guide-panel="en" style="display:block;">The deposit is non-refundable, even after cancellation.</span><span data-guide-panel="ja" style="display:none;">デポジットはキャンセル後も返金されません。</span><span data-guide-panel="ko" style="display:none;">보증금은 취소 후에도 환불되지 않습니다.</span><span data-guide-panel="zh-CN" style="display:none;">订金即使取消也不予退还。</span><span data-guide-panel="zh-TW" style="display:none;">訂金即使取消也不予退還。</span></span>
             </label>
             <label style="display:flex;align-items:flex-start;gap:8px;margin:0;cursor:pointer;font-size:12px;color:#555;line-height:1.5;">
-              <input type="checkbox" data-guide-agree style="margin-top:3px;flex-shrink:0;width:16px;height:16px;">
+              <input type="checkbox" name="same_day_deposit_policy" required style="margin-top:3px;flex-shrink:0;width:16px;height:16px;">
               <span><span data-guide-panel="en" style="display:block;">If you attend, the deposit paid in advance will be applied toward your food bill.</span><span data-guide-panel="ja" style="display:none;">ご来店いただいた場合、事前にお支払いいただいたデポジットはお料理代に充当されます。</span><span data-guide-panel="ko" style="display:none;">방문하시면 사전에 결제하신 디포짓은 음식값에 충당됩니다.</span><span data-guide-panel="zh-CN" style="display:none;">如您到店，事先支付的押金将用于抵扣餐费。</span><span data-guide-panel="zh-TW" style="display:none;">如您到店，事先支付的訂金將用於抵扣餐費。</span></span>
             </label>
           </div>
-          <a class="kkpay-same-day-gated-link" href="../same-day-reservation-form/" aria-disabled="true" style="display:block;margin-top:auto;padding:12px 10px;border-radius:10px;background:#b91c1c;color:#ffffff;text-decoration:none;font-size:13px;font-weight:800;line-height:1.2;opacity:0.5;pointer-events:none;cursor:not-allowed;">
+          <button type="button" class="kkpay-same-day-disabled" style="display:block;width:100%;box-sizing:border-box;margin-top:auto;padding:12px 10px;border:0;border-radius:10px;background:#b91c1c;color:#ffffff;text-decoration:none;font-size:13px;font-weight:800;line-height:1.2;cursor:not-allowed;opacity:0.5;">
             <span data-guide-panel="en" style="display:block;">Book today &gt;</span><span data-guide-panel="ja" style="display:none;">今日予約する &gt;</span><span data-guide-panel="ko" style="display:none;">오늘 예약 &gt;</span><span data-guide-panel="zh-CN" style="display:none;">预约今天 &gt;</span><span data-guide-panel="zh-TW" style="display:none;">預約今天 &gt;</span>
-          </a>
+          </button>
+          <button type="submit" class="kkpay-same-day-gated-link kkpay-same-day-submit" style="display:none;width:100%;box-sizing:border-box;margin-top:auto;padding:12px 10px;border:0;border-radius:10px;background:#b91c1c;color:#ffffff;text-decoration:none;font-size:13px;font-weight:800;line-height:1.2;cursor:pointer;">
+            <span data-guide-panel="en" style="display:block;">Book today &gt;</span><span data-guide-panel="ja" style="display:none;">今日予約する &gt;</span><span data-guide-panel="ko" style="display:none;">오늘 예약 &gt;</span><span data-guide-panel="zh-CN" style="display:none;">预约今天 &gt;</span><span data-guide-panel="zh-TW" style="display:none;">預約今天 &gt;</span>
+          </button>
+          </form>
         </div>
       </div>
 
@@ -99,38 +115,4 @@
     </div>
   </div>
 
-  <script>
-  (function () {
-    var root = document.getElementById('kkpay-same-day-guide');
-    if (!root) { return; }
-    var link = root.querySelector('.kkpay-same-day-gated-link');
-    var boxes = root.querySelectorAll('[data-guide-agree]');
-    if (!link || !boxes.length) { return; }
-
-    function allChecked() {
-      return Array.prototype.every.call(boxes, function (cb) { return cb.checked; });
-    }
-
-    function updateState() {
-      var ok = allChecked();
-      link.setAttribute('aria-disabled', ok ? 'false' : 'true');
-      link.style.pointerEvents = ok ? '' : 'none';
-      link.style.opacity = ok ? '' : '0.5';
-      link.style.cursor = ok ? '' : 'not-allowed';
-    }
-
-    Array.prototype.forEach.call(boxes, function (cb) {
-      cb.addEventListener('change', updateState);
-    });
-
-    link.addEventListener('click', function (event) {
-      if (!allChecked()) {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-      }
-    }, true);
-
-    updateState();
-  })();
-  </script>
 </div>
