@@ -17,6 +17,7 @@
     <!-- ② 日付選択 -->
     <div class="kkpay-field">
         <label class="kkpay-label kkpay-i18n" id="lbl-date">予約日 / Date</label>
+        <p class="kkpay-date-note" id="lbl-date-note"></p>
         <div id="kkpay-date-picker" class="kkpay-date-grid"></div>
     </div>
 
@@ -24,6 +25,7 @@
     <div class="kkpay-field" id="kkpay-slot-section" style="display:none;">
         <label class="kkpay-label kkpay-i18n" id="lbl-slot">時間枠 / Time Slot</label>
         <div id="kkpay-slot-list"></div>
+        <p class="kkpay-date-note" id="lbl-slot-note"></p>
     </div>
 
     <!-- ④ Seats -->

@@ -221,6 +221,13 @@ define( 'KKPAY_MESSAGES', array(
         'zh-CN' => '目前没有可预约的高级预约名额。',
         'zh-TW' => '目前沒有可預約的高級預約名額。',
     ),
+    'no_available_dates' => array(
+        'en'    => 'There are currently no available reservation dates.',
+        'ja'    => '現在、予約可能な日付はありません。',
+        'ko'    => '현재 예약 가능한 날짜가 없습니다.',
+        'zh-CN' => '目前没有可预约的日期。',
+        'zh-TW' => '目前沒有可預約的日期。',
+    ),
     'duplicate_reservation' => array(
         'en'    => 'A reservation already exists for this email, date, and time slot.',
         'ja'    => 'このメール・日付・スロットの予約は既に存在します。',
