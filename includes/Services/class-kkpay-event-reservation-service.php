@@ -65,6 +65,7 @@ class KKPAY_Event_Reservation_Service {
                     . ' guests=' . (int) $locked_hold->guests . ' remaining_excluding_self=' . $capacity_check->remaining . ' source=' . $source );
             }
         }
+        $confirmed_event_id = intval( $pi['metadata']['event_id'] ?? 0 );
 
         $reservation_data = array(
             'hold_token'         => $locked_hold->hold_token,
@@ -132,6 +133,7 @@ class KKPAY_Event_Reservation_Service {
             $source === 'stripe_webhook' ? 'system' : 'customer',
             array(
                 'slot_id' => (int) $locked_hold->slot_id,
+                'event_id' => $confirmed_event_id,
                 'guests'  => (int) $locked_hold->guests,
                 'amount'  => (int) $locked_hold->amount,
                 'source'  => $source,
@@ -185,10 +187,13 @@ class KKPAY_Event_Reservation_Service {
      */
     public static function build_customer_view( $reservation ) {
         $slot = KKPAY_Event_Slot_Repository::find( $reservation->slot_id );
+        $event = $slot ? KKPAY_Event_Repository::find( $slot->event_id ) : null;
 
         $can_cancel = $reservation->reservation_status === 'CONFIRMED' && ! self::slot_datetime_has_passed( $slot );
 
         return array(
+            'event_id'           => $event ? (int) $event->id : 0,
+            'event_title'        => $event ? $event->title : '',
             'reservation_code'   => $reservation->reservation_code,
             'reservation_status' => $reservation->reservation_status,
             'name'               => $reservation->name,

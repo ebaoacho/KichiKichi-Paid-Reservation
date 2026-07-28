@@ -16,7 +16,8 @@
     // ページリロード/誤操作で Stripe Elements のマウント状態と JS 変数が失われても、
     // 決済入力途中のホールドに戻れるように sessionStorage へ最小限の状態を残す。
     // (この情報だけでは予約は完成しない。確定は必ずサーバー側の hold_token/PaymentIntent 照合を通る)
-    var STORAGE_KEY = 'kkpay_event_hold_v1';
+    var LEGACY_STORAGE_KEY = 'kkpay_event_hold_v1';
+    var STORAGE_KEY = 'kkpay_event_hold_v2_' + parseInt( kkpay_event_reservation.event_id, 10 );
 
     function saveHoldState( expiresInSeconds ) {
         try {
@@ -25,6 +26,7 @@
                 clientSecret:      currentClientSecret,
                 paymentIntentId:   currentPaymentIntentId,
                 amount:            currentAmount,
+                eventId:           parseInt( kkpay_event_reservation.event_id, 10 ),
                 expiresAtClientMs: Date.now() + ( Math.max( 0, parseInt( expiresInSeconds, 10 ) || 0 ) * 1000 ),
             } ) );
         } catch ( e ) {
@@ -61,10 +63,17 @@
 
         stripe = Stripe( kkpay_event_reservation.stripe_pk );
 
+        try {
+            sessionStorage.removeItem( LEGACY_STORAGE_KEY );
+        } catch ( e ) {
+            // noop
+        }
+
         var saved = loadHoldState();
         var savedSecondsLeft = saved ? Math.round( ( saved.expiresAtClientMs - Date.now() ) / 1000 ) : 0;
 
-        if ( saved && saved.holdToken && saved.clientSecret && savedSecondsLeft > 0 ) {
+        if ( saved && saved.eventId === parseInt( kkpay_event_reservation.event_id, 10 )
+            && saved.holdToken && saved.clientSecret && savedSecondsLeft > 0 ) {
             resumeHold( saved, savedSecondsLeft );
         } else {
             if ( saved ) {
@@ -111,10 +120,16 @@
         $.post( kkpay_event_reservation.ajax_url, {
             action: 'kkpay_event_get_available_slots',
             nonce:  kkpay_event_reservation.nonce,
+            event_id: kkpay_event_reservation.event_id,
         } )
         .done( function ( res ) {
             if ( ! res.success ) {
                 showLoadError( res.data && res.data.message ? res.data.message : t( 'closed', 'This event is no longer accepting reservations.' ) );
+                return;
+            }
+
+            if ( parseInt( res.data.event_id, 10 ) !== parseInt( kkpay_event_reservation.event_id, 10 ) ) {
+                showLoadError( 'This event is no longer accepting reservations.' );
                 return;
             }
 
@@ -268,6 +283,7 @@
         $.post( kkpay_event_reservation.ajax_url, {
             action:                      'kkpay_event_create_hold',
             nonce:                       kkpay_event_reservation.nonce,
+            event_id:                    kkpay_event_reservation.event_id,
             name:                        data.name,
             email:                       data.email,
             slot_id:                     data.slot_id,
@@ -278,6 +294,12 @@
             if ( ! res.success ) {
                 isSubmitting = false;
                 showMessage( ( res.data && res.data.message ) || 'Unable to reserve this session.', true );
+                setLoading( false );
+                return;
+            }
+            if ( parseInt( res.data.event_id, 10 ) !== parseInt( kkpay_event_reservation.event_id, 10 ) ) {
+                isSubmitting = false;
+                showMessage( 'This event is no longer accepting reservations.', true );
                 setLoading( false );
                 return;
             }
@@ -393,6 +415,7 @@
         $.post( kkpay_event_reservation.ajax_url, {
             action:             'kkpay_event_confirm_reservation',
             nonce:              kkpay_event_reservation.nonce,
+            event_id:           kkpay_event_reservation.event_id,
             hold_token:         currentHoldToken,
             payment_intent_id:  currentPaymentIntentId,
         } )
@@ -422,7 +445,8 @@
 
             $( '#kkpay-event-success-code' ).text( 'Reservation Code: ' + res.data.reservation_code );
             $( '#kkpay-event-success-details' ).text(
-                res.data.date + ' ' + res.data.time + ' — ' + res.data.guests + ' guest(s) — Total: USD ' + res.data.amount
+                res.data.event_title + ' — ' + res.data.date + ' ' + res.data.time
+                + ' — ' + res.data.guests + ' guest(s) — Total: USD ' + res.data.amount
             );
             $( '#kkpay-event-form-section' ).hide();
             $( '#kkpay-event-success-section' ).show();

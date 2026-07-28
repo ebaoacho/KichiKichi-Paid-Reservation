@@ -86,6 +86,11 @@ class KKPAY_Event_Reservation_Validator {
         $slot_id = intval( $input['slot_id'] ?? 0 );
         $guests  = intval( $input['guests'] ?? 0 );
         $agreed  = ! empty( $input['cancellation_policy_agreed'] );
+        $requested_event_id = intval( $input['event_id'] ?? 0 );
+
+        if ( $requested_event_id !== (int) $event_id ) {
+            return new WP_Error( 'event_mismatch', 'This event is no longer accepting reservations.' );
+        }
 
         if ( ! self::is_english_name( $name ) ) {
             return new WP_Error( 'invalid_name', kkpay_event_msg( 'invalid_name' ) );
@@ -123,6 +128,7 @@ class KKPAY_Event_Reservation_Validator {
     public static function validate_confirm( array $input ) {
         $hold_token = sanitize_text_field( $input['hold_token'] ?? '' );
         $pi_id      = sanitize_text_field( $input['payment_intent_id'] ?? '' );
+        $event_id   = intval( $input['event_id'] ?? 0 );
 
         // hold_token は random_bytes(32) の16進表現(64桁hex)、payment_intent_id は Stripe の "pi_..." 形式。
         // 形式が明らかに不正な値はDBルックアップ/Stripe API呼び出しに進む前にここで弾く。
@@ -132,10 +138,14 @@ class KKPAY_Event_Reservation_Validator {
         if ( ! preg_match( '/^pi_[A-Za-z0-9_]+$/', $pi_id ) ) {
             return new WP_Error( 'invalid_input', 'Missing reservation details.' );
         }
+        if ( $event_id <= 0 ) {
+            return new WP_Error( 'invalid_input', 'Missing event details.' );
+        }
 
         return array(
             'hold_token'         => $hold_token,
             'payment_intent_id'  => $pi_id,
+            'event_id'           => $event_id,
         );
     }
 

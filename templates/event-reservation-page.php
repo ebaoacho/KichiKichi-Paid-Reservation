@@ -3,13 +3,15 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-$event_status = KKPAY_Event_Settings_Service::get_status();
+$event       = KKPAY_Event_Settings_Service::get_current_event();
+$event_title = $event ? $event->title : 'Event Reservation';
+$unit_amount = $event ? (int) $event->unit_amount : KKPAY_EVENT_AMOUNT;
 ?>
 
 <div id="kkpay-event-wrap" class="kkpay-wrap kkpay-event-wrap">
 
     <div class="kkpay-event-hero">
-        <h1 class="kkpay-event-title">Kichi Kichi Giant Omurice Event</h1>
+        <h1 class="kkpay-event-title"><?php echo esc_html( $event_title ); ?></h1>
         <p class="kkpay-event-tagline">Join Our Journey to a World Record!</p>
         <ul class="kkpay-event-highlights">
             <li>Watch Chef Motokichi create a giant Kichi Kichi Omurice right before your eyes.</li>
@@ -19,16 +21,10 @@ $event_status = KKPAY_Event_Settings_Service::get_status();
             <li>Includes 1 drink and a special souvenir.</li>
             <li>Only 8 seats per session. First come, first served.</li>
         </ul>
-        <p class="kkpay-event-price">USD 50 per seat</p>
+        <p class="kkpay-event-price">USD <?php echo (int) $unit_amount; ?> per seat</p>
     </div>
 
-    <?php if ( $event_status === 'archived' ) : ?>
-
-        <div class="kkpay-notice kkpay-event-closed-notice">
-            <p>This event has ended. Thank you for your interest.</p>
-        </div>
-
-    <?php elseif ( $event_status !== 'open' ) : ?>
+    <?php if ( ! $event ) : ?>
 
         <div class="kkpay-notice kkpay-event-closed-notice">
             <p><?php echo esc_html( kkpay_event_msg( 'closed' ) ); ?></p>

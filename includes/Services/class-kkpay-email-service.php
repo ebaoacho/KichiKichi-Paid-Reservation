@@ -395,20 +395,23 @@ class KKPAY_Email_Service {
         $amount = self::format_currency_amount( (int) $reservation->amount, $reservation->currency ?: KKPAY_EVENT_CURRENCY );
         $date   = $slot ? $slot->event_date : '';
         $time   = $slot ? $slot->event_time : '';
+        $event  = $slot ? KKPAY_Event_Repository::find( $slot->event_id ) : null;
+        $event_title = $event ? $event->title : 'Event Reservation';
 
-        $subject = 'Your Kichi Kichi Event Reservation is Confirmed';
+        $subject = 'Your ' . $event_title . ' Reservation is Confirmed';
 
         $cancel_url  = function_exists( 'kkpay_find_shortcode_page_url' ) ? kkpay_find_shortcode_page_url( 'kkpay_event_cancel' ) : '';
         $cancel_line = $cancel_url
             ? "You can cancel your reservation anytime before the session at: {$cancel_url}\n\n"
             : '';
 
-        $body = "Dear {$reservation->name},\n\nThank you! Your reservation for the Kichi Kichi Giant Omurice Event with Chef Motokichi is confirmed.\n\n{{DETAILS}}\n\n"
+        $body = "Dear {$reservation->name},\n\nThank you! Your reservation for {$event_title} is confirmed.\n\n{{DETAILS}}\n\n"
             . "Cancellation Policy:\nNo refund will be issued after cancellation. {$cancel_line}"
             . "Please contact us if you need to make any changes.\n\nWe look forward to seeing you!\n\nKichiKichi";
 
         $details = array(
             array( 'label' => 'Reservation Code', 'value' => $reservation->reservation_code ),
+            array( 'label' => 'Event',            'value' => $event_title ),
             array( 'label' => 'Date',             'value' => $date ),
             array( 'label' => 'Time',              'value' => $time ),
             array( 'label' => 'Guests',            'value' => (string) $reservation->guests ),
@@ -428,15 +431,18 @@ class KKPAY_Email_Service {
 
         $date = $slot ? $slot->event_date : '';
         $time = $slot ? $slot->event_time : '';
+        $event = $slot ? KKPAY_Event_Repository::find( $slot->event_id ) : null;
+        $event_title = $event ? $event->title : 'Event Reservation';
 
-        $subject = 'Your Kichi Kichi Event Reservation Has Been Cancelled';
+        $subject = 'Your ' . $event_title . ' Reservation Has Been Cancelled';
 
-        $body = "Dear {$reservation->name},\n\nYour reservation for the Kichi Kichi Giant Omurice Event has been cancelled as requested.\n\n{{DETAILS}}\n\n"
+        $body = "Dear {$reservation->name},\n\nYour reservation for {$event_title} has been cancelled as requested.\n\n{{DETAILS}}\n\n"
             . "As noted at the time of booking, this reservation is prepaid and no refund will be issued.\n\n"
             . "Thank you for your understanding.\n\nKichiKichi";
 
         $details = array(
             array( 'label' => 'Reservation Code', 'value' => $reservation->reservation_code ),
+            array( 'label' => 'Event',            'value' => $event_title ),
             array( 'label' => 'Date',             'value' => $date ),
             array( 'label' => 'Time',              'value' => $time ),
         );

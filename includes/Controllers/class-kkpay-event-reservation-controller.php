@@ -22,6 +22,9 @@ class KKPAY_Event_Reservation_Controller {
         if ( ! $event ) {
             self::send_closed_error();
         }
+        if ( intval( $_POST['event_id'] ?? 0 ) !== (int) $event->id ) {
+            self::send_closed_error();
+        }
 
         $now   = ( new DateTimeImmutable( 'now', new DateTimeZone( 'Asia/Tokyo' ) ) )->format( 'Y-m-d H:i:s' );
         $rows  = KKPAY_Event_Slot_Repository::find_all_with_remaining( $event->id, $now );
@@ -36,7 +39,11 @@ class KKPAY_Event_Reservation_Controller {
             );
         }
 
-        wp_send_json_success( array( 'slots' => $slots ) );
+        wp_send_json_success( array(
+            'event_id'    => (int) $event->id,
+            'event_title' => $event->title,
+            'slots'       => $slots,
+        ) );
     }
 
     public static function ajax_create_hold() {
@@ -77,7 +84,12 @@ class KKPAY_Event_Reservation_Controller {
             wp_send_json_error( array( 'message' => 'Payment system is not configured.' ) );
         }
 
-        $result = KKPAY_Event_Payment_Service::confirm_from_payment_intent( $data['payment_intent_id'], $data['hold_token'], 'browser_confirm' );
+        $result = KKPAY_Event_Payment_Service::confirm_from_payment_intent(
+            $data['payment_intent_id'],
+            $data['hold_token'],
+            'browser_confirm',
+            $data['event_id']
+        );
         if ( is_wp_error( $result ) ) {
             // code をフロントへ渡すことで、Stripe疎通エラー(stripe_unavailable)と
             // 本当の決済未完了(payment_not_succeeded)とで表示・挙動を分けられるようにする。
@@ -318,7 +330,10 @@ class KKPAY_Event_Reservation_Controller {
 
     private static function build_reservation_response( $reservation ) {
         $slot = KKPAY_Event_Slot_Repository::find( $reservation->slot_id );
+        $event = $slot ? KKPAY_Event_Repository::find( $slot->event_id ) : null;
         return array(
+            'event_id'         => $event ? (int) $event->id : 0,
+            'event_title'      => $event ? $event->title : '',
             'reservation_code' => $reservation->reservation_code,
             'name'             => $reservation->name,
             'email'            => $reservation->email,
