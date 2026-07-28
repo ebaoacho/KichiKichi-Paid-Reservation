@@ -45,6 +45,13 @@ class KKPAY_Admin {
         wp_localize_script( 'kkpay-admin-calendar', 'kkpay_admin_calendar', array(
             'nonce' => wp_create_nonce( 'kkpay_nonce' ),
         ) );
+
+        wp_enqueue_script( 'kkpay-admin-event', KKPAY_PLUGIN_URL . 'assets/js/kkpay-admin-event.js', array( 'jquery' ), KKPAY_VERSION, true );
+        wp_localize_script( 'kkpay-admin-event', 'kkpay_admin_event', array(
+            'ajax_url'     => admin_url( 'admin-ajax.php' ),
+            'nonce'        => wp_create_nonce( 'kkpay_nonce' ),
+            'export_nonce' => wp_create_nonce( 'kkpay_event_export' ),
+        ) );
     }
 
     public static function render_page() {
@@ -67,6 +74,8 @@ class KKPAY_Admin {
                    href="<?php echo esc_url( admin_url( 'admin.php?page=kkpay-settings&tab=same_day_reservations' ) ); ?>">当日予約</a>
                 <a class="nav-tab <?php echo $active_tab === 'calendar' ? 'nav-tab-active' : ''; ?>"
                    href="<?php echo esc_url( admin_url( 'admin.php?page=kkpay-settings&tab=calendar' ) ); ?>">営業日カレンダー</a>
+                <a class="nav-tab <?php echo $active_tab === 'event_reservations' ? 'nav-tab-active' : ''; ?>"
+                   href="<?php echo esc_url( admin_url( 'admin.php?page=kkpay-settings&tab=event_reservations' ) ); ?>">イベント予約</a>
             </h2>
             <?php
             if ( $active_tab === 'seat_capacity' ) {
@@ -77,6 +86,8 @@ class KKPAY_Admin {
                 self::render_same_day_reservations_tab();
             } elseif ( $active_tab === 'calendar' ) {
                 self::render_calendar_tab();
+            } elseif ( $active_tab === 'event_reservations' ) {
+                self::render_event_reservations_tab();
             } else {
                 self::render_reservations_tab();
             }
@@ -154,6 +165,54 @@ class KKPAY_Admin {
         include KKPAY_PLUGIN_DIR . 'templates/admin/calendar-tab.php';
     }
 
+    /**
+     * Event Reservation（イベント予約）専用の管理タブ。
+     * 枠一覧（定員・held/confirmed/残席）、受付ステータス操作、ホールド一覧、確定予約一覧、CSV出力を表示する。
+     */
+    public static function render_event_reservations_tab() {
+        // WP-Cron に依存せず、管理画面を開いたタイミングでも期限切れホールドの表示を整理する
+        // （残席計算はカウンタを持たない都度計算のため、これを呼ばなくても残席自体は常に正しい。
+        // あくまでホールド一覧の「ステータス」表示を鮮度良く保つための機会的な処理）。
+        KKPAY_Event_Hold_Service::expire_holds();
+
+        $event_slots        = KKPAY_Event_Slot_Repository::get_all_with_remaining();
+        $event_holds        = KKPAY_Event_Hold_Repository::get_list();
+        $event_reservations = KKPAY_Event_Reservation_Repository::get_list();
+
+        $event_slot_map = array();
+        foreach ( $event_slots as $slot ) {
+            $event_slot_map[ $slot->id ] = $slot;
+        }
+
+        // 決済は完了しているが枠定員を超えて確定されてしまった予約（遅延決済とHOLD失効の競合等）を
+        // スタッフが見落とさないよう、一覧表示前に件数を集計しておく。
+        $overbooked_slot_count = 0;
+        foreach ( $event_slots as $slot ) {
+            $slot_remaining = (int) $slot->capacity - (int) $slot->held_count - (int) $slot->confirmed_count;
+            if ( $slot_remaining < 0 ) {
+                $overbooked_slot_count++;
+            }
+        }
+
+        $overbooked_reservation_count = 0;
+        foreach ( $event_reservations as $row ) {
+            if ( ! empty( $row->is_overbooked ) && $row->reservation_status === 'CONFIRMED' ) {
+                $overbooked_reservation_count++;
+            }
+        }
+
+        $event_status = KKPAY_Event_Settings_Service::get_status();
+
+        // 直近の Hard Close で PaymentIntent キャンセルに失敗した項目があれば警告表示する。
+        $event_hard_close_failures = KKPAY_Event_Hold_Service::get_last_hard_close_failures();
+
+        // payment_intent_id のホールドへの永続化に失敗した項目（決済自体は成立している可能性が
+        // あるが、ホールド一覧に PaymentIntent が表示されず追跡しづらくなる）があれば警告表示する。
+        $event_persist_failures = KKPAY_Event_Payment_Service::get_persist_failures();
+
+        include KKPAY_PLUGIN_DIR . 'templates/admin/event-reservations-tab.php';
+    }
+
     private static function two_months_later_end_of_month( DateTimeImmutable $today ) {
         $tz    = new DateTimeZone( 'Asia/Tokyo' );
         $year  = (int) $today->format( 'Y' );
@@ -166,4 +225,5 @@ class KKPAY_Admin {
 
         return ( new DateTimeImmutable( sprintf( '%04d-%02d-01', $year, $month ), $tz ) )
             ->modify( 'last day of this month' );
-    }}
+    }
+}

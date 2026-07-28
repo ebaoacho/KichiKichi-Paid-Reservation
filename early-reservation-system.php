@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // ----------------------------------------------------------------
 // 定数
 // ----------------------------------------------------------------
-define( 'KKPAY_VERSION',            '1.0.7' );
+define( 'KKPAY_VERSION',            '1.0.9' );
 define( 'KKPAY_PLUGIN_DIR',         plugin_dir_path( __FILE__ ) );
 define( 'KKPAY_PLUGIN_URL',         plugin_dir_url( __FILE__ ) );
 define( 'KKPAY_AMOUNT',             13 );
@@ -39,6 +39,32 @@ define( 'KKPAY_SAME_DAY_DINNER_END_MINUTE', 59 );
 define( 'KKPAY_PREMIUM_AMOUNT',   32 );
 define( 'KKPAY_PREMIUM_CURRENCY', 'usd' );
 define( 'KKPAY_PREMIUM_MAX_PEOPLE', 8 );
+
+// Event Reservation（限定イベント予約）専用定数。他フローの金額・保持時間とは独立させる。
+define( 'KKPAY_EVENT_AMOUNT',       50 );
+define( 'KKPAY_EVENT_CURRENCY',     'usd' );
+define( 'KKPAY_EVENT_MAX_PEOPLE',   8 );
+define( 'KKPAY_EVENT_HOLD_MINUTES', 5 );
+define( 'KKPAY_EVENT_SLOT_DATES', array( '2026-07-11', '2026-07-12', '2026-07-14', '2026-07-18', '2026-07-19' ) );
+define( 'KKPAY_EVENT_SLOT_TIMES', array( '11:00', '12:30', '14:00' ) );
+define( 'KKPAY_EVENT_SLOT_CAPACITY', 8 );
+
+// Event Reservation は英語表記のみのため、既存の KKPAY_MESSAGES（5言語）とは別に単一言語の
+// メッセージ定数を用意する。Validator/Controller/テンプレート/JS（wp_localize_script経由）が
+// すべてここを唯一の情報源として参照し、同一文言のPHP/JS間での重複・drift を防ぐ。
+define( 'KKPAY_EVENT_MESSAGES', array(
+    'invalid_name'      => "Please enter your name using English letters only.",
+    'invalid_email'     => 'Please enter a valid email address.',
+    'policy_not_agreed' => 'Please agree to the cancellation policy to continue.',
+    'closed'            => 'This event is no longer accepting reservations.',
+) );
+
+/**
+ * KKPAY_EVENT_MESSAGES から文言を取得する。未定義キーはキー名自体を返す（フォールバック）。
+ */
+function kkpay_event_msg( $key ) {
+    return KKPAY_EVENT_MESSAGES[ $key ] ?? $key;
+}
 
 define( 'KKPAY_SAME_DAY_FULL_IMAGE_URL',  KKPAY_PLUGIN_URL . 'assets/image/full.png' );
 define( 'KKPAY_SAME_DAY_CLOSE_IMAGE_URL', KKPAY_PLUGIN_URL . 'assets/image/close.png' );
@@ -124,6 +150,11 @@ require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-accepted-date
 require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-slot-capacity-repository.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-reservation-event-repository.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-premium-reservation-repository.php';
+// Event Reservation（イベント予約）専用リポジトリ
+require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-event-slot-repository.php';
+require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-event-hold-repository.php';
+require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-event-reservation-repository.php';
+require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-event-reservation-event-repository.php';
 
 // Services（ビジネスロジック層）
 require_once KKPAY_PLUGIN_DIR . 'includes/Services/class-kkpay-calendar-service.php';
@@ -135,6 +166,12 @@ require_once KKPAY_PLUGIN_DIR . 'includes/Services/class-kkpay-cancellation-serv
 require_once KKPAY_PLUGIN_DIR . 'includes/Services/class-kkpay-email-service.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Services/class-kkpay-premium-reservation-service.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Services/class-kkpay-same-day-reservation-service.php';
+// Event Reservation（イベント予約）専用サービス
+require_once KKPAY_PLUGIN_DIR . 'includes/Services/class-kkpay-event-settings-service.php';
+require_once KKPAY_PLUGIN_DIR . 'includes/Services/class-kkpay-event-capacity-service.php';
+require_once KKPAY_PLUGIN_DIR . 'includes/Services/class-kkpay-event-hold-service.php';
+require_once KKPAY_PLUGIN_DIR . 'includes/Services/class-kkpay-event-payment-service.php';
+require_once KKPAY_PLUGIN_DIR . 'includes/Services/class-kkpay-event-reservation-service.php';
 
 // Validators（バリデーション層）
 require_once KKPAY_PLUGIN_DIR . 'includes/Validators/class-kkpay-hold-validator.php';
@@ -143,6 +180,8 @@ require_once KKPAY_PLUGIN_DIR . 'includes/Validators/class-kkpay-reservation-val
 require_once KKPAY_PLUGIN_DIR . 'includes/Validators/class-kkpay-cancellation-validator.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Validators/class-kkpay-premium-reservation-validator.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Validators/class-kkpay-same-day-reservation-validator.php';
+// Event Reservation（イベント予約）専用バリデータ
+require_once KKPAY_PLUGIN_DIR . 'includes/Validators/class-kkpay-event-reservation-validator.php';
 
 // Controllers（リクエスト受付・レスポンス返却層）
 require_once KKPAY_PLUGIN_DIR . 'includes/Controllers/class-kkpay-hold-controller.php';
@@ -152,6 +191,8 @@ require_once KKPAY_PLUGIN_DIR . 'includes/Controllers/class-kkpay-cancellation-c
 require_once KKPAY_PLUGIN_DIR . 'includes/Controllers/class-kkpay-admin-controller.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Controllers/class-kkpay-premium-reservation-controller.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Controllers/class-kkpay-same-day-reservation-controller.php';
+// Event Reservation（イベント予約）専用コントローラ
+require_once KKPAY_PLUGIN_DIR . 'includes/Controllers/class-kkpay-event-reservation-controller.php';
 
 // Supporting classes
 require_once KKPAY_PLUGIN_DIR . 'includes/class-kkpay-activator.php';
@@ -178,6 +219,8 @@ add_action( 'init', function () {
     add_shortcode( 'kkpay_same_day_gate', 'kkpay_render_same_day_gate' );
     add_shortcode( 'kkpay_customer_calendar', 'kkpay_render_customer_calendar' );
     add_shortcode( 'kkpay_legal_policies', 'kkpay_render_legal_policies' );
+    add_shortcode( 'kkpay_event_reservation', 'kkpay_render_event_reservation' );
+    add_shortcode( 'kkpay_event_cancel', 'kkpay_render_event_cancel' );
 } );
 
 function kkpay_render_reservation_form() {
@@ -265,6 +308,20 @@ function kkpay_render_legal_policies() {
     wp_enqueue_script( 'kkpay-legal-policies', KKPAY_PLUGIN_URL . 'assets/js/kkpay-legal-policies.js', array( 'jquery' ), KKPAY_VERSION, true );
     ob_start();
     include KKPAY_PLUGIN_DIR . 'templates/legal-policies.php';
+    return ob_get_clean();
+}
+
+function kkpay_render_event_reservation() {
+    kkpay_enqueue_event_reservation_assets();
+    ob_start();
+    include KKPAY_PLUGIN_DIR . 'templates/event-reservation-page.php';
+    return ob_get_clean();
+}
+
+function kkpay_render_event_cancel() {
+    kkpay_enqueue_event_cancel_assets();
+    ob_start();
+    include KKPAY_PLUGIN_DIR . 'templates/event-cancel.php';
     return ob_get_clean();
 }
 
@@ -359,6 +416,8 @@ function kkpay_enqueue_assets() {
     $has_same_day        = has_shortcode( $content, 'kkpay_same_day_reservation_form' );
     $has_customer_calendar = has_shortcode( $content, 'kkpay_customer_calendar' );
     $has_same_day_gate   = has_shortcode( $content, 'kkpay_same_day_gate' );
+    $has_event_reservation = has_shortcode( $content, 'kkpay_event_reservation' );
+    $has_event_cancel      = has_shortcode( $content, 'kkpay_event_cancel' );
 
     if ( $has_form || $has_payment ) {
         kkpay_enqueue_form_assets( $has_payment );
@@ -383,6 +442,12 @@ function kkpay_enqueue_assets() {
     }
     if ( $has_same_day_gate ) {
         kkpay_enqueue_same_day_gate_assets();
+    }
+    if ( $has_event_reservation ) {
+        kkpay_enqueue_event_reservation_assets();
+    }
+    if ( $has_event_cancel ) {
+        kkpay_enqueue_event_cancel_assets();
     }
 }
 
@@ -481,6 +546,39 @@ function kkpay_enqueue_same_day_gate_assets() {
     ) );
 }
 
+function kkpay_enqueue_event_reservation_assets() {
+    wp_enqueue_style( 'kkpay-form', KKPAY_PLUGIN_URL . 'assets/css/kkpay-form.css', array(), KKPAY_VERSION );
+    wp_enqueue_style( 'kkpay-event-reservation', KKPAY_PLUGIN_URL . 'assets/css/kkpay-event-reservation.css', array( 'kkpay-form' ), KKPAY_VERSION );
+
+    // 受付停止/終了時は、フォームを描画しないので Stripe.js 等の読み込み自体を省略する。
+    if ( ! KKPAY_Event_Settings_Service::is_open() ) {
+        return;
+    }
+
+    wp_enqueue_script( 'stripe-js', 'https://js.stripe.com/v3/', array(), null, true );
+    wp_enqueue_script( 'kkpay-event-reservation', KKPAY_PLUGIN_URL . 'assets/js/kkpay-event-reservation.js', array( 'jquery', 'stripe-js' ), KKPAY_VERSION, true );
+    wp_localize_script( 'kkpay-event-reservation', 'kkpay_event_reservation', array(
+        'ajax_url'     => admin_url( 'admin-ajax.php' ),
+        'nonce'        => wp_create_nonce( 'kkpay_nonce' ),
+        'stripe_pk'    => KKPAY_Stripe_Config::publishable_key(),
+        'unit_amount'  => KKPAY_EVENT_AMOUNT,
+        'currency'     => KKPAY_EVENT_CURRENCY,
+        'max_people'   => KKPAY_EVENT_MAX_PEOPLE,
+        'hold_minutes' => KKPAY_EVENT_HOLD_MINUTES,
+        'messages'     => KKPAY_EVENT_MESSAGES,
+    ) );
+}
+
+function kkpay_enqueue_event_cancel_assets() {
+    wp_enqueue_style( 'kkpay-form', KKPAY_PLUGIN_URL . 'assets/css/kkpay-form.css', array(), KKPAY_VERSION );
+    wp_enqueue_style( 'kkpay-event-reservation', KKPAY_PLUGIN_URL . 'assets/css/kkpay-event-reservation.css', array( 'kkpay-form' ), KKPAY_VERSION );
+    wp_enqueue_script( 'kkpay-event-cancel', KKPAY_PLUGIN_URL . 'assets/js/kkpay-event-cancel.js', array( 'jquery' ), KKPAY_VERSION, true );
+    wp_localize_script( 'kkpay-event-cancel', 'kkpay_event_cancel', array(
+        'ajax_url' => admin_url( 'admin-ajax.php' ),
+        'nonce'    => wp_create_nonce( 'kkpay_nonce' ),
+    ) );
+}
+
 // AJAX ハンドラ登録（公開エンドポイント）
 $kkpay_public_actions = array(
     'kkpay_get_available_slots'            => array( 'KKPAY_Reservation_Controller',          'ajax_get_available_slots' ),
@@ -499,6 +597,12 @@ $kkpay_public_actions = array(
     'kkpay_same_day_confirm'               => array( 'KKPAY_Same_Day_Reservation_Controller', 'ajax_confirm' ),
     'kkpay_same_day_find'                  => array( 'KKPAY_Same_Day_Reservation_Controller', 'ajax_find' ),
     'kkpay_same_day_cancel'                => array( 'KKPAY_Same_Day_Reservation_Controller', 'ajax_cancel' ),
+    // Event Reservation（イベント予約）専用の公開エンドポイント
+    'kkpay_event_get_available_slots'      => array( 'KKPAY_Event_Reservation_Controller', 'ajax_get_available_slots' ),
+    'kkpay_event_create_hold'              => array( 'KKPAY_Event_Reservation_Controller', 'ajax_create_hold' ),
+    'kkpay_event_confirm_reservation'      => array( 'KKPAY_Event_Reservation_Controller', 'ajax_confirm_reservation' ),
+    'kkpay_event_check_reservation'        => array( 'KKPAY_Event_Reservation_Controller', 'ajax_check_reservation' ),
+    'kkpay_event_cancel_reservation'       => array( 'KKPAY_Event_Reservation_Controller', 'ajax_cancel_reservation' ),
 );
 
 foreach ( $kkpay_public_actions as $action => $callback ) {
@@ -515,6 +619,10 @@ add_action( 'wp_ajax_kkpay_premium_issue_payment_link',   array( 'KKPAY_Premium_
 add_action( 'wp_ajax_kkpay_premium_schedule_reservation', array( 'KKPAY_Premium_Reservation_Controller', 'ajax_schedule_reservation' ) );
 add_action( 'wp_ajax_kkpay_premium_issue_cancel_link',    array( 'KKPAY_Premium_Reservation_Controller', 'ajax_issue_cancel_link' ) );
 add_action( 'wp_ajax_kkpay_premium_export_csv',           array( 'KKPAY_Premium_Reservation_Controller', 'ajax_export_csv' ) );
+// Event Reservation（イベント予約）専用の管理画面 AJAX
+add_action( 'wp_ajax_kkpay_event_export_csv',              array( 'KKPAY_Event_Reservation_Controller',   'ajax_export_csv' ) );
+add_action( 'wp_ajax_kkpay_event_save_status',              array( 'KKPAY_Event_Reservation_Controller',   'ajax_save_status' ) );
+add_action( 'wp_ajax_kkpay_event_admin_cancel',              array( 'KKPAY_Event_Reservation_Controller',   'ajax_admin_cancel' ) );
 
 // Stripe Webhook（REST API）
 add_action( 'rest_api_init', function () {

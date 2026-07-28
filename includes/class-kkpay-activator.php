@@ -13,6 +13,8 @@ class KKPAY_Activator {
         self::create_tables();
         self::maybe_migrate_step1();
         self::maybe_migrate_calendar_days();
+        self::seed_event_slots();
+        self::maybe_init_event_reservation_status();
         self::schedule_cron();
         update_option( 'kkpay_db_version', KKPAY_VERSION );
     }
@@ -35,8 +37,20 @@ class KKPAY_Activator {
         self::create_tables();
         self::maybe_migrate_step1( $schema_is_missing );
         self::maybe_migrate_calendar_days( $schema_is_missing );
+        self::seed_event_slots();
+        self::maybe_init_event_reservation_status();
         self::schedule_cron();
         update_option( 'kkpay_db_version', KKPAY_VERSION );
+    }
+
+    /**
+     * Event Reservation 受付ステータスの初期値を closed に設定する（未設定時のみ）。
+     * 管理者が明示的に Reopen するまで公開ページには申込フォームを表示しない。
+     */
+    private static function maybe_init_event_reservation_status() {
+        if ( get_option( 'kkpay_event_reservation_status', false ) === false ) {
+            update_option( 'kkpay_event_reservation_status', 'closed' );
+        }
     }
 
     private static function schema_is_missing() {
@@ -51,6 +65,10 @@ class KKPAY_Activator {
             $wpdb->prefix . 'kkpay_slot_capacities',
             $wpdb->prefix . 'kkpay_reservation_events',
             $wpdb->prefix . 'kkpay_calendar_days',
+            $wpdb->prefix . 'kkpay_event_slots',
+            $wpdb->prefix . 'kkpay_event_holds',
+            $wpdb->prefix . 'kkpay_event_reservations',
+            $wpdb->prefix . 'kkpay_event_reservation_events',
         );
 
         foreach ( $required_tables as $table ) {
@@ -133,6 +151,10 @@ class KKPAY_Activator {
             'updated_at',
         );
         if ( ! self::table_has_columns( $wpdb->prefix . 'kkpay_calendar_days', $required_calendar_day_columns ) ) {
+            return true;
+        }
+
+        if ( ! self::table_has_columns( $wpdb->prefix . 'kkpay_event_reservations', array( 'is_overbooked' ) ) ) {
             return true;
         }
 
@@ -337,6 +359,94 @@ class KKPAY_Activator {
             UNIQUE KEY calendar_date (calendar_date)
         ) {$charset_collate};";
 
+        // Event Reservation（イベント予約）専用テーブル。他フローのテーブルとは完全に分離する。
+        $event_slots_table = $wpdb->prefix . 'kkpay_event_slots';
+        $sql_event_slots   = "CREATE TABLE {$event_slots_table} (
+            id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            event_date       DATE            NOT NULL,
+            event_time       VARCHAR(20)     NOT NULL,
+            capacity         TINYINT UNSIGNED NOT NULL DEFAULT 8,
+            status           VARCHAR(20)     NOT NULL DEFAULT 'active',
+            created_at       DATETIME        NOT NULL,
+            updated_at       DATETIME        NOT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY event_date_time (event_date, event_time)
+        ) {$charset_collate};";
+
+        $event_holds_table = $wpdb->prefix . 'kkpay_event_holds';
+        $sql_event_holds   = "CREATE TABLE {$event_holds_table} (
+            id                 BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            hold_token         VARCHAR(64)     NOT NULL,
+            slot_id            BIGINT UNSIGNED NOT NULL,
+            name               VARCHAR(100)    NOT NULL,
+            email              VARCHAR(100)    NOT NULL,
+            guests             TINYINT UNSIGNED NOT NULL,
+            amount             INT UNSIGNED    NOT NULL,
+            currency           VARCHAR(3)      NOT NULL DEFAULT 'usd',
+            payment_intent_id  VARCHAR(255)    NULL DEFAULT NULL,
+            client_secret      VARCHAR(255)    NULL DEFAULT NULL,
+            status             VARCHAR(20)     NOT NULL DEFAULT 'HELD',
+            expires_at         DATETIME        NOT NULL,
+            created_at         DATETIME        NOT NULL,
+            updated_at         DATETIME        NOT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY hold_token (hold_token),
+            UNIQUE KEY payment_intent_id (payment_intent_id),
+            KEY slot_id (slot_id),
+            KEY expires_at (expires_at),
+            KEY status (status)
+        ) {$charset_collate};";
+
+        $event_reservations_table = $wpdb->prefix . 'kkpay_event_reservations';
+        $sql_event_reservations   = "CREATE TABLE {$event_reservations_table} (
+            id                  BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            reservation_code    VARCHAR(20)     NOT NULL,
+            hold_token          VARCHAR(64)     NOT NULL,
+            slot_id             BIGINT UNSIGNED NOT NULL,
+            name                VARCHAR(100)    NOT NULL,
+            email               VARCHAR(100)    NOT NULL,
+            guests              TINYINT UNSIGNED NOT NULL,
+            amount              INT UNSIGNED    NOT NULL,
+            currency            VARCHAR(3)      NOT NULL DEFAULT 'usd',
+            payment_intent_id   VARCHAR(255)    NOT NULL,
+            payment_status      VARCHAR(20)     NOT NULL DEFAULT 'succeeded',
+            reservation_status  VARCHAR(20)     NOT NULL DEFAULT 'CONFIRMED',
+            confirmed_by        VARCHAR(20)     NOT NULL DEFAULT 'browser_confirm',
+            confirmed_at        DATETIME        NOT NULL,
+            is_overbooked       TINYINT(1) UNSIGNED NOT NULL DEFAULT 0,
+            cancelled_at        DATETIME        NULL DEFAULT NULL,
+            cancel_reason       VARCHAR(255)    NULL DEFAULT NULL,
+            refunded_at         DATETIME        NULL DEFAULT NULL,
+            stripe_refund_id    VARCHAR(100)    NULL DEFAULT NULL,
+            created_at          DATETIME        NOT NULL,
+            updated_at          DATETIME        NOT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY payment_intent_id (payment_intent_id),
+            UNIQUE KEY reservation_code (reservation_code),
+            KEY slot_id (slot_id),
+            KEY email (email),
+            KEY reservation_status (reservation_status)
+        ) {$charset_collate};";
+
+        $event_reservation_events_table = $wpdb->prefix . 'kkpay_event_reservation_events';
+        $sql_event_reservation_events   = "CREATE TABLE {$event_reservation_events_table} (
+            id                 BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            reservation_id     BIGINT UNSIGNED NULL DEFAULT NULL,
+            hold_token         VARCHAR(64)     NULL DEFAULT NULL,
+            payment_intent_id  VARCHAR(255)    NULL DEFAULT NULL,
+            event_type         VARCHAR(50)     NOT NULL,
+            actor_type         VARCHAR(20)     NOT NULL,
+            actor_id           BIGINT UNSIGNED NULL DEFAULT NULL,
+            event_payload      LONGTEXT        NOT NULL,
+            ip_hash            CHAR(64)        NULL DEFAULT NULL,
+            user_agent_hash    CHAR(64)        NULL DEFAULT NULL,
+            created_at         DATETIME        NOT NULL,
+            PRIMARY KEY (id),
+            KEY reservation_id (reservation_id),
+            KEY event_type (event_type),
+            KEY created_at (created_at)
+        ) {$charset_collate};";
+
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         dbDelta( $sql_holds );
         dbDelta( $sql_reservations );
@@ -346,8 +456,59 @@ class KKPAY_Activator {
         dbDelta( $sql_slot_capacities );
         dbDelta( $sql_reservation_events );
         dbDelta( $sql_calendar_days );
+        dbDelta( $sql_event_slots );
+        dbDelta( $sql_event_holds );
+        dbDelta( $sql_event_reservations );
+        dbDelta( $sql_event_reservation_events );
 
+        self::drop_event_slot_legacy_counters();
         self::normalize_schema_defaults();
+    }
+
+    /**
+     * 旧設計（kkpay_event_slots.held_count/confirmed_count で残席を管理する方式）からの移行用。
+     * 現在は kkpay_event_holds / kkpay_event_reservations から都度SUMして残席を計算するため、
+     * これらの列は不要になった。dbDelta() は列の削除を行わないため、既に有効化済みの環境向けに
+     * 明示的に DROP COLUMN する（新規インストールでは元々列が存在しないため何もしない）。
+     */
+    private static function drop_event_slot_legacy_counters() {
+        global $wpdb;
+
+        $table = $wpdb->prefix . 'kkpay_event_slots';
+
+        foreach ( array( 'held_count', 'confirmed_count' ) as $column ) {
+            if ( self::table_has_columns( $table, array( $column ) ) ) {
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table/column name from a fixed whitelist, not user input.
+                $wpdb->query( "ALTER TABLE {$table} DROP COLUMN {$column}" );
+            }
+        }
+    }
+
+    /**
+     * Event Reservation（イベント予約）の枠マスタを初期投入する。
+     * 5日程 × 3時間帯 × 定員8席を event_date_time のユニークキーで冪等に登録する。
+     */
+    private static function seed_event_slots() {
+        global $wpdb;
+
+        $table = $wpdb->prefix . 'kkpay_event_slots';
+        $now   = ( new DateTimeImmutable( 'now', new DateTimeZone( 'Asia/Tokyo' ) ) )->format( 'Y-m-d H:i:s' );
+
+        foreach ( KKPAY_EVENT_SLOT_DATES as $date ) {
+            foreach ( KKPAY_EVENT_SLOT_TIMES as $time ) {
+                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $table is derived from $wpdb->prefix; values are passed via prepare().
+                $wpdb->query( $wpdb->prepare(
+                    "INSERT IGNORE INTO {$table}
+                        (event_date, event_time, capacity, status, created_at, updated_at)
+                     VALUES (%s, %s, %d, 'active', %s, %s)",
+                    $date,
+                    $time,
+                    KKPAY_EVENT_SLOT_CAPACITY,
+                    $now,
+                    $now
+                ) );
+            }
+        }
     }
 
     private static function normalize_schema_defaults() {
