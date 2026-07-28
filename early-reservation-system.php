@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // ----------------------------------------------------------------
 // 定数
 // ----------------------------------------------------------------
-define( 'KKPAY_VERSION',            '1.0.9' );
+define( 'KKPAY_VERSION',            '1.1.0' );
 define( 'KKPAY_PLUGIN_DIR',         plugin_dir_path( __FILE__ ) );
 define( 'KKPAY_PLUGIN_URL',         plugin_dir_url( __FILE__ ) );
 define( 'KKPAY_AMOUNT',             13 );
@@ -151,6 +151,7 @@ require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-slot-capacity
 require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-reservation-event-repository.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-premium-reservation-repository.php';
 // Event Reservation（イベント予約）専用リポジトリ
+require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-event-repository.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-event-slot-repository.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-event-hold-repository.php';
 require_once KKPAY_PLUGIN_DIR . 'includes/Repositories/class-kkpay-event-reservation-repository.php';
