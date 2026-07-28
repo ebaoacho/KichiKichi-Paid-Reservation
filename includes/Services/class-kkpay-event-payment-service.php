@@ -153,8 +153,19 @@ class KKPAY_Event_Payment_Service {
 
         $event_id = intval( $metadata['event_id'] ?? 0 );
         if ( $event_id <= 0 ) {
-            error_log( '[KKPAY][Event] Webhook metadata is missing event_id. payment_intent=' . $pi_id );
-            return;
+            // PR4デプロイ直前に発行されたPaymentIntentにはevent_id/event_titleが存在しない。
+            // 両方とも無い旧形式に限り、改ざん耐性を維持したままhold→slotからイベントを復元する。
+            if ( array_key_exists( 'event_id', $metadata ) || array_key_exists( 'event_title', $metadata ) ) {
+                error_log( '[KKPAY][Event] Webhook event metadata is incomplete. payment_intent=' . $pi_id );
+                return;
+            }
+            $legacy_hold = KKPAY_Event_Hold_Repository::find_by_token_any( $hold_token );
+            $legacy_slot = $legacy_hold ? KKPAY_Event_Slot_Repository::find( $legacy_hold->slot_id ) : null;
+            $event_id = $legacy_slot ? (int) $legacy_slot->event_id : 0;
+            if ( $event_id <= 0 ) {
+                error_log( '[KKPAY][Event] Could not resolve legacy webhook event. payment_intent=' . $pi_id );
+                return;
+            }
         }
 
         $result = self::confirm_from_payment_intent( $pi_id, $hold_token, 'stripe_webhook', $event_id );
@@ -237,11 +248,18 @@ class KKPAY_Event_Payment_Service {
         if ( ( $metadata['type'] ?? '' ) !== 'event_reservation' ) {
             return false;
         }
-        if ( (string) ( $metadata['event_id'] ?? '' ) !== (string) $event->id ) {
+        $has_event_id    = array_key_exists( 'event_id', $metadata );
+        $has_event_title = array_key_exists( 'event_title', $metadata );
+        if ( $has_event_id !== $has_event_title ) {
             return false;
         }
-        if ( (string) ( $metadata['event_title'] ?? '' ) !== (string) $event->title ) {
-            return false;
+        if ( $has_event_id ) {
+            if ( (string) $metadata['event_id'] !== (string) $event->id ) {
+                return false;
+            }
+            if ( (string) $metadata['event_title'] !== (string) $event->title ) {
+                return false;
+            }
         }
         if ( ( $metadata['event_hold_token'] ?? '' ) !== $hold->hold_token ) {
             return false;

@@ -138,14 +138,12 @@ class KKPAY_Event_Reservation_Validator {
         if ( ! preg_match( '/^pi_[A-Za-z0-9_]+$/', $pi_id ) ) {
             return new WP_Error( 'invalid_input', 'Missing reservation details.' );
         }
-        if ( $event_id <= 0 ) {
-            return new WP_Error( 'invalid_input', 'Missing event details.' );
-        }
-
+        // PR4デプロイ前に開かれたページはevent_idを送らないため、確定時だけ省略を許可する。
+        // 実際のイベント境界はPaymentIntent metadataとhold→slotの照合で検証される。
         return array(
             'hold_token'         => $hold_token,
             'payment_intent_id'  => $pi_id,
-            'event_id'           => $event_id,
+            'event_id'           => $event_id > 0 ? $event_id : null,
         );
     }
 
