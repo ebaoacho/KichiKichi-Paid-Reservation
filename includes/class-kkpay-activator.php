@@ -230,6 +230,15 @@ class KKPAY_Activator {
         return $columns === $expected_columns;
     }
 
+    private static function index_exists( $table, $index_name ) {
+        global $wpdb;
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is derived from $wpdb->prefix; identifiers cannot use placeholders.
+        return (bool) $wpdb->get_var( $wpdb->prepare(
+            "SHOW INDEX FROM {$table} WHERE Key_name = %s",
+            $index_name
+        ) );
+    }
+
     public static function create_tables() {
         global $wpdb;
 
@@ -549,6 +558,61 @@ class KKPAY_Activator {
         $wpdb->query( "ALTER TABLE {$reservations_table} MODIFY reservation_type VARCHAR(30) DEFAULT NULL" );
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $wpdb->query( "ALTER TABLE {$reservations_table} MODIFY stripe_payment_intent_id VARCHAR(255) NULL DEFAULT NULL" );
+
+        self::normalize_event_slot_schema();
+    }
+
+    /**
+     * dbDelta()では収束しないイベント枠のNULL制約と複合ユニークキーを修復する。
+     * 未関連枠は開催回が1件だけの場合に限り、その開催回へ安全に関連付ける。
+     */
+    private static function normalize_event_slot_schema() {
+        global $wpdb;
+
+        $events_table = $wpdb->prefix . 'kkpay_events';
+        $slots_table  = $wpdb->prefix . 'kkpay_event_slots';
+
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is derived from $wpdb->prefix; no user input.
+        $unassigned_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$slots_table} WHERE event_id IS NULL" );
+        if ( $unassigned_count > 0 ) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is derived from $wpdb->prefix; no user input.
+            $event_ids = array_map( 'intval', $wpdb->get_col( "SELECT id FROM {$events_table} ORDER BY id ASC" ) );
+            if ( count( $event_ids ) === 1 ) {
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is fixed; value is passed via prepare().
+                $updated = $wpdb->query( $wpdb->prepare(
+                    "UPDATE {$slots_table} SET event_id = %d WHERE event_id IS NULL",
+                    $event_ids[0]
+                ) );
+                if ( $updated === false ) {
+                    error_log( '[KKPAY] Failed to associate legacy event slots: ' . $wpdb->last_error );
+                }
+            } else {
+                error_log( '[KKPAY] Event slot schema repair requires exactly one event before unassigned slots can be associated.' );
+            }
+        }
+
+        if ( ! self::index_has_columns( $slots_table, 'event_date_time', array( 'event_id', 'event_date', 'event_time' ) ) ) {
+            if ( self::index_exists( $slots_table, 'event_date_time' ) ) {
+                // The DROP and ADD are one ALTER so a duplicate-key failure does not leave the table without the old index.
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed identifiers and table derived from $wpdb->prefix.
+                $index_updated = $wpdb->query( "ALTER TABLE {$slots_table} DROP INDEX event_date_time, ADD UNIQUE KEY event_date_time (event_id, event_date, event_time)" );
+            } else {
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed identifiers and table derived from $wpdb->prefix.
+                $index_updated = $wpdb->query( "ALTER TABLE {$slots_table} ADD UNIQUE KEY event_date_time (event_id, event_date, event_time)" );
+            }
+            if ( $index_updated === false ) {
+                error_log( '[KKPAY] Failed to repair the event slot unique index: ' . $wpdb->last_error );
+            }
+        }
+
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is derived from $wpdb->prefix; no user input.
+        $remaining_unassigned = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$slots_table} WHERE event_id IS NULL" );
+        if ( $remaining_unassigned === 0 && self::column_is_nullable( $slots_table, 'event_id' ) ) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed column definition and table derived from $wpdb->prefix.
+            if ( $wpdb->query( "ALTER TABLE {$slots_table} MODIFY event_id BIGINT UNSIGNED NOT NULL" ) === false ) {
+                error_log( '[KKPAY] Failed to make event slot event_id required: ' . $wpdb->last_error );
+            }
+        }
     }
 
     private static function migrate_data() {
