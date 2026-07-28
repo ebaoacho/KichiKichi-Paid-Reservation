@@ -32,9 +32,9 @@ class KKPAY_Event_Hold_Repository {
     }
 
     /**
-     * トランザクション内で使用する行ロック付き取得。expires_at が DBサーバーの現在時刻(NOW())を
-     * 過ぎている場合のみ行を返す。PHPの strtotime()/time() で期限判定すると、PHPとDBのタイムゾーン
-     * 設定が食い違った場合に誤判定するおそれがあるため、時刻比較は必ずDB側（NOW()）で行う。
+     * トランザクション内で使用する行ロック付き取得。expires_at が呼び出し元から渡されたJST時刻を
+     * 過ぎている場合のみ行を返す。expires_atの保存時と同じJST文字列で比較し、PHP/DB間の
+     * セッションタイムゾーン設定差に影響されないようにする。
      */
     public static function find_by_token_for_update_if_past_expiry( $token, $now ) {
         global $wpdb;

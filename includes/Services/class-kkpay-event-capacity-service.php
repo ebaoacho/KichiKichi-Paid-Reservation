@@ -21,6 +21,7 @@ class KKPAY_Event_Capacity_Service {
      * @param int      $slot_id
      * @param int|null $exclude_hold_id 指定した hold_id 自身は held 集計から除外する
      *                                  （確定処理で「このホールド自身の分を除いた残席」を見るため）。
+     * @param int|null $event_id        指定時は、そのイベントに属する枠だけをロック対象にする。
      * @return object|WP_Error { slot, held, confirmed, remaining }
      */
     public static function check_for_update( $slot_id, $exclude_hold_id = null, $event_id = null ) {

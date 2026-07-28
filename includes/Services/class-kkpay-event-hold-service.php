@@ -113,7 +113,7 @@ class KKPAY_Event_Hold_Service {
         }
 
         // held_count のようなカウンタ列は存在しない。ホールド行をINSERTするだけで、
-        // 以降の残席計算（expires_at > NOW() でのSUM）に自動的に反映される。
+        // 以降の残席計算（expires_at > 呼び出し元で生成したJST現在時刻を条件とするSUM）に自動的に反映される。
         $wpdb->query( 'COMMIT' );
 
         KKPAY_Event_Reservation_Event_Repository::insert(
@@ -318,7 +318,7 @@ class KKPAY_Event_Hold_Service {
      * 単一ホールドをロックして EXPIRED にする。
      * すでに CONFIRMED/EXPIRED/CANCELED に進んでいた場合は何もせず null を返す。
      *
-     * 残席は都度計算（expires_at > NOW() でのSUM）のため、失効タイミングそのものは残席の
+     * 残席は都度計算（expires_at > JST現在時刻を条件とするSUM）のため、失効タイミングそのものは残席の
      * 正しさに影響しない。PENDING_PAYMENT の決済成否確認は呼び出し元の expire_or_confirm_hold()
      * が事前に行うため、ここでは Stripe には一切問い合わせない（ロック保持中に外部通信をしない
      * ため）。それでも確認が漏れた/後から決済が成功したレアケースでは、
