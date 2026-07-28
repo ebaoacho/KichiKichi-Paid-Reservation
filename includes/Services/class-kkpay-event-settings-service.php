@@ -5,13 +5,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Event Reservationの開催回作成と受付状態を管理する。
- *
- * 受付状態の正本はkkpay_events.status。旧OptionはPR 2～PR 4の互換期間中、
- * 既存イベントの状態だけを同期する。
+ * 受付状態の正本はkkpay_events.statusとする。
  */
 class KKPAY_Event_Settings_Service {
-
-    const OPTION_STATUS = 'kkpay_event_reservation_status';
 
     const STATUS_DRAFT    = 'draft';
     const STATUS_OPEN     = 'open';
@@ -23,7 +19,7 @@ class KKPAY_Event_Settings_Service {
     }
 
     /**
-     * 管理画面の互換表示対象を返す。PR 3以降は明示されたevent_idを優先する。
+     * 管理画面の表示対象を、明示されたevent_id、受付中、最新の順に返す。
      */
     public static function get_management_event( $event_id = null ) {
         if ( $event_id !== null && (int) $event_id > 0 ) {
@@ -35,8 +31,7 @@ class KKPAY_Event_Settings_Service {
             return $open;
         }
 
-        $legacy_event_id = (int) get_option( 'kkpay_legacy_event_id', 0 );
-        return $legacy_event_id > 0 ? KKPAY_Event_Repository::find( $legacy_event_id ) : null;
+        return KKPAY_Event_Repository::find_latest();
     }
 
     public static function get_status( $event_id = null ) {
@@ -45,8 +40,7 @@ class KKPAY_Event_Settings_Service {
             return $event->status;
         }
 
-        $legacy_status = get_option( self::OPTION_STATUS, self::STATUS_CLOSED );
-        return self::is_valid_status( $legacy_status ) ? $legacy_status : self::STATUS_CLOSED;
+        return self::STATUS_CLOSED;
     }
 
     public static function is_open( $event_id = null ) {
@@ -292,10 +286,6 @@ class KKPAY_Event_Settings_Service {
             }
 
             $wpdb->query( 'COMMIT' );
-
-            if ( (int) get_option( 'kkpay_legacy_event_id', 0 ) === (int) $event->id ) {
-                update_option( self::OPTION_STATUS, $status );
-            }
 
             return KKPAY_Event_Repository::find( $event->id );
         } finally {

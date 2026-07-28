@@ -149,23 +149,32 @@ class KKPAY_Event_Reservation_Controller {
         }
 
         $event_id = intval( $_GET['event_id'] ?? 0 );
-        $event = KKPAY_Event_Settings_Service::get_management_event( $event_id > 0 ? $event_id : null );
+        $event    = $event_id > 0 ? KKPAY_Event_Repository::find( $event_id ) : null;
         if ( ! $event ) {
             wp_die( 'Event not found.' );
         }
 
-        $results  = KKPAY_Event_Reservation_Repository::get_list_as_array_by_event( $event->id );
-        $slot_map = array();
-        foreach ( KKPAY_Event_Slot_Repository::get_all( $event->id ) as $slot ) {
+        $results    = KKPAY_Event_Reservation_Repository::get_list_as_array_by_event( $event->id );
+        $slots      = KKPAY_Event_Slot_Repository::get_all( $event->id );
+        $slot_map   = array();
+        $event_date = array();
+        foreach ( $slots as $slot ) {
             $slot_map[ $slot->id ] = $slot;
+            $event_date[]           = $slot->event_date;
         }
 
+        $starts_on    = $event_date ? min( $event_date ) : '';
+        $ends_on      = $event_date ? max( $event_date ) : '';
+        $event_period = $starts_on === $ends_on ? $starts_on : $starts_on . ' - ' . $ends_on;
+        $file_period  = $starts_on ? str_replace( '-', '', $starts_on ) . '-' . str_replace( '-', '', $ends_on ) : 'unscheduled';
+        $timestamp    = ( new DateTimeImmutable( 'now', new DateTimeZone( 'Asia/Tokyo' ) ) )->format( 'Ymd_His' );
+
         header( 'Content-Type: text/csv; charset=UTF-8' );
-        header( 'Content-Disposition: attachment; filename="kkpay_event_reservations_' . ( new DateTimeImmutable( 'now', new DateTimeZone( 'Asia/Tokyo' ) ) )->format( 'Ymd_His' ) . '.csv"' );
+        header( 'Content-Disposition: attachment; filename="kkpay_event_' . (int) $event->id . '_' . $file_period . '_reservations_' . $timestamp . '.csv"' );
         echo "\xEF\xBB\xBF";
 
         $out = fopen( 'php://output', 'w' );
-        fputcsv( $out, array( 'Reservation Code', 'Status', 'Name', 'Email', 'Date', 'Time', 'Guests', 'Amount', 'Currency', 'Payment Status', 'Payment Intent', 'Confirmed By', 'Overbooked', 'Confirmed At', 'Cancelled At', 'Refunded At', 'Created At' ) );
+        fputcsv( $out, array( 'Reservation Code', 'Status', 'Name', 'Email', 'Date', 'Time', 'Guests', 'Amount', 'Currency', 'Payment Status', 'Payment Intent', 'Confirmed By', 'Overbooked', 'Confirmed At', 'Cancelled At', 'Refunded At', 'Created At', 'Event ID', 'Event Title', 'Event Period' ) );
 
         foreach ( $results as $row ) {
             $slot = $slot_map[ $row['slot_id'] ] ?? null;
@@ -187,6 +196,9 @@ class KKPAY_Event_Reservation_Controller {
                 $row['cancelled_at'] ?? '',
                 $row['refunded_at'] ?? '',
                 $row['created_at'],
+                (int) $event->id,
+                self::csv_safe( $event->title ),
+                $event_period,
             ) );
         }
 

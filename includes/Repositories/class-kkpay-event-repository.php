@@ -36,6 +36,13 @@ class KKPAY_Event_Repository {
         );
     }
 
+    public static function find_latest() {
+        global $wpdb;
+        return $wpdb->get_row(
+            'SELECT * FROM ' . self::table() . ' ORDER BY id DESC LIMIT 1'
+        );
+    }
+
     public static function find_other_open_for_update( $event_id ) {
         global $wpdb;
         return $wpdb->get_row( $wpdb->prepare(
@@ -62,14 +69,6 @@ class KKPAY_Event_Repository {
              GROUP BY e.id
              ORDER BY COALESCE(MAX(s.event_date), '9999-12-31') DESC, e.id DESC"
         );
-    }
-
-    public static function find_by_title( $title ) {
-        global $wpdb;
-        return $wpdb->get_row( $wpdb->prepare(
-            'SELECT * FROM ' . self::table() . ' WHERE title = %s ORDER BY id ASC LIMIT 1',
-            $title
-        ) );
     }
 
     public static function find_by_migration_key( $migration_key ) {

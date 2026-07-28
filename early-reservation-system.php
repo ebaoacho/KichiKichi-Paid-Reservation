@@ -45,9 +45,6 @@ define( 'KKPAY_EVENT_AMOUNT',       50 );
 define( 'KKPAY_EVENT_CURRENCY',     'usd' );
 define( 'KKPAY_EVENT_MAX_PEOPLE',   8 );
 define( 'KKPAY_EVENT_HOLD_MINUTES', 5 );
-define( 'KKPAY_EVENT_SLOT_DATES', array( '2026-07-11', '2026-07-12', '2026-07-14', '2026-07-18', '2026-07-19' ) );
-define( 'KKPAY_EVENT_SLOT_TIMES', array( '11:00', '12:30', '14:00' ) );
-define( 'KKPAY_EVENT_SLOT_CAPACITY', 8 );
 
 // Event Reservation は英語表記のみのため、既存の KKPAY_MESSAGES（5言語）とは別に単一言語の
 // メッセージ定数を用意する。Validator/Controller/テンプレート/JS（wp_localize_script経由）が
