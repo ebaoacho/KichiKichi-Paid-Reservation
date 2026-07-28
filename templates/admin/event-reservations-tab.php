@@ -42,12 +42,12 @@ $event_status_labels = array(
 
 <?php if ( ! empty( $event_hard_close_failures ) ) : ?>
     <div class="notice notice-warning" style="padding:12px 16px;margin:16px 0;">
-        <p style="margin:0 0 8px;"><strong>⚠ 直近のハードクローズで、以下のPaymentIntentのキャンセルに失敗しました。</strong>
-        Stripeダッシュボードで状態をご確認のうえ、必要に応じて手動でキャンセルしてください。</p>
+        <p style="margin:0 0 8px;"><strong>⚠ 直近のハードクローズで、完了できなかった処理があります。</strong>
+        DBまたはStripeの状態をご確認のうえ、必要に応じて手動で対応してください。</p>
         <ul style="margin:0;padding-left:20px;">
             <?php foreach ( $event_hard_close_failures as $failure ) : ?>
                 <li>
-                    <?php echo esc_html( $failure['payment_intent_id'] ); ?>
+                    <?php echo esc_html( $failure['payment_intent_id'] ?: 'hold_token: ' . $failure['hold_token'] ); ?>
                     — <?php echo esc_html( $failure['message'] ); ?>
                 </li>
             <?php endforeach; ?>

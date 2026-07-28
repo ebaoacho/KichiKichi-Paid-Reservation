@@ -227,6 +227,14 @@ class KKPAY_Event_Hold_Service {
 
         foreach ( $active as $hold ) {
             $result = self::expire_or_confirm_hold( $hold, false );
+            if ( is_wp_error( $result ) ) {
+                $failures[] = array(
+                    'hold_token'        => $hold->hold_token,
+                    'payment_intent_id' => $hold->payment_intent_id ?: '',
+                    'message'           => $result->get_error_message(),
+                );
+                continue;
+            }
             if ( ! $result || $result === 'confirmed' ) {
                 // null: 既に他経路で状態が進んでいた。'confirmed': 決済成功済みで予約として確定済み
                 // （どちらもキャンセル対象ではないので後続処理をスキップする）。
@@ -286,7 +294,7 @@ class KKPAY_Event_Hold_Service {
      *
      * @param object $hold                KKPAY_Event_Hold_Repository の行（find_expired()/find_active_pending() 由来）
      * @param bool   $require_past_expiry expire_single_hold() と同じ意味
-     * @return object|string|null 決済成功が判明し確定処理に回した場合は 'confirmed'、
+     * @return object|string|null|WP_Error 決済成功が判明し確定処理に回した場合は 'confirmed'、
      *                             実際に失効させた場合はその行、どちらでもない場合は null
      */
     private static function expire_or_confirm_hold( $hold, $require_past_expiry ) {
@@ -343,7 +351,7 @@ class KKPAY_Event_Hold_Service {
         if ( is_wp_error( $updated ) ) {
             $wpdb->query( 'ROLLBACK' );
             error_log( '[KKPAY][Event] Failed to expire hold: ' . $updated->get_error_message() );
-            return null;
+            return $updated;
         }
 
         $wpdb->query( 'COMMIT' );

@@ -127,15 +127,15 @@ class KKPAY_Event_Repository {
         ) );
     }
 
-    public static function acquire_status_lock() {
+    public static function acquire_open_status_lock() {
         global $wpdb;
-        $lock_name = 'kkpay_event_status_' . md5( self::table() );
+        $lock_name = 'kkpay_event_open_' . md5( self::table() );
         return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 5)', $lock_name ) ) === 1;
     }
 
-    public static function release_status_lock() {
+    public static function release_open_status_lock() {
         global $wpdb;
-        $lock_name = 'kkpay_event_status_' . md5( self::table() );
+        $lock_name = 'kkpay_event_open_' . md5( self::table() );
         $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
     }
 }

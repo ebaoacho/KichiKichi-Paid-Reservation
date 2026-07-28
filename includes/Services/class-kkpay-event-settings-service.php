@@ -131,7 +131,8 @@ class KKPAY_Event_Settings_Service {
             return new WP_Error( 'event_not_found', 'Event not found.' );
         }
 
-        if ( ! KKPAY_Event_Repository::acquire_status_lock() ) {
+        $uses_open_lock = $status === self::STATUS_OPEN;
+        if ( $uses_open_lock && ! KKPAY_Event_Repository::acquire_open_status_lock() ) {
             return new WP_Error( 'event_status_locked', 'Another event status update is in progress.' );
         }
 
@@ -184,7 +185,9 @@ class KKPAY_Event_Settings_Service {
 
             return KKPAY_Event_Repository::find( $event->id );
         } finally {
-            KKPAY_Event_Repository::release_status_lock();
+            if ( $uses_open_lock ) {
+                KKPAY_Event_Repository::release_open_status_lock();
+            }
         }
     }
 
