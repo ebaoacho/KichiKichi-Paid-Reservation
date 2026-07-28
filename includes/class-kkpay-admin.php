@@ -175,9 +175,12 @@ class KKPAY_Admin {
         // あくまでホールド一覧の「ステータス」表示を鮮度良く保つための機会的な処理）。
         KKPAY_Event_Hold_Service::expire_holds();
 
-        $event_slots        = KKPAY_Event_Slot_Repository::get_all_with_remaining();
-        $event_holds        = KKPAY_Event_Hold_Repository::get_list();
-        $event_reservations = KKPAY_Event_Reservation_Repository::get_list();
+        $event              = KKPAY_Event_Settings_Service::get_management_event();
+        $event_id           = $event ? (int) $event->id : 0;
+        $now                = ( new DateTimeImmutable( 'now', new DateTimeZone( 'Asia/Tokyo' ) ) )->format( 'Y-m-d H:i:s' );
+        $event_slots        = $event_id > 0 ? KKPAY_Event_Slot_Repository::get_all_with_remaining( $event_id, $now ) : array();
+        $event_holds        = $event_id > 0 ? KKPAY_Event_Hold_Repository::get_list_by_event( $event_id ) : array();
+        $event_reservations = $event_id > 0 ? KKPAY_Event_Reservation_Repository::get_list_by_event( $event_id ) : array();
 
         $event_slot_map = array();
         foreach ( $event_slots as $slot ) {
@@ -201,10 +204,10 @@ class KKPAY_Admin {
             }
         }
 
-        $event_status = KKPAY_Event_Settings_Service::get_status();
+        $event_status = $event ? $event->status : KKPAY_Event_Settings_Service::STATUS_CLOSED;
 
         // 直近の Hard Close で PaymentIntent キャンセルに失敗した項目があれば警告表示する。
-        $event_hard_close_failures = KKPAY_Event_Hold_Service::get_last_hard_close_failures();
+        $event_hard_close_failures = $event_id > 0 ? KKPAY_Event_Hold_Service::get_last_hard_close_failures( $event_id ) : array();
 
         // payment_intent_id のホールドへの永続化に失敗した項目（決済自体は成立している可能性が
         // あるが、ホールド一覧に PaymentIntent が表示されず追跡しづらくなる）があれば警告表示する。

@@ -26,17 +26,27 @@ class KKPAY_Event_Slot_Repository {
     }
 
     /** トランザクション内で使用する行ロック付き取得 */
-    public static function find_for_update( $slot_id ) {
+    public static function find_for_update( $slot_id, $event_id = null ) {
         global $wpdb;
+        if ( $event_id !== null ) {
+            return $wpdb->get_row( $wpdb->prepare(
+                'SELECT * FROM ' . self::table() . ' WHERE id = %d AND event_id = %d LIMIT 1 FOR UPDATE',
+                (int) $slot_id,
+                (int) $event_id
+            ) );
+        }
         return $wpdb->get_row( $wpdb->prepare(
             'SELECT * FROM ' . self::table() . ' WHERE id = %d LIMIT 1 FOR UPDATE',
             (int) $slot_id
         ) );
     }
 
-    public static function get_all() {
+    public static function get_all( $event_id ) {
         global $wpdb;
-        return $wpdb->get_results( 'SELECT * FROM ' . self::table() . ' ORDER BY event_date ASC, event_time ASC' );
+        return $wpdb->get_results( $wpdb->prepare(
+            'SELECT * FROM ' . self::table() . ' WHERE event_id = %d ORDER BY event_date ASC, event_time ASC',
+            (int) $event_id
+        ) );
     }
 
     /**
@@ -44,9 +54,13 @@ class KKPAY_Event_Slot_Repository {
      * held_count/confirmed_count は都度SUMして計算した値を、互換のため同じ名前の
      * プロパティとして返す。
      */
-    public static function get_all_with_remaining() {
+    public static function get_all_with_remaining( $event_id, $now ) {
         global $wpdb;
-        return $wpdb->get_results( self::remaining_query() . ' ORDER BY s.event_date ASC, s.event_time ASC' );
+        return $wpdb->get_results( $wpdb->prepare(
+            self::remaining_query() . ' WHERE s.event_id = %d ORDER BY s.event_date ASC, s.event_time ASC',
+            $now,
+            (int) $event_id
+        ) );
     }
 
     /**
@@ -54,13 +68,17 @@ class KKPAY_Event_Slot_Repository {
      * 未来の枠のみ）。受付ステータスが open のままでも、開催済みセッションは一覧に出さない
      * （KKPAY_Event_Hold_Service::create_hold() 側の同種チェックと合わせた多層防御）。
      */
-    public static function find_all_with_remaining() {
+    public static function find_all_with_remaining( $event_id, $now ) {
         global $wpdb;
-        return $wpdb->get_results(
+        return $wpdb->get_results( $wpdb->prepare(
             self::remaining_query() . " WHERE s.status = 'active'
-                AND STR_TO_DATE(CONCAT(s.event_date, ' ', s.event_time), '%Y-%m-%d %H:%i') > NOW()
-                ORDER BY s.event_date ASC, s.event_time ASC"
-        );
+                AND s.event_id = %d
+                AND STR_TO_DATE(CONCAT(s.event_date, ' ', s.event_time), '%%Y-%%m-%%d %%H:%%i') > %s
+                ORDER BY s.event_date ASC, s.event_time ASC",
+            $now,
+            (int) $event_id,
+            $now
+        ) );
     }
 
     /**
@@ -82,7 +100,7 @@ class KKPAY_Event_Slot_Repository {
                 LEFT JOIN (
                     SELECT slot_id, SUM(guests) AS held_count
                     FROM {$holds_table}
-                    WHERE status IN ('HELD', 'PENDING_PAYMENT') AND expires_at > NOW()
+                    WHERE status IN ('HELD', 'PENDING_PAYMENT') AND expires_at > %s
                     GROUP BY slot_id
                 ) h ON h.slot_id = s.id
                 LEFT JOIN (

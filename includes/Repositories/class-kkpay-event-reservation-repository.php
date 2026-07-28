@@ -102,16 +102,51 @@ class KKPAY_Event_Reservation_Repository {
             $formats[] = is_int( $value ) ? '%d' : '%s';
         }
 
-        return $wpdb->update( self::table(), $data, array( 'id' => (int) $id ), $formats, array( '%d' ) );
+        $updated = $wpdb->update( self::table(), $data, array( 'id' => (int) $id ), $formats, array( '%d' ) );
+        if ( false === $updated ) {
+            return new WP_Error( 'db_update_failed', 'kkpay_event_reservations update failed: ' . $wpdb->last_error );
+        }
+        return (int) $updated;
     }
 
-    public static function get_list() {
+    public static function get_list_by_event( $event_id ) {
         global $wpdb;
-        return $wpdb->get_results( 'SELECT * FROM ' . self::table() . ' ORDER BY created_at DESC' );
+        $slots_table = $wpdb->prefix . 'kkpay_event_slots';
+        return $wpdb->get_results( $wpdb->prepare(
+            'SELECT r.* FROM ' . self::table() . " r
+             INNER JOIN {$slots_table} s ON s.id = r.slot_id
+             WHERE s.event_id = %d
+             ORDER BY r.created_at DESC",
+            (int) $event_id
+        ) );
     }
 
-    public static function get_list_as_array() {
+    public static function get_list_as_array_by_event( $event_id ) {
         global $wpdb;
-        return $wpdb->get_results( 'SELECT * FROM ' . self::table() . ' ORDER BY created_at DESC', ARRAY_A );
+        $slots_table = $wpdb->prefix . 'kkpay_event_slots';
+        return $wpdb->get_results( $wpdb->prepare(
+            'SELECT r.* FROM ' . self::table() . " r
+             INNER JOIN {$slots_table} s ON s.id = r.slot_id
+             WHERE s.event_id = %d
+             ORDER BY r.created_at DESC",
+            (int) $event_id
+        ), ARRAY_A );
+    }
+
+    public static function get_summary_by_event( $event_id ) {
+        global $wpdb;
+        $slots_table = $wpdb->prefix . 'kkpay_event_slots';
+        return $wpdb->get_row( $wpdb->prepare(
+            'SELECT
+                COUNT(r.id) AS reservation_count,
+                COALESCE(SUM(CASE WHEN r.reservation_status = \'CONFIRMED\' THEN 1 ELSE 0 END), 0) AS confirmed_count,
+                COALESCE(SUM(CASE WHEN r.reservation_status = \'CANCELED\' THEN 1 ELSE 0 END), 0) AS cancelled_count,
+                COALESCE(SUM(CASE WHEN r.reservation_status = \'CONFIRMED\' THEN r.guests ELSE 0 END), 0) AS confirmed_guests,
+                COALESCE(SUM(CASE WHEN r.reservation_status = \'CONFIRMED\' THEN r.amount ELSE 0 END), 0) AS confirmed_amount
+             FROM ' . self::table() . " r
+             INNER JOIN {$slots_table} s ON s.id = r.slot_id
+             WHERE s.event_id = %d",
+            (int) $event_id
+        ) );
     }
 }
