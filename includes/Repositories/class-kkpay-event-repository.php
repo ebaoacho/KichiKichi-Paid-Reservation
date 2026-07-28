@@ -54,7 +54,8 @@ class KKPAY_Event_Repository {
                     MIN(s.event_date) AS starts_on,
                     MAX(s.event_date) AS ends_on,
                     COALESCE(SUM(CASE WHEN r.reservation_status = \'CONFIRMED\' THEN r.guests ELSE 0 END), 0) AS confirmed_guests,
-                    COALESCE(SUM(CASE WHEN r.reservation_status = \'CONFIRMED\' THEN r.amount ELSE 0 END), 0) AS confirmed_amount
+                    COALESCE(SUM(CASE WHEN r.reservation_status = \'CANCELED\' THEN 1 ELSE 0 END), 0) AS cancelled_count,
+                    COALESCE(SUM(CASE WHEN r.payment_status = \'succeeded\' THEN r.amount ELSE 0 END), 0) AS paid_amount
              FROM ' . self::table() . " e
              LEFT JOIN {$slots_table} s ON s.event_id = e.id
              LEFT JOIN {$reservations_table} r ON r.slot_id = s.id

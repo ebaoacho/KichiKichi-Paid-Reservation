@@ -552,7 +552,8 @@ function kkpay_enqueue_event_reservation_assets() {
     wp_enqueue_style( 'kkpay-event-reservation', KKPAY_PLUGIN_URL . 'assets/css/kkpay-event-reservation.css', array( 'kkpay-form' ), KKPAY_VERSION );
 
     // 受付停止/終了時は、フォームを描画しないので Stripe.js 等の読み込み自体を省略する。
-    if ( ! KKPAY_Event_Settings_Service::is_open() ) {
+    $event = KKPAY_Event_Settings_Service::get_current_event();
+    if ( ! $event ) {
         return;
     }
 
@@ -562,8 +563,10 @@ function kkpay_enqueue_event_reservation_assets() {
         'ajax_url'     => admin_url( 'admin-ajax.php' ),
         'nonce'        => wp_create_nonce( 'kkpay_nonce' ),
         'stripe_pk'    => KKPAY_Stripe_Config::publishable_key(),
-        'unit_amount'  => KKPAY_EVENT_AMOUNT,
-        'currency'     => KKPAY_EVENT_CURRENCY,
+        'event_id'     => (int) $event->id,
+        'event_title'  => $event->title,
+        'unit_amount'  => (int) $event->unit_amount,
+        'currency'     => $event->currency,
         'max_people'   => KKPAY_EVENT_MAX_PEOPLE,
         'hold_minutes' => KKPAY_EVENT_HOLD_MINUTES,
         'messages'     => KKPAY_EVENT_MESSAGES,
@@ -624,6 +627,8 @@ add_action( 'wp_ajax_kkpay_premium_export_csv',           array( 'KKPAY_Premium_
 add_action( 'wp_ajax_kkpay_event_export_csv',              array( 'KKPAY_Event_Reservation_Controller',   'ajax_export_csv' ) );
 add_action( 'wp_ajax_kkpay_event_save_status',              array( 'KKPAY_Event_Reservation_Controller',   'ajax_save_status' ) );
 add_action( 'wp_ajax_kkpay_event_admin_cancel',              array( 'KKPAY_Event_Reservation_Controller',   'ajax_admin_cancel' ) );
+add_action( 'wp_ajax_kkpay_event_admin_create',              array( 'KKPAY_Event_Reservation_Controller',   'ajax_admin_create_event' ) );
+add_action( 'wp_ajax_kkpay_event_admin_save',                array( 'KKPAY_Event_Reservation_Controller',   'ajax_admin_save_event' ) );
 
 // Stripe Webhook（REST API）
 add_action( 'rest_api_init', function () {

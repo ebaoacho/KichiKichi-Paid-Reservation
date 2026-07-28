@@ -137,6 +137,7 @@ class KKPAY_Event_Hold_Service {
             'hold_token' => $hold_token,
             'slot_id'    => (int) $slot_id,
             'event_id'   => (int) $event->id,
+            'event_title' => $event->title,
             'name'       => $name,
             'email'      => $email,
             'guests'     => (int) $guests,

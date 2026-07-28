@@ -78,6 +78,7 @@
     function renderDetails( data ) {
         var summary = $( '#kkpay-event-cancel-summary' );
         summary.empty();
+        summary.append( $( '<p></p>' ).html( '<strong>Event:</strong> ' + escapeHtml( data.event_title ) ) );
         summary.append( $( '<p></p>' ).html( '<strong>Reservation Code:</strong> ' + escapeHtml( data.reservation_code ) ) );
         summary.append( $( '<p></p>' ).html( '<strong>Name:</strong> ' + escapeHtml( data.name ) ) );
         summary.append( $( '<p></p>' ).html( '<strong>Date:</strong> ' + escapeHtml( data.date ) ) );

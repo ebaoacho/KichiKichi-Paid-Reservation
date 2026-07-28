@@ -22,22 +22,36 @@ class KKPAY_Event_Payment_Service {
      * @return array|WP_Error
      */
     public static function create_payment_intent_for_hold( $hold ) {
-        $stripe_amount = (int) $hold->amount * KKPAY_STRIPE_AMOUNT_MULTIPLIER;
+        $event = KKPAY_Event_Repository::find( $hold->event_id );
+        $slot  = KKPAY_Event_Slot_Repository::find( $hold->slot_id );
+        if ( ! $event || ! $slot || (int) $slot->event_id !== (int) $event->id ) {
+            KKPAY_Event_Hold_Service::release_hold( $hold->hold_token );
+            return new WP_Error( 'event_mismatch', 'Event details could not be verified.' );
+        }
+        $expected_hold_amount = (int) $event->unit_amount * (int) $hold->guests;
+        if ( (int) $hold->amount !== $expected_hold_amount || $hold->currency !== $event->currency ) {
+            KKPAY_Event_Hold_Service::release_hold( $hold->hold_token );
+            return new WP_Error( 'amount_mismatch', 'Reservation amount could not be verified.' );
+        }
+
+        $stripe_amount = $expected_hold_amount * KKPAY_STRIPE_AMOUNT_MULTIPLIER;
 
         $pi = KKPAY_Stripe_Client::request( 'POST', '/v1/payment_intents', array(
             'amount'                                       => $stripe_amount,
-            'currency'                                      => KKPAY_EVENT_CURRENCY,
-            'description'                                    => 'KichiKichi Giant Omurice Event Reservation',
+            'currency'                                      => $event->currency,
+            'description'                                   => $event->title . ' Reservation',
             // カード決済のみを対象とする（ウォレット等のリダイレクト系決済手段は対象外）。
             // フロント側（kkpay-event-reservation.js）はページ遷移を伴う決済フローの帰還処理を実装していないため、
             // ここでリダイレクトを要する決済手段自体を無効化し、常にページ内で confirm が完結するようにする。
             'automatic_payment_methods[enabled]'            => 'true',
             'automatic_payment_methods[allow_redirects]'    => 'never',
             'metadata[type]'                      => 'event_reservation',
+            'metadata[event_id]'                  => (int) $event->id,
+            'metadata[event_title]'               => $event->title,
             'metadata[event_hold_token]'          => $hold->hold_token,
-            'metadata[event_slot_id]'             => (int) $hold->slot_id,
-            'metadata[event_date]'                => $hold->event_date,
-            'metadata[event_time]'                => $hold->event_time,
+            'metadata[event_slot_id]'             => (int) $slot->id,
+            'metadata[event_date]'                => $slot->event_date,
+            'metadata[event_time]'                => $slot->event_time,
             'metadata[guests]'                    => (int) $hold->guests,
             'metadata[email]'                     => $hold->email,
             'metadata[name]'                      => $hold->name,
@@ -73,7 +87,9 @@ class KKPAY_Event_Payment_Service {
             'client_secret'       => $pi['client_secret'],
             'payment_intent_id'   => $pi['id'],
             'amount'              => (int) $hold->amount,
-            'currency'            => KKPAY_EVENT_CURRENCY,
+            'currency'            => $event->currency,
+            'event_id'            => (int) $event->id,
+            'event_title'         => $event->title,
             'expires_at'          => $hold->expires_at,
             'expires_in_seconds'  => (int) $expires_in,
         );
@@ -84,12 +100,17 @@ class KKPAY_Event_Payment_Service {
      * payment_intent_id を軸にした冪等性を最優先で担保する。
      *
      * @param string $source 'browser_confirm' | 'stripe_webhook' | 'manual'
+     * @param int|null $expected_event_id ブラウザまたはWebhookが提示したイベントID
      * @return object|WP_Error kkpay_event_reservations 行
      */
-    public static function confirm_from_payment_intent( $payment_intent_id, $hold_token, $source = 'browser_confirm' ) {
+    public static function confirm_from_payment_intent( $payment_intent_id, $hold_token, $source = 'browser_confirm', $expected_event_id = null ) {
         // 冪等性チェック 1: すでに確定済みならその予約を返す（新規作成しない）。
         $existing = KKPAY_Event_Reservation_Repository::find_by_payment_intent( $payment_intent_id );
         if ( $existing ) {
+            if ( $existing->hold_token !== $hold_token
+                || ( $expected_event_id !== null && ! self::reservation_belongs_to_event( $existing, $expected_event_id ) ) ) {
+                return new WP_Error( 'event_mismatch', 'Payment details do not match this event.' );
+            }
             return $existing;
         }
 
@@ -109,7 +130,7 @@ class KKPAY_Event_Payment_Service {
             return new WP_Error( 'payment_not_succeeded', 'Payment has not completed yet.' );
         }
 
-        if ( ! self::payment_intent_matches_hold( $pi, $hold ) ) {
+        if ( ! self::payment_intent_matches_hold( $pi, $hold, $expected_event_id ) ) {
             return new WP_Error( 'payment_mismatch', 'Payment details do not match this reservation.' );
         }
 
@@ -130,7 +151,24 @@ class KKPAY_Event_Payment_Service {
             return;
         }
 
-        $result = self::confirm_from_payment_intent( $pi_id, $hold_token, 'stripe_webhook' );
+        $event_id = intval( $metadata['event_id'] ?? 0 );
+        if ( $event_id <= 0 ) {
+            // PR4デプロイ直前に発行されたPaymentIntentにはevent_id/event_titleが存在しない。
+            // 両方とも無い旧形式に限り、改ざん耐性を維持したままhold→slotからイベントを復元する。
+            if ( array_key_exists( 'event_id', $metadata ) || array_key_exists( 'event_title', $metadata ) ) {
+                error_log( '[KKPAY][Event] Webhook event metadata is incomplete. payment_intent=' . $pi_id );
+                return;
+            }
+            $legacy_hold = KKPAY_Event_Hold_Repository::find_by_token_any( $hold_token );
+            $legacy_slot = $legacy_hold ? KKPAY_Event_Slot_Repository::find( $legacy_hold->slot_id ) : null;
+            $event_id = $legacy_slot ? (int) $legacy_slot->event_id : 0;
+            if ( $event_id <= 0 ) {
+                error_log( '[KKPAY][Event] Could not resolve legacy webhook event. payment_intent=' . $pi_id );
+                return;
+            }
+        }
+
+        $result = self::confirm_from_payment_intent( $pi_id, $hold_token, 'stripe_webhook', $event_id );
         if ( is_wp_error( $result ) ) {
             error_log( '[KKPAY][Event] Webhook confirm failed. payment_intent=' . $pi_id . ' message=' . $result->get_error_message() );
         }
@@ -179,15 +217,27 @@ class KKPAY_Event_Payment_Service {
         set_transient( self::PERSIST_FAILURE_TRANSIENT, $failures, WEEK_IN_SECONDS );
     }
 
-    private static function payment_intent_matches_hold( array $pi, $hold ) {
+    private static function payment_intent_matches_hold( array $pi, $hold, $expected_event_id = null ) {
         if ( ( $pi['id'] ?? '' ) === '' ) {
             return false;
         }
-        if ( ( $pi['currency'] ?? '' ) !== KKPAY_EVENT_CURRENCY ) {
+        $slot = KKPAY_Event_Slot_Repository::find( $hold->slot_id );
+        $event = $slot ? KKPAY_Event_Repository::find( $slot->event_id ) : null;
+        if ( ! $event || ! $slot ) {
+            return false;
+        }
+        if ( $expected_event_id !== null && (int) $event->id !== (int) $expected_event_id ) {
+            return false;
+        }
+        if ( strtolower( (string) ( $pi['currency'] ?? '' ) ) !== strtolower( $event->currency ) ) {
             return false;
         }
 
-        $expected_amount  = (int) $hold->amount * KKPAY_STRIPE_AMOUNT_MULTIPLIER;
+        $expected_hold_amount = (int) $event->unit_amount * (int) $hold->guests;
+        if ( (int) $hold->amount !== $expected_hold_amount || $hold->currency !== $event->currency ) {
+            return false;
+        }
+        $expected_amount  = $expected_hold_amount * KKPAY_STRIPE_AMOUNT_MULTIPLIER;
         $amount_received  = isset( $pi['amount_received'] ) ? (int) $pi['amount_received'] : 0;
         $amount           = isset( $pi['amount'] ) ? (int) $pi['amount'] : 0;
         if ( $amount_received !== $expected_amount && $amount !== $expected_amount ) {
@@ -198,10 +248,29 @@ class KKPAY_Event_Payment_Service {
         if ( ( $metadata['type'] ?? '' ) !== 'event_reservation' ) {
             return false;
         }
+        $has_event_id    = array_key_exists( 'event_id', $metadata );
+        $has_event_title = array_key_exists( 'event_title', $metadata );
+        if ( $has_event_id !== $has_event_title ) {
+            return false;
+        }
+        if ( $has_event_id ) {
+            if ( (string) $metadata['event_id'] !== (string) $event->id ) {
+                return false;
+            }
+            if ( (string) $metadata['event_title'] !== (string) $event->title ) {
+                return false;
+            }
+        }
         if ( ( $metadata['event_hold_token'] ?? '' ) !== $hold->hold_token ) {
             return false;
         }
         if ( (string) ( $metadata['event_slot_id'] ?? '' ) !== (string) $hold->slot_id ) {
+            return false;
+        }
+        if ( (string) ( $metadata['event_date'] ?? '' ) !== (string) $slot->event_date ) {
+            return false;
+        }
+        if ( (string) ( $metadata['event_time'] ?? '' ) !== (string) $slot->event_time ) {
             return false;
         }
         if ( (string) ( $metadata['guests'] ?? '' ) !== (string) $hold->guests ) {
@@ -210,7 +279,18 @@ class KKPAY_Event_Payment_Service {
         if ( strtolower( (string) ( $metadata['email'] ?? '' ) ) !== strtolower( (string) $hold->email ) ) {
             return false;
         }
+        if ( (string) ( $metadata['name'] ?? '' ) !== (string) $hold->name ) {
+            return false;
+        }
+        if ( ! empty( $hold->payment_intent_id ) && $hold->payment_intent_id !== $pi['id'] ) {
+            return false;
+        }
 
         return true;
+    }
+
+    private static function reservation_belongs_to_event( $reservation, $event_id ) {
+        $slot = KKPAY_Event_Slot_Repository::find( $reservation->slot_id );
+        return $slot && (int) $slot->event_id === (int) $event_id;
     }
 }

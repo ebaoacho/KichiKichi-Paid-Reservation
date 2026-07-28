@@ -22,6 +22,9 @@ class KKPAY_Event_Reservation_Controller {
         if ( ! $event ) {
             self::send_closed_error();
         }
+        if ( intval( $_POST['event_id'] ?? 0 ) !== (int) $event->id ) {
+            self::send_closed_error();
+        }
 
         $now   = ( new DateTimeImmutable( 'now', new DateTimeZone( 'Asia/Tokyo' ) ) )->format( 'Y-m-d H:i:s' );
         $rows  = KKPAY_Event_Slot_Repository::find_all_with_remaining( $event->id, $now );
@@ -36,7 +39,11 @@ class KKPAY_Event_Reservation_Controller {
             );
         }
 
-        wp_send_json_success( array( 'slots' => $slots ) );
+        wp_send_json_success( array(
+            'event_id'    => (int) $event->id,
+            'event_title' => $event->title,
+            'slots'       => $slots,
+        ) );
     }
 
     public static function ajax_create_hold() {
@@ -77,7 +84,12 @@ class KKPAY_Event_Reservation_Controller {
             wp_send_json_error( array( 'message' => 'Payment system is not configured.' ) );
         }
 
-        $result = KKPAY_Event_Payment_Service::confirm_from_payment_intent( $data['payment_intent_id'], $data['hold_token'], 'browser_confirm' );
+        $result = KKPAY_Event_Payment_Service::confirm_from_payment_intent(
+            $data['payment_intent_id'],
+            $data['hold_token'],
+            'browser_confirm',
+            $data['event_id']
+        );
         if ( is_wp_error( $result ) ) {
             // code をフロントへ渡すことで、Stripe疎通エラー(stripe_unavailable)と
             // 本当の決済未完了(payment_not_succeeded)とで表示・挙動を分けられるようにする。
@@ -136,7 +148,8 @@ class KKPAY_Event_Reservation_Controller {
             wp_die( 'Unauthorized' );
         }
 
-        $event = KKPAY_Event_Settings_Service::get_management_event();
+        $event_id = intval( $_GET['event_id'] ?? 0 );
+        $event = KKPAY_Event_Settings_Service::get_management_event( $event_id > 0 ? $event_id : null );
         if ( ! $event ) {
             wp_die( 'Event not found.' );
         }
@@ -205,11 +218,13 @@ class KKPAY_Event_Reservation_Controller {
             wp_send_json_error( array( 'message' => $data->get_error_message() ) );
         }
 
-        $event = KKPAY_Event_Settings_Service::get_management_event();
+        $event_id = intval( $_POST['event_id'] ?? 0 );
+        $event = KKPAY_Event_Settings_Service::get_management_event( $event_id > 0 ? $event_id : null );
         if ( ! $event ) {
             wp_send_json_error( array( 'message' => 'Event not found.' ) );
         }
 
+        $was_archived = $event->status === KKPAY_Event_Settings_Service::STATUS_ARCHIVED;
         $updated = KKPAY_Event_Settings_Service::set_status( $data['status'], $event->id );
         if ( is_wp_error( $updated ) ) {
             wp_send_json_error( array( 'message' => $updated->get_error_message() ) );
@@ -218,7 +233,7 @@ class KKPAY_Event_Reservation_Controller {
         // イベント終了時は、受付停止だけでなく残っている未決済ホールドも即時失効させる
         // （イベントが終わった以上、あとから決済されても受け付けられないため）。
         $closed_holds = 0;
-        if ( $data['status'] === KKPAY_Event_Settings_Service::STATUS_ARCHIVED ) {
+        if ( $data['status'] === KKPAY_Event_Settings_Service::STATUS_ARCHIVED && ! $was_archived ) {
             $closed_holds = KKPAY_Event_Hold_Service::hard_close( $event->id );
         }
 
@@ -239,7 +254,8 @@ class KKPAY_Event_Reservation_Controller {
             wp_send_json_error( array( 'message' => $data->get_error_message() ) );
         }
 
-        $event = KKPAY_Event_Settings_Service::get_management_event();
+        $event_id = intval( $_POST['event_id'] ?? 0 );
+        $event = KKPAY_Event_Settings_Service::get_management_event( $event_id > 0 ? $event_id : null );
         if ( ! $event ) {
             wp_send_json_error( array( 'message' => 'Event not found.' ) );
         }
@@ -250,6 +266,55 @@ class KKPAY_Event_Reservation_Controller {
         }
 
         wp_send_json_success( array( 'cancelled' => true ) );
+    }
+
+    public static function ajax_admin_create_event() {
+        check_ajax_referer( 'kkpay_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => 'Unauthorized' ) );
+        }
+
+        $data = KKPAY_Event_Reservation_Validator::validate_admin_event_create( $_POST );
+        if ( is_wp_error( $data ) ) {
+            wp_send_json_error( array( 'message' => $data->get_error_message() ) );
+        }
+        $initial_slots = array();
+        foreach ( array( '11:00', '12:30', '14:00' ) as $time ) {
+            $initial_slots[] = array(
+                'id'       => 0,
+                'date'     => $data['event_date'],
+                'time'     => $time,
+                'capacity' => KKPAY_EVENT_MAX_PEOPLE,
+            );
+        }
+        $saved = KKPAY_Event_Settings_Service::create_draft_with_slots(
+            $data['title'],
+            $data['request_key'],
+            $initial_slots
+        );
+        if ( is_wp_error( $saved ) ) {
+            wp_send_json_error( array( 'message' => $saved->get_error_message() ) );
+        }
+
+        wp_send_json_success( array( 'event_id' => (int) $saved['event']->id ) );
+    }
+
+    public static function ajax_admin_save_event() {
+        check_ajax_referer( 'kkpay_nonce', 'nonce' );
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( array( 'message' => 'Unauthorized' ) );
+        }
+
+        $data = KKPAY_Event_Reservation_Validator::validate_admin_event_save( $_POST );
+        if ( is_wp_error( $data ) ) {
+            wp_send_json_error( array( 'message' => $data->get_error_message() ) );
+        }
+        $saved = KKPAY_Event_Settings_Service::save_draft( $data['event_id'], $data['title'], $data['slots'] );
+        if ( is_wp_error( $saved ) ) {
+            wp_send_json_error( array( 'message' => $saved->get_error_message() ) );
+        }
+
+        wp_send_json_success( array( 'event_id' => (int) $saved['event']->id ) );
     }
 
     // ------------------------------------------------------------------
@@ -265,7 +330,10 @@ class KKPAY_Event_Reservation_Controller {
 
     private static function build_reservation_response( $reservation ) {
         $slot = KKPAY_Event_Slot_Repository::find( $reservation->slot_id );
+        $event = $slot ? KKPAY_Event_Repository::find( $slot->event_id ) : null;
         return array(
+            'event_id'         => $event ? (int) $event->id : 0,
+            'event_title'      => $event ? $event->title : '',
             'reservation_code' => $reservation->reservation_code,
             'name'             => $reservation->name,
             'email'            => $reservation->email,
