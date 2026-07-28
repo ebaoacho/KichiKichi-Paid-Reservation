@@ -1,0 +1,99 @@
+/* kkpay-event-reservation.css – Event Reservation（イベント予約）専用スタイル。kkpay-form.css の上に重ねる。 */
+
+.kkpay-event-wrap {
+    max-width: 640px;
+}
+
+.kkpay-event-hero {
+    text-align: center;
+    margin-bottom: 32px;
+    padding: 24px 20px;
+    background: var(--kkpay-red-light);
+    border-radius: var(--kkpay-radius);
+    border: 1.5px solid var(--kkpay-red);
+}
+
+.kkpay-event-title {
+    font-size: 1.6rem;
+    margin: 0 0 6px;
+    color: var(--kkpay-red);
+}
+
+.kkpay-event-tagline {
+    font-weight: 600;
+    font-size: 1.05rem;
+    margin: 0 0 16px;
+}
+
+.kkpay-event-highlights {
+    text-align: left;
+    max-width: 460px;
+    margin: 0 auto 16px;
+    padding-left: 20px;
+    line-height: 1.7;
+    color: var(--kkpay-text);
+}
+
+.kkpay-event-price {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.kkpay-event-closed-notice {
+    text-align: center;
+    font-size: 1.05rem;
+    padding: 32px 20px;
+}
+
+.kkpay-event-policy-field {
+    background: var(--kkpay-bg);
+    border: 1.5px solid var(--kkpay-border);
+    border-radius: var(--kkpay-radius);
+    padding: 14px 16px;
+}
+
+.kkpay-event-policy-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.92rem;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: normal;
+    cursor: pointer;
+}
+
+.kkpay-event-policy-label input[type="checkbox"] {
+    margin-top: 3px;
+    flex-shrink: 0;
+}
+
+#kkpay-event-payment-element {
+    padding: 12px;
+    border: 1.5px solid var(--kkpay-border);
+    border-radius: var(--kkpay-radius);
+    background: var(--kkpay-white);
+}
+
+.kkpay-event-countdown {
+    text-align: center;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.kkpay-event-countdown.kkpay-event-countdown-urgent {
+    color: var(--kkpay-red);
+}
+
+.kkpay-event-start-over {
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+    background: none;
+    border: none;
+    text-decoration: underline;
+    color: var(--kkpay-text);
+    font-size: 0.9rem;
+    cursor: pointer;
+}

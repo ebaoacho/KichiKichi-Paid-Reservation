@@ -26,5 +26,13 @@ class KKPAY_Cron {
             $now = ( new DateTimeImmutable( 'now', new DateTimeZone( 'Asia/Tokyo' ) ) )->format( 'Y-m-d H:i:s' );
             KKPAY_Premium_Reservation_Repository::mark_expired_payment_links( $now );
         }
+
+        // Event Reservation（イベント予約）専用の期限切れホールド整理。
+        // 残席はカウンタではなく都度計算のため、これが実行されなくても残席の正しさには影響しない
+        // （KKPAY_Admin::render_event_reservations_tab() からも機会的に呼ばれる）。
+        // あくまでホールド一覧の表示を鮮度良く保つための処理。
+        if ( class_exists( 'KKPAY_Event_Hold_Service' ) ) {
+            KKPAY_Event_Hold_Service::expire_holds();
+        }
     }
 }

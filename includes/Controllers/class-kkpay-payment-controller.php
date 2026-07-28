@@ -103,14 +103,21 @@ class KKPAY_Payment_Controller {
                 KKPAY_Premium_Reservation_Service::handle_webhook_payment_intent_succeeded( $object );
             } elseif ( ( $object['metadata']['type'] ?? '' ) === 'same_day_deposit' ) {
                 KKPAY_Same_Day_Reservation_Service::handle_webhook_payment_intent_succeeded( $object );
+            } elseif ( ( $object['metadata']['type'] ?? '' ) === 'event_reservation' ) {
+                // Event Reservation（イベント予約）分岐。受付が closed/archived の間も Webhook は必ず処理する。
+                KKPAY_Event_Payment_Service::handle_webhook_payment_intent_succeeded( $object );
             } else {
                 KKPAY_Payment_Service::handle_payment_intent_succeeded( $object );
             }
         } elseif ( $type === 'charge.refunded' ) {
-            $pi_id      = $object['payment_intent'] ?? '';
-            $is_premium = $pi_id && KKPAY_Premium_Reservation_Repository::find_by_payment_intent( $pi_id );
+            $pi_id             = $object['payment_intent'] ?? '';
+            $is_premium        = $pi_id && KKPAY_Premium_Reservation_Repository::find_by_payment_intent( $pi_id );
+            $event_reservation = $pi_id ? KKPAY_Event_Reservation_Repository::find_by_payment_intent( $pi_id ) : null;
             if ( $is_premium ) {
                 KKPAY_Premium_Reservation_Service::handle_webhook_charge_refunded( $object );
+            } elseif ( $event_reservation ) {
+                // Event Reservation（イベント予約）分岐。
+                KKPAY_Event_Payment_Service::handle_webhook_charge_refunded( $object );
             } elseif ( $pi_id && ( $reservation = KKPAY_Reservation_Repository::find_by_payment_intent( $pi_id ) ) && $reservation->reservation_type === 'same_day' ) {
                 KKPAY_Same_Day_Reservation_Service::handle_webhook_charge_refunded( $object );
             } else {

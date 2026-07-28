@@ -1,0 +1,433 @@
+<style>
+#kkpay-event-page,
+#kkpay-event-page * {
+  box-sizing: border-box !important;
+}
+#kkpay-event-page {
+  position: relative !important;
+  left: 50% !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
+  margin-left: -50vw !important;
+  padding-top: clamp(28px, 5vw, 56px) !important;
+  background: #f0eded !important;
+  color: #333 !important;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif !important;
+  line-height: 1.65 !important;
+}
+#kkpay-event-page p {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+#kkpay-event-page p:empty {
+  display: none !important;
+}
+#kkpay-event-guide {
+  width: 100% !important;
+  max-width: 880px !important;
+  margin: 0 auto !important;
+  padding: 0 24px 52px !important;
+}
+#kkpay-event-card {
+  overflow: hidden !important;
+  border: 1px solid #ead7d7 !important;
+  border-radius: 16px !important;
+  background: #fff !important;
+  box-shadow: 0 10px 28px rgba(60, 40, 40, 0.10) !important;
+}
+#kkpay-event-hero {
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 30px 18px 34px !important;
+  overflow: visible !important;
+  background: #a72b3d !important;
+  color: #fff !important;
+  text-align: center !important;
+}
+#kkpay-event-hero > * {
+  position: static !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+}
+#kkpay-event-kicker {
+  display: inline-block !important;
+  margin: 0 0 12px !important;
+  padding: 0 4px !important;
+  background: rgba(210, 231, 242, 0.52) !important;
+  color: #183040 !important;
+  font-size: 11px !important;
+  font-weight: 900 !important;
+  letter-spacing: 4px !important;
+  line-height: 1.1 !important;
+  text-transform: uppercase !important;
+}
+#kkpay-event-title {
+  display: block !important;
+  width: 100% !important;
+  max-width: 760px !important;
+  margin: 0 auto 14px !important;
+  padding: 0 !important;
+  color: #e8f5ff !important;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif !important;
+  font-size: clamp(24px, 3.5vw, 34px) !important;
+  font-weight: 900 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.18 !important;
+  text-align: center !important;
+  text-shadow: 2px 2px 0 rgba(120, 185, 220, 0.55) !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+}
+#kkpay-event-subtitle {
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #dff1ff !important;
+  font-size: 16px !important;
+  line-height: 1.4 !important;
+  text-align: center !important;
+}
+#kkpay-event-guide [data-guide-panel] {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+#kkpay-event-lang {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: 18px 24px 0 !important;
+  background: #fff !important;
+}
+#kkpay-event-lang button {
+  appearance: none !important;
+  min-height: 38px !important;
+  padding: 0 16px !important;
+  border: 1.5px solid #f2c7ce !important;
+  border-radius: 999px !important;
+  background: #fff7f8 !important;
+  color: #9f1239 !important;
+  cursor: pointer !important;
+  font: inherit !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  line-height: 1.2 !important;
+}
+#kkpay-event-lang button[data-guide-button="en"] {
+  border-color: #c8102e !important;
+  background: #c8102e !important;
+  color: #fff !important;
+  font-weight: 800 !important;
+}
+.kkpay-event-body {
+  padding: 20px 24px 28px !important;
+}
+.kkpay-event-intro {
+  max-width: 680px !important;
+  margin: 0 auto 20px !important;
+  color: #374151 !important;
+  font-size: 16px !important;
+  line-height: 1.75 !important;
+  text-align: center !important;
+}
+.kkpay-event-section-title {
+  margin: 0 0 14px !important;
+  color: #a50d25 !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  letter-spacing: 1.5px !important;
+  line-height: 1.2 !important;
+  text-align: center !important;
+  text-transform: uppercase !important;
+}
+.kkpay-event-steps {
+  display: grid !important;
+  gap: 10px !important;
+  margin: 0 0 24px !important;
+}
+.kkpay-event-step {
+  display: grid !important;
+  grid-template-columns: 34px 1fr !important;
+  gap: 12px !important;
+  align-items: start !important;
+  padding: 16px !important;
+  border: 1px solid #f3d9de !important;
+  border-radius: 14px !important;
+  background: #fff8f9 !important;
+  color: #1f2937 !important;
+  font-size: 14.5px !important;
+  line-height: 1.55 !important;
+}
+.kkpay-event-num {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 999px !important;
+  background: #c8102e !important;
+  color: #fff !important;
+  font-size: 14px !important;
+  font-weight: 900 !important;
+}
+.kkpay-event-step strong {
+  display: block !important;
+  color: #9f1239 !important;
+  font-weight: 900 !important;
+}
+.kkpay-event-details {
+  margin: 0 0 22px !important;
+  padding: 18px 20px 20px !important;
+  border: 2px solid #c8102e !important;
+  border-radius: 20px !important;
+  background: linear-gradient(160deg, #fff, #fff5f5) !important;
+  text-align: center !important;
+}
+.kkpay-event-badge {
+  display: inline-block !important;
+  margin: 0 0 12px !important;
+  padding: 3px 12px !important;
+  border-radius: 999px !important;
+  background: #c8102e !important;
+  color: #fff !important;
+  font-size: 10.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: 1.5px !important;
+  line-height: 1.2 !important;
+  text-transform: uppercase !important;
+}
+.kkpay-event-detail-list {
+  display: grid !important;
+  gap: 10px !important;
+  max-width: 460px !important;
+  margin: 0 auto !important;
+  text-align: left !important;
+}
+.kkpay-event-detail-row {
+  display: flex !important;
+  justify-content: space-between !important;
+  gap: 14px !important;
+  padding: 8px 4px !important;
+  border-bottom: 1px solid #f0e2e2 !important;
+  font-size: 14px !important;
+}
+.kkpay-event-detail-row:last-child {
+  border-bottom: 0 !important;
+}
+.kkpay-event-detail-row span:first-child {
+  color: #8f141b !important;
+  font-weight: 800 !important;
+}
+.kkpay-event-detail-row span:last-child {
+  color: #1f2937 !important;
+  font-weight: 700 !important;
+  text-align: right !important;
+}
+.kkpay-event-guide-cta {
+  display: block !important;
+  width: 100% !important;
+  max-width: 460px !important;
+  margin: 0 auto 12px !important;
+  padding: 14px 20px !important;
+  border: 0 !important;
+  border-radius: 14px !important;
+  background: #c8102e !important;
+  color: #fff !important;
+  font-size: 16px !important;
+  font-weight: 900 !important;
+  line-height: 1.3 !important;
+  text-align: center !important;
+  text-decoration: none !important;
+}
+.kkpay-event-guide-cta small {
+  display: block !important;
+  margin: 3px 0 0 !important;
+  color: inherit !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  line-height: 1.3 !important;
+  opacity: 0.78 !important;
+}
+.kkpay-event-guide-cta--secondary {
+  border: 2px solid #c8102e !important;
+  background: #ffffff !important;
+  color: #c8102e !important;
+}
+.kkpay-event-note {
+  margin: 0 !important;
+  color: #777 !important;
+  font-size: 12.5px !important;
+  line-height: 1.65 !important;
+  text-align: center !important;
+}
+@media (max-width: 640px) {
+  #kkpay-event-guide {
+    padding: 0 14px 44px !important;
+  }
+  #kkpay-event-hero {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    padding: 28px 14px 32px !important;
+  }
+  #kkpay-event-title {
+    font-size: clamp(23px, 8vw, 32px) !important;
+  }
+  #kkpay-event-subtitle {
+    font-size: 16px !important;
+  }
+}
+</style>
+
+<div id="kkpay-event-page">
+  <section id="kkpay-event-guide">
+    <div id="kkpay-event-card">
+      <div id="kkpay-event-hero">
+        <div id="kkpay-event-kicker">KICHI KICHI PRESENTS</div>
+        <div id="kkpay-event-title" role="heading" aria-level="1">
+          <div data-guide-panel="en" style="display:block;">World Record Challenge<br>Support Event</div>
+          <div data-guide-panel="ja" style="display:none;">世界記録挑戦応援イベント</div>
+          <div data-guide-panel="ko" style="display:none;">세계 기록 도전 응원 이벤트</div>
+          <div data-guide-panel="zh-CN" style="display:none;">世界纪录挑战应援活动</div>
+          <div data-guide-panel="zh-TW" style="display:none;">世界紀錄挑戰應援活動</div>
+        </div>
+        <div id="kkpay-event-subtitle">
+          <div data-guide-panel="en" style="display:block;">Join our journey to a world record.</div>
+          <div data-guide-panel="ja" style="display:none;">世界記録への挑戦にご参加ください。</div>
+          <div data-guide-panel="ko" style="display:none;">세계 기록을 향한 여정에 함께해 주세요.</div>
+          <div data-guide-panel="zh-CN" style="display:none;">与我们一起挑战世界纪录。</div>
+          <div data-guide-panel="zh-TW" style="display:none;">與我們一起挑戰世界紀錄。</div>
+        </div>
+      </div>
+
+      <div id="kkpay-event-lang">
+        <button type="button" data-guide-button="en" onclick="(function(root,lang){var panels=root.querySelectorAll('[data-guide-panel]');var buttons=root.querySelectorAll('[data-guide-button]');for(var i=0;i<panels.length;i++){panels[i].style.display=panels[i].getAttribute('data-guide-panel')===lang?'block':'none';}for(var j=0;j<buttons.length;j++){var active=buttons[j].getAttribute('data-guide-button')===lang;buttons[j].style.background=active?'#c8102e':'#fff7f8';buttons[j].style.color=active?'#ffffff':'#9f1239';buttons[j].style.borderColor=active?'#c8102e':'#f2c7ce';buttons[j].style.fontWeight=active?'800':'600';}})(this.closest('#kkpay-event-guide'),'en')">EN</button>
+        <button type="button" data-guide-button="ja" onclick="(function(root,lang){var panels=root.querySelectorAll('[data-guide-panel]');var buttons=root.querySelectorAll('[data-guide-button]');for(var i=0;i<panels.length;i++){panels[i].style.display=panels[i].getAttribute('data-guide-panel')===lang?'block':'none';}for(var j=0;j<buttons.length;j++){var active=buttons[j].getAttribute('data-guide-button')===lang;buttons[j].style.background=active?'#c8102e':'#fff7f8';buttons[j].style.color=active?'#ffffff':'#9f1239';buttons[j].style.borderColor=active?'#c8102e':'#f2c7ce';buttons[j].style.fontWeight=active?'800':'600';}})(this.closest('#kkpay-event-guide'),'ja')">日本語</button>
+        <button type="button" data-guide-button="ko" onclick="(function(root,lang){var panels=root.querySelectorAll('[data-guide-panel]');var buttons=root.querySelectorAll('[data-guide-button]');for(var i=0;i<panels.length;i++){panels[i].style.display=panels[i].getAttribute('data-guide-panel')===lang?'block':'none';}for(var j=0;j<buttons.length;j++){var active=buttons[j].getAttribute('data-guide-button')===lang;buttons[j].style.background=active?'#c8102e':'#fff7f8';buttons[j].style.color=active?'#ffffff':'#9f1239';buttons[j].style.borderColor=active?'#c8102e':'#f2c7ce';buttons[j].style.fontWeight=active?'800':'600';}})(this.closest('#kkpay-event-guide'),'ko')">한국어</button>
+        <button type="button" data-guide-button="zh-CN" onclick="(function(root,lang){var panels=root.querySelectorAll('[data-guide-panel]');var buttons=root.querySelectorAll('[data-guide-button]');for(var i=0;i<panels.length;i++){panels[i].style.display=panels[i].getAttribute('data-guide-panel')===lang?'block':'none';}for(var j=0;j<buttons.length;j++){var active=buttons[j].getAttribute('data-guide-button')===lang;buttons[j].style.background=active?'#c8102e':'#fff7f8';buttons[j].style.color=active?'#ffffff':'#9f1239';buttons[j].style.borderColor=active?'#c8102e':'#f2c7ce';buttons[j].style.fontWeight=active?'800':'600';}})(this.closest('#kkpay-event-guide'),'zh-CN')">简体中文</button>
+        <button type="button" data-guide-button="zh-TW" onclick="(function(root,lang){var panels=root.querySelectorAll('[data-guide-panel]');var buttons=root.querySelectorAll('[data-guide-button]');for(var i=0;i<panels.length;i++){panels[i].style.display=panels[i].getAttribute('data-guide-panel')===lang?'block':'none';}for(var j=0;j<buttons.length;j++){var active=buttons[j].getAttribute('data-guide-button')===lang;buttons[j].style.background=active?'#c8102e':'#fff7f8';buttons[j].style.color=active?'#ffffff':'#9f1239';buttons[j].style.borderColor=active?'#c8102e':'#f2c7ce';buttons[j].style.fontWeight=active?'800':'600';}})(this.closest('#kkpay-event-guide'),'zh-TW')">繁體中文</button>
+      </div>
+
+      <div class="kkpay-event-body">
+        <div data-guide-panel="en" style="display:block;">
+          <p class="kkpay-event-intro">Watch Chef Motokichi create a giant Kichi Kichi Omurice right before your eyes, then share it together at the table. This is a special prepaid event with only 8 seats per session.</p>
+          <div class="kkpay-event-section-title">How to Reserve</div>
+          <div class="kkpay-event-steps">
+            <div class="kkpay-event-step"><span class="kkpay-event-num">1</span><span><strong>Go to the Reservation Form</strong>Tap the Reserve Your Seat button to open the event reservation page.</span></div>
+            <div class="kkpay-event-step"><span class="kkpay-event-num">2</span><span><strong>Choose Date, Time, and Guests</strong>Select an available session and the number of seats you need.</span></div>
+            <div class="kkpay-event-step"><span class="kkpay-event-num">3</span><span><strong>Enter Your Name and Email</strong>Please enter your name using English letters and a valid email address.</span></div>
+            <div class="kkpay-event-step"><span class="kkpay-event-num">4</span><span><strong>Confirm the Policy</strong>Agree to the prepaid reservation and no-refund cancellation policy.</span></div>
+            <div class="kkpay-event-step"><span class="kkpay-event-num">5</span><span><strong>Pay Online and Check Email</strong>Your reservation is complete after payment succeeds. A confirmation email will be sent to you.</span></div>
+          </div>
+          <div class="kkpay-event-details">
+            <div class="kkpay-event-badge">Only 8 Seats Per Session</div>
+            <div class="kkpay-event-detail-list">
+              <div class="kkpay-event-detail-row"><span>Dates</span><span>Jul 11, 12, 14, 18, 19</span></div>
+              <div class="kkpay-event-detail-row"><span>Sessions</span><span>11:00 AM / 12:30 PM / 2:00 PM</span></div>
+              <div class="kkpay-event-detail-row"><span>Price</span><span>USD 50 per seat</span></div>
+            </div>
+          </div>
+          <a class="kkpay-event-guide-cta" href="https://kichikichi.com/event-reservation/">Reserve Your Seat<small>First come, first served</small></a>
+          <a class="kkpay-event-guide-cta kkpay-event-guide-cta--secondary" href="https://kichikichi.com/event-confirm/">Check or Cancel<small>Find your reservation</small></a>
+          <p class="kkpay-event-note">Prepaid reservation. No refund will be issued after cancellation.</p>
+        </div>
+
+        <div data-guide-panel="ja" style="display:none;">
+          <p class="kkpay-event-intro">シェフ元吉が巨大なキチキチオムライスを目の前で仕上げ、完成後はテーブルで皆さまと一緒に楽しむ特別イベントです。各回8席限定の事前決済制です。</p>
+          <div class="kkpay-event-section-title">予約方法</div>
+          <div class="kkpay-event-steps">
+            <div class="kkpay-event-step"><span class="kkpay-event-num">1</span><span><strong>予約フォームへ進む</strong>「席を予約する」ボタンから、イベント予約ページへ進んでください。</span></div>
+            <div class="kkpay-event-step"><span class="kkpay-event-num">2</span><span><strong>日付・時間・人数を選択</strong>空きのある回を選び、必要な席数を指定してください。</span></div>
+            <div class="kkpay-event-step"><span class="kkpay-event-num">3</span><span><strong>名前とメールアドレスを入力</strong>お名前は英字で、有効なメールアドレスと一緒に入力してください。</span></div>
+            <div class="kkpay-event-step"><span class="kkpay-event-num">4</span><span><strong>注意事項を確認</strong>事前決済制で、キャンセル後の返金がないことを確認してください。</span></div>
+            <div class="kkpay-event-step"><span class="kkpay-event-num">5</span><span><strong>オンライン決済後、メールを確認</strong>決済が成功すると予約完了です。確認メールが送信されます。</span></div>
+          </div>
+          <div class="kkpay-event-details">
+            <div class="kkpay-event-badge">各回8席限定</div>
+            <div class="kkpay-event-detail-list">
+              <div class="kkpay-event-detail-row"><span>開催日</span><span>7月11日・12日・14日・18日・19日</span></div>
+              <div class="kkpay-event-detail-row"><span>時間</span><span>11:00 / 12:30 / 14:00</span></div>
+              <div class="kkpay-event-detail-row"><span>料金</span><span>1席 USD 50</span></div>
+            </div>
+          </div>
+          <a class="kkpay-event-guide-cta" href="https://kichikichi.com/event-reservation/">席を予約する<small>先着順で受付します</small></a>
+          <a class="kkpay-event-guide-cta kkpay-event-guide-cta--secondary" href="https://kichikichi.com/event-confirm/">確認・キャンセル<small>予約を検索</small></a>
+          <p class="kkpay-event-note">事前決済の予約です。キャンセル後の返金はありません。</p>
+        </div>
+
+        <div data-guide-panel="ko" style="display:none;">
+          <p class="kkpay-event-intro">셰프 모토키치가 눈앞에서 거대한 키치키치 오므라이스를 만들고, 완성 후에는 테이블에서 함께 나누어 즐기는 특별 이벤트입니다. 각 회차 8석 한정, 사전 결제 예약제입니다.</p>
+          <div class="kkpay-event-section-title">예약 방법</div>
+          <div class="kkpay-event-steps">
+            <div class="kkpay-event-step"><span class="kkpay-event-num">1</span><span><strong>예약 양식으로 이동</strong>좌석 예약 버튼을 눌러 이벤트 예약 페이지로 이동해 주세요.</span></div>
+            <div class="kkpay-event-step"><span class="kkpay-event-num">2</span><span><strong>날짜, 시간, 인원 선택</strong>예약 가능한 회차와 필요한 좌석 수를 선택해 주세요.</span></div>
+            <div class="kkpay-event-step"><span class="kkpay-event-num">3</span><span><strong>이름과 이메일 입력</strong>이름은 영문으로 입력하고 유효한 이메일 주소를 입력해 주세요.</span></div>
+            <div class="kkpay-event-step"><span class="kkpay-event-num">4</span><span><strong>주의 사항 확인</strong>사전 결제 예약이며 취소 후 환불이 불가하다는 점에 동의해 주세요.</span></div>
+            <div class="kkpay-event-step"><span class="kkpay-event-num">5</span><span><strong>온라인 결제 후 이메일 확인</strong>결제가 성공하면 예약이 완료됩니다. 확인 이메일이 발송됩니다.</span></div>
+          </div>
+          <div class="kkpay-event-details">
+            <div class="kkpay-event-badge">회차당 8석 한정</div>
+            <div class="kkpay-event-detail-list">
+              <div class="kkpay-event-detail-row"><span>날짜</span><span>7월 11일, 12일, 14일, 18일, 19일</span></div>
+              <div class="kkpay-event-detail-row"><span>시간</span><span>오전 11:00 / 오후 12:30 / 오후 2:00</span></div>
+              <div class="kkpay-event-detail-row"><span>요금</span><span>좌석당 USD 50</span></div>
+            </div>
+          </div>
+          <a class="kkpay-event-guide-cta" href="https://kichikichi.com/event-reservation/">좌석 예약하기<small>선착순 예약</small></a>
+          <a class="kkpay-event-guide-cta kkpay-event-guide-cta--secondary" href="https://kichikichi.com/event-confirm/">확인・취소<small>예약 찾기</small></a>
+          <p class="kkpay-event-note">사전 결제 예약입니다. 취소 후 환불은 불가합니다.</p>
+        </div>
+
+        <div data-guide-panel="zh-CN" style="display:none;">
+          <p class="kkpay-event-intro">主厨 Motokichi 会在您眼前制作巨型 Kichi Kichi 蛋包饭，完成后大家一起在餐桌分享。这是每场仅限 8 个座位的预付费特别活动。</p>
+          <div class="kkpay-event-section-title">预约方法</div>
+          <div class="kkpay-event-steps">
+            <div class="kkpay-event-step"><span class="kkpay-event-num">1</span><span><strong>前往预约表单</strong>点击预订座位按钮，前往活动预约页面。</span></div>
+            <div class="kkpay-event-step"><span class="kkpay-event-num">2</span><span><strong>选择日期、时间和人数</strong>请选择可预约的场次和所需座位数。</span></div>
+            <div class="kkpay-event-step"><span class="kkpay-event-num">3</span><span><strong>填写姓名和邮箱</strong>姓名请使用英文字母，并填写有效的邮箱地址。</span></div>
+            <div class="kkpay-event-step"><span class="kkpay-event-num">4</span><span><strong>确认注意事项</strong>请确认此为预付费预约，取消后不予退款。</span></div>
+            <div class="kkpay-event-step"><span class="kkpay-event-num">5</span><span><strong>在线支付后确认邮件</strong>支付成功后预约即完成。系统会发送确认邮件。</span></div>
+          </div>
+          <div class="kkpay-event-details">
+            <div class="kkpay-event-badge">每场仅 8 席</div>
+            <div class="kkpay-event-detail-list">
+              <div class="kkpay-event-detail-row"><span>日期</span><span>7月11日、12日、14日、18日、19日</span></div>
+              <div class="kkpay-event-detail-row"><span>场次</span><span>上午11:00 / 下午12:30 / 下午2:00</span></div>
+              <div class="kkpay-event-detail-row"><span>价格</span><span>每席 USD 50</span></div>
+            </div>
+          </div>
+          <a class="kkpay-event-guide-cta" href="https://kichikichi.com/event-reservation/">预订座位<small>先到先得</small></a>
+          <a class="kkpay-event-guide-cta kkpay-event-guide-cta--secondary" href="https://kichikichi.com/event-confirm/">确认・取消<small>查找预约</small></a>
+          <p class="kkpay-event-note">此为预付费预约。取消后不予退款。</p>
+        </div>
+
+        <div data-guide-panel="zh-TW" style="display:none;">
+          <p class="kkpay-event-intro">主廚 Motokichi 會在您眼前製作巨型 Kichi Kichi 蛋包飯，完成後大家一起在餐桌分享。這是每場僅限 8 個座位的預付費特別活動。</p>
+          <div class="kkpay-event-section-title">預約方法</div>
+          <div class="kkpay-event-steps">
+            <div class="kkpay-event-step"><span class="kkpay-event-num">1</span><span><strong>前往預約表單</strong>點擊預訂座位按鈕，前往活動預約頁面。</span></div>
+            <div class="kkpay-event-step"><span class="kkpay-event-num">2</span><span><strong>選擇日期、時間和人數</strong>請選擇可預約的場次和所需座位數。</span></div>
+            <div class="kkpay-event-step"><span class="kkpay-event-num">3</span><span><strong>填寫姓名和信箱</strong>姓名請使用英文字母，並填寫有效的信箱地址。</span></div>
+            <div class="kkpay-event-step"><span class="kkpay-event-num">4</span><span><strong>確認注意事項</strong>請確認此為預付費預約，取消後不予退款。</span></div>
+            <div class="kkpay-event-step"><span class="kkpay-event-num">5</span><span><strong>線上付款後確認郵件</strong>付款成功後預約即完成。系統會寄送確認郵件。</span></div>
+          </div>
+          <div class="kkpay-event-details">
+            <div class="kkpay-event-badge">每場僅 8 席</div>
+            <div class="kkpay-event-detail-list">
+              <div class="kkpay-event-detail-row"><span>日期</span><span>7月11日、12日、14日、18日、19日</span></div>
+              <div class="kkpay-event-detail-row"><span>場次</span><span>上午11:00 / 下午12:30 / 下午2:00</span></div>
+              <div class="kkpay-event-detail-row"><span>價格</span><span>每席 USD 50</span></div>
+            </div>
+          </div>
+          <a class="kkpay-event-guide-cta" href="https://kichikichi.com/event-reservation/">預訂座位<small>先到先得</small></a>
+          <a class="kkpay-event-guide-cta kkpay-event-guide-cta--secondary" href="https://kichikichi.com/event-confirm/">確認・取消<small>查找預約</small></a>
+          <p class="kkpay-event-note">此為預付費預約。取消後不予退款。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

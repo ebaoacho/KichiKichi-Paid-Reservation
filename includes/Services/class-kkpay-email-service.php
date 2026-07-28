@@ -380,6 +380,71 @@ class KKPAY_Email_Service {
     }
 
     // ------------------------------------------------------------------
+    // Event Reservation（イベント予約）専用メール
+    // 英語のみのイベントのため、他フローと異なり5言語展開は行わない。
+    // ------------------------------------------------------------------
+
+    /**
+     * 予約確定メール（To: お客様、CC: マスター）
+     */
+    public static function send_event_reservation_confirmation( $reservation, $slot ) {
+        if ( ! $reservation || ! $reservation->email ) {
+            return;
+        }
+
+        $amount = self::format_currency_amount( (int) $reservation->amount, $reservation->currency ?: KKPAY_EVENT_CURRENCY );
+        $date   = $slot ? $slot->event_date : '';
+        $time   = $slot ? $slot->event_time : '';
+
+        $subject = 'Your Kichi Kichi Event Reservation is Confirmed';
+
+        $cancel_url  = function_exists( 'kkpay_find_shortcode_page_url' ) ? kkpay_find_shortcode_page_url( 'kkpay_event_cancel' ) : '';
+        $cancel_line = $cancel_url
+            ? "You can cancel your reservation anytime before the session at: {$cancel_url}\n\n"
+            : '';
+
+        $body = "Dear {$reservation->name},\n\nThank you! Your reservation for the Kichi Kichi Giant Omurice Event with Chef Motokichi is confirmed.\n\n{{DETAILS}}\n\n"
+            . "Cancellation Policy:\nNo refund will be issued after cancellation. {$cancel_line}"
+            . "Please contact us if you need to make any changes.\n\nWe look forward to seeing you!\n\nKichiKichi";
+
+        $details = array(
+            array( 'label' => 'Reservation Code', 'value' => $reservation->reservation_code ),
+            array( 'label' => 'Date',             'value' => $date ),
+            array( 'label' => 'Time',              'value' => $time ),
+            array( 'label' => 'Guests',            'value' => (string) $reservation->guests ),
+            array( 'label' => 'Total Paid',        'value' => $amount ),
+        );
+
+        self::send_with_cc( $reservation->email, $subject, $body, 'en', false, $details );
+    }
+
+    /**
+     * キャンセル完了メール（To: お客様、CC: マスター）。返金は行わないため金額は案内しない。
+     */
+    public static function send_event_reservation_cancellation( $reservation, $slot ) {
+        if ( ! $reservation || ! $reservation->email ) {
+            return;
+        }
+
+        $date = $slot ? $slot->event_date : '';
+        $time = $slot ? $slot->event_time : '';
+
+        $subject = 'Your Kichi Kichi Event Reservation Has Been Cancelled';
+
+        $body = "Dear {$reservation->name},\n\nYour reservation for the Kichi Kichi Giant Omurice Event has been cancelled as requested.\n\n{{DETAILS}}\n\n"
+            . "As noted at the time of booking, this reservation is prepaid and no refund will be issued.\n\n"
+            . "Thank you for your understanding.\n\nKichiKichi";
+
+        $details = array(
+            array( 'label' => 'Reservation Code', 'value' => $reservation->reservation_code ),
+            array( 'label' => 'Date',             'value' => $date ),
+            array( 'label' => 'Time',              'value' => $time ),
+        );
+
+        self::send_with_cc( $reservation->email, $subject, $body, 'en', false, $details );
+    }
+
+    // ------------------------------------------------------------------
     // Private helpers
     // ------------------------------------------------------------------
 
