@@ -51,6 +51,8 @@ class KKPAY_Admin {
             'ajax_url'     => admin_url( 'admin-ajax.php' ),
             'nonce'        => wp_create_nonce( 'kkpay_nonce' ),
             'export_nonce' => wp_create_nonce( 'kkpay_event_export' ),
+            'event_id'     => intval( $_GET['event_id'] ?? 0 ),
+            'max_capacity' => KKPAY_EVENT_MAX_PEOPLE,
         ) );
     }
 
@@ -175,7 +177,9 @@ class KKPAY_Admin {
         // あくまでホールド一覧の「ステータス」表示を鮮度良く保つための機会的な処理）。
         KKPAY_Event_Hold_Service::expire_holds();
 
-        $event              = KKPAY_Event_Settings_Service::get_management_event();
+        $events             = KKPAY_Event_Repository::get_all();
+        $requested_event_id = intval( $_GET['event_id'] ?? 0 );
+        $event              = KKPAY_Event_Settings_Service::get_management_event( $requested_event_id > 0 ? $requested_event_id : null );
         $event_id           = $event ? (int) $event->id : 0;
         $now                = ( new DateTimeImmutable( 'now', new DateTimeZone( 'Asia/Tokyo' ) ) )->format( 'Y-m-d H:i:s' );
         $event_slots        = $event_id > 0 ? KKPAY_Event_Slot_Repository::get_all_with_remaining( $event_id, $now ) : array();

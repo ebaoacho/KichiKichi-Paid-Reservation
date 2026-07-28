@@ -49,6 +49,52 @@ class KKPAY_Event_Slot_Repository {
         ) );
     }
 
+    public static function get_all_for_update( $event_id ) {
+        global $wpdb;
+        return $wpdb->get_results( $wpdb->prepare(
+            'SELECT * FROM ' . self::table() . ' WHERE event_id = %d ORDER BY id ASC FOR UPDATE',
+            (int) $event_id
+        ) );
+    }
+
+    /** @return int|WP_Error */
+    public static function insert( array $data ) {
+        global $wpdb;
+        $inserted = $wpdb->insert( self::table(), $data );
+        if ( ! $inserted ) {
+            return new WP_Error( 'db_insert_failed', 'kkpay_event_slots insert failed: ' . $wpdb->last_error );
+        }
+        return (int) $wpdb->insert_id;
+    }
+
+    /** @return int|WP_Error */
+    public static function update( $slot_id, $event_id, array $data ) {
+        global $wpdb;
+        $updated = $wpdb->update(
+            self::table(),
+            $data,
+            array( 'id' => (int) $slot_id, 'event_id' => (int) $event_id )
+        );
+        if ( false === $updated ) {
+            return new WP_Error( 'db_update_failed', 'kkpay_event_slots update failed: ' . $wpdb->last_error );
+        }
+        return (int) $updated;
+    }
+
+    /** @return int|WP_Error */
+    public static function delete( $slot_id, $event_id ) {
+        global $wpdb;
+        $deleted = $wpdb->delete(
+            self::table(),
+            array( 'id' => (int) $slot_id, 'event_id' => (int) $event_id ),
+            array( '%d', '%d' )
+        );
+        if ( false === $deleted ) {
+            return new WP_Error( 'db_delete_failed', 'kkpay_event_slots delete failed: ' . $wpdb->last_error );
+        }
+        return (int) $deleted;
+    }
+
     /**
      * 全枠を残席込みで返す（管理画面用）。ステータスを問わず全件返す。
      * held_count/confirmed_count は都度SUMして計算した値を、互換のため同じ名前の
@@ -83,7 +129,7 @@ class KKPAY_Event_Slot_Repository {
 
     /**
      * held_count/confirmed_count/remaining を都度SUMで計算するクエリ本体。
-     * held は HELD/PENDING_PAYMENT かつ expires_at > NOW() のホールドのみ数える。
+     * held は HELD/PENDING_PAYMENT かつ expires_at > 呼び出し元で生成したJST現在時刻のホールドのみ数える。
      * 期限切れホールドは能動的な解放処理なしに、時刻が過ぎた時点で自動的に数えなくなる
      * （WP-Cron が実行されない/遅延する環境でも残席計算は常に正しい）。
      */

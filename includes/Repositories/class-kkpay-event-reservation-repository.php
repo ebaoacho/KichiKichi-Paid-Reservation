@@ -121,6 +121,14 @@ class KKPAY_Event_Reservation_Repository {
         ) );
     }
 
+    public static function count_by_slot( $slot_id ) {
+        global $wpdb;
+        return (int) $wpdb->get_var( $wpdb->prepare(
+            'SELECT COUNT(*) FROM ' . self::table() . ' WHERE slot_id = %d',
+            (int) $slot_id
+        ) );
+    }
+
     public static function get_list_as_array_by_event( $event_id ) {
         global $wpdb;
         $slots_table = $wpdb->prefix . 'kkpay_event_slots';

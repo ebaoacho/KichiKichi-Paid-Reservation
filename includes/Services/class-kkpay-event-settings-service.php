@@ -63,16 +63,24 @@ class KKPAY_Event_Settings_Service {
      *
      * @return object|WP_Error
      */
-    public static function create( $title ) {
+    public static function create( $title, $request_key = '' ) {
         $title = sanitize_text_field( $title );
         if ( $title === '' || mb_strlen( $title ) > 200 ) {
             return new WP_Error( 'invalid_event_title', 'イベントタイトルを200文字以内で入力してください。' );
         }
 
+        $migration_key = $request_key !== '' ? 'admin_create:' . $request_key : null;
+        if ( $migration_key ) {
+            $existing = KKPAY_Event_Repository::find_by_migration_key( $migration_key );
+            if ( $existing ) {
+                return $existing;
+            }
+        }
+
         $now      = self::now_jst();
         $event_id = KKPAY_Event_Repository::insert( array(
             'title'         => $title,
-            'migration_key' => null,
+            'migration_key' => $migration_key,
             'unit_amount'   => KKPAY_EVENT_AMOUNT,
             'currency'      => KKPAY_EVENT_CURRENCY,
             'status'        => self::STATUS_DRAFT,
@@ -80,10 +88,120 @@ class KKPAY_Event_Settings_Service {
             'updated_at'    => $now,
         ) );
         if ( is_wp_error( $event_id ) ) {
+            if ( $migration_key ) {
+                $existing = KKPAY_Event_Repository::find_by_migration_key( $migration_key );
+                if ( $existing ) {
+                    return $existing;
+                }
+            }
             return $event_id;
         }
 
         return KKPAY_Event_Repository::find( $event_id );
+    }
+
+    /** @return array|WP_Error */
+    public static function save_draft( $event_id, $title, array $slots ) {
+        global $wpdb;
+
+        $now = self::now_jst();
+        $wpdb->query( 'START TRANSACTION' );
+        $event = KKPAY_Event_Repository::find_for_update( $event_id );
+        if ( ! $event ) {
+            $wpdb->query( 'ROLLBACK' );
+            return new WP_Error( 'event_not_found', 'イベントが見つかりません。' );
+        }
+        if ( $event->status !== self::STATUS_DRAFT ) {
+            $wpdb->query( 'ROLLBACK' );
+            return new WP_Error( 'event_not_editable', '下書きイベントだけ編集できます。' );
+        }
+
+        $existing       = KKPAY_Event_Slot_Repository::get_all_for_update( $event->id );
+        $existing_by_id = array();
+        $existing_by_key = array();
+        foreach ( $existing as $row ) {
+            $existing_by_id[ (int) $row->id ] = $row;
+            $existing_by_key[ $row->event_date . ' ' . $row->event_time ] = $row;
+        }
+
+        $kept_ids = array();
+        foreach ( $slots as $slot_data ) {
+            $key    = $slot_data['date'] . ' ' . $slot_data['time'];
+            $target = null;
+            if ( $slot_data['id'] > 0 ) {
+                if ( ! isset( $existing_by_id[ $slot_data['id'] ] ) ) {
+                    $wpdb->query( 'ROLLBACK' );
+                    return new WP_Error( 'event_slot_mismatch', '別イベントの開催枠は更新できません。' );
+                }
+                $target = $existing_by_id[ $slot_data['id'] ];
+            } elseif ( isset( $existing_by_key[ $key ] ) ) {
+                $target = $existing_by_key[ $key ];
+            }
+
+            if ( $target ) {
+                $held = KKPAY_Event_Hold_Repository::sum_active_guests_for_slot( $target->id, $now );
+                $confirmed = KKPAY_Event_Reservation_Repository::sum_confirmed_guests_for_slot( $target->id );
+                if ( $slot_data['capacity'] < $held + $confirmed ) {
+                    $wpdb->query( 'ROLLBACK' );
+                    return new WP_Error( 'capacity_below_usage', '定員を予約済み・仮押さえ中の人数未満には変更できません。' );
+                }
+                $updated = KKPAY_Event_Slot_Repository::update( $target->id, $event->id, array(
+                    'event_date' => $slot_data['date'],
+                    'event_time' => $slot_data['time'],
+                    'capacity'   => $slot_data['capacity'],
+                    'status'     => 'active',
+                    'updated_at' => $now,
+                ) );
+                if ( is_wp_error( $updated ) ) {
+                    $wpdb->query( 'ROLLBACK' );
+                    return $updated;
+                }
+                $kept_ids[ (int) $target->id ] = true;
+            } else {
+                $inserted = KKPAY_Event_Slot_Repository::insert( array(
+                    'event_id'   => (int) $event->id,
+                    'event_date' => $slot_data['date'],
+                    'event_time' => $slot_data['time'],
+                    'capacity'   => $slot_data['capacity'],
+                    'status'     => 'active',
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ) );
+                if ( is_wp_error( $inserted ) ) {
+                    $wpdb->query( 'ROLLBACK' );
+                    return $inserted;
+                }
+                $kept_ids[ $inserted ] = true;
+            }
+        }
+
+        foreach ( $existing as $row ) {
+            if ( isset( $kept_ids[ (int) $row->id ] ) ) {
+                continue;
+            }
+            $active_holds = KKPAY_Event_Hold_Repository::sum_active_guests_for_slot( $row->id, $now );
+            if ( $active_holds > 0 || KKPAY_Event_Reservation_Repository::count_by_slot( $row->id ) > 0 ) {
+                $wpdb->query( 'ROLLBACK' );
+                return new WP_Error( 'event_slot_in_use', '予約または有効なホールドがある開催枠は削除できません。' );
+            }
+            $deleted = KKPAY_Event_Slot_Repository::delete( $row->id, $event->id );
+            if ( is_wp_error( $deleted ) ) {
+                $wpdb->query( 'ROLLBACK' );
+                return $deleted;
+            }
+        }
+
+        $updated = KKPAY_Event_Repository::update( $event->id, array( 'title' => $title, 'updated_at' => $now ) );
+        if ( is_wp_error( $updated ) ) {
+            $wpdb->query( 'ROLLBACK' );
+            return $updated;
+        }
+        $wpdb->query( 'COMMIT' );
+
+        return array(
+            'event' => KKPAY_Event_Repository::find( $event->id ),
+            'slots' => KKPAY_Event_Slot_Repository::get_all( $event->id ),
+        );
     }
 
     /**

@@ -286,6 +286,16 @@ class KKPAY_Event_Reservation_Service {
 
         $wpdb->query( 'START TRANSACTION' );
 
+        $event = KKPAY_Event_Repository::find_for_update( $event_id );
+        if ( ! $event ) {
+            $wpdb->query( 'ROLLBACK' );
+            return new WP_Error( 'event_not_found', 'Event not found.' );
+        }
+        if ( $event->status === KKPAY_Event_Settings_Service::STATUS_ARCHIVED ) {
+            $wpdb->query( 'ROLLBACK' );
+            return new WP_Error( 'event_read_only', '終了したイベントは変更できません。' );
+        }
+
         $reservation = KKPAY_Event_Reservation_Repository::find_by_id_for_update( $reservation_id );
         if ( ! $reservation ) {
             $wpdb->query( 'ROLLBACK' );

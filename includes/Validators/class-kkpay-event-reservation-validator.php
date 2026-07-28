@@ -9,6 +9,71 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class KKPAY_Event_Reservation_Validator {
 
+    public static function validate_admin_event_create( array $input ) {
+        $title       = sanitize_text_field( wp_unslash( $input['title'] ?? '' ) );
+        $event_date  = sanitize_text_field( wp_unslash( $input['event_date'] ?? '' ) );
+        $request_key = sanitize_key( wp_unslash( $input['request_key'] ?? '' ) );
+
+        if ( $title === '' || mb_strlen( $title ) > 200 ) {
+            return new WP_Error( 'invalid_event_title', 'イベントタイトルを1～200文字で入力してください。' );
+        }
+        if ( ! preg_match( '/^[a-z0-9-]{16,64}$/', $request_key ) ) {
+            return new WP_Error( 'invalid_request_key', '再送防止キーが不正です。画面を再読み込みしてください。' );
+        }
+
+        $date_value = DateTimeImmutable::createFromFormat( '!Y-m-d', $event_date, new DateTimeZone( 'Asia/Tokyo' ) );
+        if ( ! $date_value || $date_value->format( 'Y-m-d' ) !== $event_date ) {
+            return new WP_Error( 'invalid_event_date', '最初の開催日を正しく入力してください。' );
+        }
+
+        return array( 'title' => $title, 'event_date' => $event_date, 'request_key' => $request_key );
+    }
+
+    public static function validate_admin_event_save( array $input ) {
+        $event_id = intval( $input['event_id'] ?? 0 );
+        $title    = sanitize_text_field( wp_unslash( $input['title'] ?? '' ) );
+        $raw      = json_decode( wp_unslash( $input['slots'] ?? '' ), true );
+
+        if ( $event_id <= 0 ) {
+            return new WP_Error( 'invalid_event', 'イベントを選択してください。' );
+        }
+        if ( $title === '' || mb_strlen( $title ) > 200 ) {
+            return new WP_Error( 'invalid_event_title', 'イベントタイトルを1～200文字で入力してください。' );
+        }
+        if ( ! is_array( $raw ) ) {
+            return new WP_Error( 'invalid_slots', '開催日時の入力形式が不正です。' );
+        }
+
+        $slots = array();
+        $seen  = array();
+        foreach ( $raw as $row ) {
+            $slot_id  = intval( $row['id'] ?? 0 );
+            $date     = sanitize_text_field( $row['date'] ?? '' );
+            $time     = sanitize_text_field( $row['time'] ?? '' );
+            $capacity = intval( $row['capacity'] ?? 0 );
+
+            $date_value = DateTimeImmutable::createFromFormat( '!Y-m-d', $date, new DateTimeZone( 'Asia/Tokyo' ) );
+            if ( ! $date_value || $date_value->format( 'Y-m-d' ) !== $date ) {
+                return new WP_Error( 'invalid_event_date', '開催日を正しく入力してください。' );
+            }
+            if ( ! preg_match( '/^(?:[01]\d|2[0-3]):[0-5]\d$/', $time ) ) {
+                return new WP_Error( 'invalid_event_time', '開催時間を00:00～23:59で入力してください。' );
+            }
+            if ( $capacity < 1 || $capacity > KKPAY_EVENT_MAX_PEOPLE ) {
+                return new WP_Error( 'invalid_event_capacity', '定員は1～' . KKPAY_EVENT_MAX_PEOPLE . '名で入力してください。' );
+            }
+
+            $key = $date . ' ' . $time;
+            if ( isset( $seen[ $key ] ) ) {
+                return new WP_Error( 'duplicate_event_slot', '同じ開催日時を重複して登録することはできません。' );
+            }
+            $seen[ $key ] = true;
+            $slots[] = array( 'id' => $slot_id, 'date' => $date, 'time' => $time, 'capacity' => $capacity );
+        }
+
+        return array( 'event_id' => $event_id, 'title' => $title, 'slots' => $slots );
+    }
+
     /**
      * ホールド + PaymentIntent 作成リクエストを検証する（顧客フォーム）
      *
