@@ -36,11 +36,12 @@ class KKPAY_Event_Hold_Repository {
      * 過ぎている場合のみ行を返す。PHPの strtotime()/time() で期限判定すると、PHPとDBのタイムゾーン
      * 設定が食い違った場合に誤判定するおそれがあるため、時刻比較は必ずDB側（NOW()）で行う。
      */
-    public static function find_by_token_for_update_if_past_expiry( $token ) {
+    public static function find_by_token_for_update_if_past_expiry( $token, $now ) {
         global $wpdb;
         return $wpdb->get_row( $wpdb->prepare(
-            'SELECT * FROM ' . self::table() . ' WHERE hold_token = %s AND expires_at < NOW() LIMIT 1 FOR UPDATE',
-            $token
+            'SELECT * FROM ' . self::table() . ' WHERE hold_token = %s AND expires_at < %s LIMIT 1 FOR UPDATE',
+            $token,
+            $now
         ) );
     }
 
@@ -49,16 +50,17 @@ class KKPAY_Event_Hold_Repository {
      * メールは大文字小文字を区別せず比較する（保存値は正規化しない。Stripe metadata の照合
      * (KKPAY_Event_Payment_Service::payment_intent_matches_hold) も同様に大文字小文字を無視するため合わせている）。
      */
-    public static function find_active_by_email_and_slot( $email, $slot_id ) {
+    public static function find_active_by_email_and_slot( $email, $slot_id, $now ) {
         global $wpdb;
         return $wpdb->get_row( $wpdb->prepare(
             'SELECT * FROM ' . self::table() . "
              WHERE LOWER(email) = LOWER(%s) AND slot_id = %d
                AND status IN ('HELD', 'PENDING_PAYMENT')
-               AND expires_at > NOW()
+               AND expires_at > %s
              LIMIT 1",
             $email,
-            (int) $slot_id
+            (int) $slot_id,
+            $now
         ) );
     }
 
@@ -67,7 +69,7 @@ class KKPAY_Event_Hold_Repository {
      * 残席計算（KKPAY_Event_Capacity_Service）専用。$exclude_hold_id を指定すると、
      * そのホールド自身を集計から除外する（確定処理で「自分以外の残席」を見るため）。
      */
-    public static function sum_active_guests_for_slot( $slot_id, $exclude_hold_id = null ) {
+    public static function sum_active_guests_for_slot( $slot_id, $now, $exclude_hold_id = null ) {
         global $wpdb;
 
         if ( $exclude_hold_id ) {
@@ -75,9 +77,10 @@ class KKPAY_Event_Hold_Repository {
                 'SELECT COALESCE(SUM(guests), 0) FROM ' . self::table() . "
                  WHERE slot_id = %d
                    AND status IN ('HELD', 'PENDING_PAYMENT')
-                   AND expires_at > NOW()
+                   AND expires_at > %s
                    AND id != %d",
                 (int) $slot_id,
+                $now,
                 (int) $exclude_hold_id
             ) );
         }
@@ -86,8 +89,9 @@ class KKPAY_Event_Hold_Repository {
             'SELECT COALESCE(SUM(guests), 0) FROM ' . self::table() . "
              WHERE slot_id = %d
                AND status IN ('HELD', 'PENDING_PAYMENT')
-               AND expires_at > NOW()",
-            (int) $slot_id
+               AND expires_at > %s",
+            (int) $slot_id,
+            $now
         ) );
     }
 
@@ -104,75 +108,91 @@ class KKPAY_Event_Hold_Repository {
     }
 
     public static function set_payment_intent( $id, $payment_intent_id, $client_secret, $now ) {
-        global $wpdb;
-        return $wpdb->update(
-            self::table(),
+        return self::update_by_id(
+            $id,
             array(
                 'payment_intent_id' => $payment_intent_id,
                 'client_secret'     => $client_secret,
                 'status'            => 'PENDING_PAYMENT',
                 'updated_at'        => $now,
             ),
-            array( 'id' => (int) $id ),
-            array( '%s', '%s', '%s', '%s' ),
-            array( '%d' )
+            array( '%s', '%s', '%s', '%s' )
         );
     }
 
     public static function mark_confirmed( $id, $now ) {
-        global $wpdb;
-        return $wpdb->update(
-            self::table(),
+        return self::update_by_id(
+            $id,
             array( 'status' => 'CONFIRMED', 'updated_at' => $now ),
-            array( 'id' => (int) $id ),
-            array( '%s', '%s' ),
-            array( '%d' )
+            array( '%s', '%s' )
         );
     }
 
     public static function mark_expired( $id, $now ) {
-        global $wpdb;
-        return $wpdb->update(
-            self::table(),
+        return self::update_by_id(
+            $id,
             array( 'status' => 'EXPIRED', 'updated_at' => $now ),
-            array( 'id' => (int) $id ),
-            array( '%s', '%s' ),
-            array( '%d' )
+            array( '%s', '%s' )
         );
     }
 
     public static function mark_canceled( $id, $now ) {
-        global $wpdb;
-        return $wpdb->update(
-            self::table(),
+        return self::update_by_id(
+            $id,
             array( 'status' => 'CANCELED', 'updated_at' => $now ),
+            array( '%s', '%s' )
+        );
+    }
+
+    /** @return int|WP_Error */
+    private static function update_by_id( $id, array $data, array $formats ) {
+        global $wpdb;
+        $updated = $wpdb->update(
+            self::table(),
+            $data,
             array( 'id' => (int) $id ),
-            array( '%s', '%s' ),
+            $formats,
             array( '%d' )
         );
+        if ( false === $updated ) {
+            return new WP_Error( 'db_update_failed', 'kkpay_event_holds update failed: ' . $wpdb->last_error );
+        }
+        return (int) $updated;
     }
 
     /** 期限切れの未決済ホールド一覧（cron の失効処理対象。サイト全体が対象） */
-    public static function find_expired() {
+    public static function find_expired( $now ) {
         global $wpdb;
-        return $wpdb->get_results(
+        return $wpdb->get_results( $wpdb->prepare(
             'SELECT * FROM ' . self::table() . "
              WHERE status IN ('HELD', 'PENDING_PAYMENT')
-               AND expires_at < NOW()"
-        );
+               AND expires_at < %s",
+            $now
+        ) );
     }
 
     /** Hard Close 用: 期限に関わらず現在アクティブな未決済ホールド一覧 */
-    public static function find_active_pending() {
+    public static function find_active_pending_by_event( $event_id ) {
         global $wpdb;
-        return $wpdb->get_results(
-            'SELECT * FROM ' . self::table() . "
-             WHERE status IN ('HELD', 'PENDING_PAYMENT')"
-        );
+        $slots_table = $wpdb->prefix . 'kkpay_event_slots';
+        return $wpdb->get_results( $wpdb->prepare(
+            'SELECT h.* FROM ' . self::table() . " h
+             INNER JOIN {$slots_table} s ON s.id = h.slot_id
+             WHERE s.event_id = %d
+               AND h.status IN ('HELD', 'PENDING_PAYMENT')",
+            (int) $event_id
+        ) );
     }
 
-    public static function get_list() {
+    public static function get_list_by_event( $event_id ) {
         global $wpdb;
-        return $wpdb->get_results( 'SELECT * FROM ' . self::table() . ' ORDER BY created_at DESC' );
+        $slots_table = $wpdb->prefix . 'kkpay_event_slots';
+        return $wpdb->get_results( $wpdb->prepare(
+            'SELECT h.* FROM ' . self::table() . " h
+             INNER JOIN {$slots_table} s ON s.id = h.slot_id
+             WHERE s.event_id = %d
+             ORDER BY h.created_at DESC",
+            (int) $event_id
+        ) );
     }
 }

@@ -4,44 +4,228 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Event Reservation（イベント予約）の受付ステータスを担当する。
- * Stripe 等の秘密情報は wp_options に置かない方針だが、これは非秘匿の機能トグルなので
- * get_option/update_option を使う（kkpay_calendar_days の enabled 列と同様の位置づけ）。
+ * Event Reservationの開催回作成と受付状態を管理する。
  *
- * 管理画面の操作は「受付を開始する」「イベントを終了する」の2つのみ。
- * closed は開始前のデフォルト状態、archived は終了後の恒久状態を表す。
+ * 受付状態の正本はkkpay_events.status。旧OptionはPR 2～PR 4の互換期間中、
+ * 既存イベントの状態だけを同期する。
  */
 class KKPAY_Event_Settings_Service {
 
     const OPTION_STATUS = 'kkpay_event_reservation_status';
 
+    const STATUS_DRAFT    = 'draft';
     const STATUS_OPEN     = 'open';
     const STATUS_CLOSED   = 'closed';
     const STATUS_ARCHIVED = 'archived';
 
-    public static function get_status() {
-        $status = get_option( self::OPTION_STATUS, self::STATUS_CLOSED );
-        return in_array( $status, array( self::STATUS_OPEN, self::STATUS_CLOSED, self::STATUS_ARCHIVED ), true )
-            ? $status
-            : self::STATUS_CLOSED;
+    public static function get_current_event() {
+        return KKPAY_Event_Repository::find_open();
     }
 
-    public static function is_open() {
-        return self::get_status() === self::STATUS_OPEN;
+    /**
+     * 管理画面の互換表示対象を返す。PR 3以降は明示されたevent_idを優先する。
+     */
+    public static function get_management_event( $event_id = null ) {
+        if ( $event_id !== null && (int) $event_id > 0 ) {
+            return KKPAY_Event_Repository::find( (int) $event_id );
+        }
+
+        $open = self::get_current_event();
+        if ( $open ) {
+            return $open;
+        }
+
+        $legacy_event_id = (int) get_option( 'kkpay_legacy_event_id', 0 );
+        return $legacy_event_id > 0 ? KKPAY_Event_Repository::find( $legacy_event_id ) : null;
     }
 
-    public static function set_status( $status ) {
-        if ( ! in_array( $status, array( self::STATUS_OPEN, self::STATUS_CLOSED, self::STATUS_ARCHIVED ), true ) ) {
+    public static function get_status( $event_id = null ) {
+        $event = self::get_management_event( $event_id );
+        if ( $event && self::is_valid_status( $event->status ) ) {
+            return $event->status;
+        }
+
+        $legacy_status = get_option( self::OPTION_STATUS, self::STATUS_CLOSED );
+        return self::is_valid_status( $legacy_status ) ? $legacy_status : self::STATUS_CLOSED;
+    }
+
+    public static function is_open( $event_id = null ) {
+        if ( $event_id === null ) {
+            return (bool) self::get_current_event();
+        }
+
+        $event = KKPAY_Event_Repository::find( (int) $event_id );
+        return $event && $event->status === self::STATUS_OPEN;
+    }
+
+    /**
+     * 新しいイベントを下書きとして作成する。
+     *
+     * @return object|WP_Error
+     */
+    public static function create( $title ) {
+        $title = sanitize_text_field( $title );
+        if ( $title === '' || mb_strlen( $title ) > 200 ) {
+            return new WP_Error( 'invalid_event_title', 'イベントタイトルを200文字以内で入力してください。' );
+        }
+
+        $now      = self::now_jst();
+        $event_id = KKPAY_Event_Repository::insert( array(
+            'title'         => $title,
+            'migration_key' => null,
+            'unit_amount'   => KKPAY_EVENT_AMOUNT,
+            'currency'      => KKPAY_EVENT_CURRENCY,
+            'status'        => self::STATUS_DRAFT,
+            'created_at'    => $now,
+            'updated_at'    => $now,
+        ) );
+        if ( is_wp_error( $event_id ) ) {
+            return $event_id;
+        }
+
+        return KKPAY_Event_Repository::find( $event_id );
+    }
+
+    /**
+     * 下書きイベントのタイトルを更新する。
+     *
+     * @return object|WP_Error
+     */
+    public static function update_title( $event_id, $title ) {
+        $event = KKPAY_Event_Repository::find( (int) $event_id );
+        if ( ! $event ) {
+            return new WP_Error( 'event_not_found', 'イベントが見つかりません。' );
+        }
+        if ( $event->status !== self::STATUS_DRAFT ) {
+            return new WP_Error( 'event_not_editable', '受付開始後のイベントタイトルは変更できません。' );
+        }
+
+        $title = sanitize_text_field( $title );
+        if ( $title === '' || mb_strlen( $title ) > 200 ) {
+            return new WP_Error( 'invalid_event_title', 'イベントタイトルを200文字以内で入力してください。' );
+        }
+
+        $updated = KKPAY_Event_Repository::update( $event->id, array(
+            'title'      => $title,
+            'updated_at' => self::now_jst(),
+        ) );
+        if ( is_wp_error( $updated ) ) {
+            return $updated;
+        }
+
+        return KKPAY_Event_Repository::find( $event->id );
+    }
+
+    /**
+     * @return object|WP_Error 更新後イベント
+     */
+    public static function set_status( $status, $event_id = null ) {
+        global $wpdb;
+
+        if ( ! self::is_valid_status( $status ) ) {
             return new WP_Error( 'invalid_status', 'Invalid event reservation status.' );
         }
 
-        // archived は「イベント終了後の恒久状態」。一度 archived になったら、他のどの状態にも
-        // 戻せない（受付再開ボタンの押し間違い等で決済済みイベントの受付が復活する事故を防ぐ）。
-        if ( self::get_status() === self::STATUS_ARCHIVED && $status !== self::STATUS_ARCHIVED ) {
-            return new WP_Error( 'already_archived', 'This event has already ended and cannot be reopened.' );
+        $target = self::get_management_event( $event_id );
+        if ( ! $target ) {
+            return new WP_Error( 'event_not_found', 'Event not found.' );
         }
 
-        update_option( self::OPTION_STATUS, $status );
+        if ( ! KKPAY_Event_Repository::acquire_status_lock() ) {
+            return new WP_Error( 'event_status_locked', 'Another event status update is in progress.' );
+        }
+
+        try {
+            $wpdb->query( 'START TRANSACTION' );
+            $event = KKPAY_Event_Repository::find_for_update( $target->id );
+            if ( ! $event ) {
+                $wpdb->query( 'ROLLBACK' );
+                return new WP_Error( 'event_not_found', 'Event not found.' );
+            }
+
+            if ( $event->status === $status ) {
+                $wpdb->query( 'ROLLBACK' );
+                return $event;
+            }
+
+            if ( ! self::transition_is_allowed( $event->status, $status ) ) {
+                $wpdb->query( 'ROLLBACK' );
+                return new WP_Error( 'invalid_status_transition', 'This event status change is not allowed.' );
+            }
+
+            if ( $status === self::STATUS_OPEN ) {
+                $readiness = self::validate_open_readiness( $event );
+                if ( is_wp_error( $readiness ) ) {
+                    $wpdb->query( 'ROLLBACK' );
+                    return $readiness;
+                }
+
+                $other_open = KKPAY_Event_Repository::find_other_open_for_update( $event->id );
+                if ( $other_open ) {
+                    $wpdb->query( 'ROLLBACK' );
+                    return new WP_Error( 'another_event_open', 'Another event is already accepting reservations.' );
+                }
+            }
+
+            $updated = KKPAY_Event_Repository::update( $event->id, array(
+                'status'     => $status,
+                'updated_at' => self::now_jst(),
+            ) );
+            if ( is_wp_error( $updated ) ) {
+                $wpdb->query( 'ROLLBACK' );
+                return $updated;
+            }
+
+            $wpdb->query( 'COMMIT' );
+
+            if ( (int) get_option( 'kkpay_legacy_event_id', 0 ) === (int) $event->id ) {
+                update_option( self::OPTION_STATUS, $status );
+            }
+
+            return KKPAY_Event_Repository::find( $event->id );
+        } finally {
+            KKPAY_Event_Repository::release_status_lock();
+        }
+    }
+
+    private static function validate_open_readiness( $event ) {
+        if ( trim( $event->title ) === '' ) {
+            return new WP_Error( 'event_title_required', 'Event title is required.' );
+        }
+        if ( (int) $event->unit_amount !== KKPAY_EVENT_AMOUNT || $event->currency !== KKPAY_EVENT_CURRENCY ) {
+            return new WP_Error( 'event_price_invalid', 'Event price configuration is invalid.' );
+        }
+        if ( ! KKPAY_Stripe_Config::has_secret_key() ) {
+            return new WP_Error( 'stripe_not_configured', 'Payment system is not configured.' );
+        }
+        if ( KKPAY_Event_Repository::count_future_active_slots( $event->id, self::now_jst() ) < 1 ) {
+            return new WP_Error( 'event_slots_required', 'At least one future active session is required.' );
+        }
+
         return true;
+    }
+
+    private static function transition_is_allowed( $from, $to ) {
+        $allowed = array(
+            self::STATUS_DRAFT    => array( self::STATUS_OPEN ),
+            self::STATUS_OPEN     => array( self::STATUS_CLOSED, self::STATUS_ARCHIVED ),
+            self::STATUS_CLOSED   => array( self::STATUS_OPEN, self::STATUS_ARCHIVED ),
+            self::STATUS_ARCHIVED => array(),
+        );
+
+        return isset( $allowed[ $from ] ) && in_array( $to, $allowed[ $from ], true );
+    }
+
+    private static function is_valid_status( $status ) {
+        return in_array( $status, array(
+            self::STATUS_DRAFT,
+            self::STATUS_OPEN,
+            self::STATUS_CLOSED,
+            self::STATUS_ARCHIVED,
+        ), true );
+    }
+
+    private static function now_jst() {
+        return ( new DateTimeImmutable( 'now', new DateTimeZone( 'Asia/Tokyo' ) ) )->format( 'Y-m-d H:i:s' );
     }
 }

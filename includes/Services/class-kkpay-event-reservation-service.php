@@ -116,7 +116,11 @@ class KKPAY_Event_Reservation_Service {
         // hold の status を CONFIRMED にした瞬間、以降の held 集計（status IN ('HELD','PENDING_PAYMENT')）
         // から自動的に外れ、直後に挿入した予約行が confirmed 集計に自動的に乗る。
         // カウンタの付け替え操作は不要。
-        KKPAY_Event_Hold_Repository::mark_confirmed( $locked_hold->id, $now );
+        $hold_updated = KKPAY_Event_Hold_Repository::mark_confirmed( $locked_hold->id, $now );
+        if ( is_wp_error( $hold_updated ) ) {
+            $wpdb->query( 'ROLLBACK' );
+            return $hold_updated;
+        }
 
         $wpdb->query( 'COMMIT' );
 
@@ -234,10 +238,14 @@ class KKPAY_Event_Reservation_Service {
         $now = current_time( 'mysql' );
         // 返金は一切行わない方針のため、payment_status には触れず reservation_status のみ更新する
         // （通常予約の KKPAY_Cancellation_Service::cancel() と同じ考え方）。
-        KKPAY_Event_Reservation_Repository::update_status( $reservation->id, 'CANCELED', $reservation->payment_status, array(
+        $updated = KKPAY_Event_Reservation_Repository::update_status( $reservation->id, 'CANCELED', $reservation->payment_status, array(
             'cancelled_at'  => $now,
             'cancel_reason' => 'customer_cancel',
         ) );
+        if ( is_wp_error( $updated ) ) {
+            $wpdb->query( 'ROLLBACK' );
+            return $updated;
+        }
 
         $wpdb->query( 'COMMIT' );
 
@@ -273,7 +281,7 @@ class KKPAY_Event_Reservation_Service {
      *
      * @return true|WP_Error
      */
-    public static function admin_cancel( $reservation_id, $reason = '' ) {
+    public static function admin_cancel( $reservation_id, $event_id, $reason = '' ) {
         global $wpdb;
 
         $wpdb->query( 'START TRANSACTION' );
@@ -283,6 +291,11 @@ class KKPAY_Event_Reservation_Service {
             $wpdb->query( 'ROLLBACK' );
             return new WP_Error( 'not_found', 'Reservation not found.' );
         }
+        $slot = KKPAY_Event_Slot_Repository::find_for_update( $reservation->slot_id, $event_id );
+        if ( ! $slot ) {
+            $wpdb->query( 'ROLLBACK' );
+            return new WP_Error( 'event_mismatch', 'The reservation does not belong to this event.' );
+        }
         if ( $reservation->reservation_status !== 'CONFIRMED' ) {
             $wpdb->query( 'ROLLBACK' );
             return new WP_Error( 'invalid_status', 'Only confirmed reservations can be cancelled.' );
@@ -291,10 +304,14 @@ class KKPAY_Event_Reservation_Service {
         $now = current_time( 'mysql' );
         // reservation_status が CONFIRMED でなくなった瞬間、以降の confirmed 集計から自動的に
         // 外れる（都度計算のため、カウンタのデクリメントは不要）。
-        KKPAY_Event_Reservation_Repository::update_status( $reservation->id, 'CANCELED', $reservation->payment_status, array(
+        $updated = KKPAY_Event_Reservation_Repository::update_status( $reservation->id, 'CANCELED', $reservation->payment_status, array(
             'cancelled_at'  => $now,
             'cancel_reason' => $reason,
         ) );
+        if ( is_wp_error( $updated ) ) {
+            $wpdb->query( 'ROLLBACK' );
+            return $updated;
+        }
 
         $wpdb->query( 'COMMIT' );
 
@@ -332,10 +349,15 @@ class KKPAY_Event_Reservation_Service {
 
         $now = current_time( 'mysql' );
 
-        KKPAY_Event_Reservation_Repository::update_status( $locked->id, 'REFUNDED', 'refunded', array(
+        $updated = KKPAY_Event_Reservation_Repository::update_status( $locked->id, 'REFUNDED', 'refunded', array(
             'refunded_at'      => $now,
             'stripe_refund_id' => $refund_id,
         ) );
+        if ( is_wp_error( $updated ) ) {
+            $wpdb->query( 'ROLLBACK' );
+            error_log( '[KKPAY][Event] Failed to sync external refund: ' . $updated->get_error_message() );
+            return;
+        }
 
         $wpdb->query( 'COMMIT' );
 

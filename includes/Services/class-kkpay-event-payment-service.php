@@ -54,7 +54,7 @@ class KKPAY_Event_Payment_Service {
         }
 
         $updated = KKPAY_Event_Hold_Repository::set_payment_intent( $hold->id, $pi['id'], $pi['client_secret'], current_time( 'mysql' ) );
-        if ( ! $updated ) {
+        if ( is_wp_error( $updated ) || ! $updated ) {
             // Stripe側のPaymentIntent作成自体は成功しているため処理は継続する（confirm時の照合は
             // Stripe metadata経由で行われるため機能上は問題ない）。ただしローカルDBにこのPaymentIntentの
             // 発行事実を記録できていないと、管理画面のホールド一覧からPaymentIntentを追跡できなくなるため、

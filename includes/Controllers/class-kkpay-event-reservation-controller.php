@@ -18,11 +18,13 @@ class KKPAY_Event_Reservation_Controller {
     public static function ajax_get_available_slots() {
         check_ajax_referer( 'kkpay_nonce', 'nonce' );
 
-        if ( ! KKPAY_Event_Settings_Service::is_open() ) {
+        $event = KKPAY_Event_Settings_Service::get_current_event();
+        if ( ! $event ) {
             self::send_closed_error();
         }
 
-        $rows  = KKPAY_Event_Slot_Repository::find_all_with_remaining();
+        $now   = ( new DateTimeImmutable( 'now', new DateTimeZone( 'Asia/Tokyo' ) ) )->format( 'Y-m-d H:i:s' );
+        $rows  = KKPAY_Event_Slot_Repository::find_all_with_remaining( $event->id, $now );
         $slots = array();
         foreach ( $rows as $row ) {
             $slots[] = array(
@@ -40,11 +42,12 @@ class KKPAY_Event_Reservation_Controller {
     public static function ajax_create_hold() {
         check_ajax_referer( 'kkpay_nonce', 'nonce' );
 
-        if ( ! KKPAY_Event_Settings_Service::is_open() ) {
+        $event = KKPAY_Event_Settings_Service::get_current_event();
+        if ( ! $event ) {
             self::send_closed_error();
         }
 
-        $data = KKPAY_Event_Reservation_Validator::validate_create_hold( $_POST );
+        $data = KKPAY_Event_Reservation_Validator::validate_create_hold( $_POST, $event->id );
         if ( is_wp_error( $data ) ) {
             wp_send_json_error( array( 'message' => $data->get_error_message() ) );
         }
@@ -53,7 +56,7 @@ class KKPAY_Event_Reservation_Controller {
             wp_send_json_error( array( 'message' => 'Payment system is not configured.' ) );
         }
 
-        $pi = KKPAY_Event_Hold_Service::create_hold_and_payment_intent( $data['slot_id'], $data['guests'], $data['name'], $data['email'] );
+        $pi = KKPAY_Event_Hold_Service::create_hold_and_payment_intent( $event->id, $data['slot_id'], $data['guests'], $data['name'], $data['email'] );
         if ( is_wp_error( $pi ) ) {
             wp_send_json_error( array( 'message' => $pi->get_error_message() ) );
         }
@@ -133,9 +136,14 @@ class KKPAY_Event_Reservation_Controller {
             wp_die( 'Unauthorized' );
         }
 
-        $results  = KKPAY_Event_Reservation_Repository::get_list_as_array();
+        $event = KKPAY_Event_Settings_Service::get_management_event();
+        if ( ! $event ) {
+            wp_die( 'Event not found.' );
+        }
+
+        $results  = KKPAY_Event_Reservation_Repository::get_list_as_array_by_event( $event->id );
         $slot_map = array();
-        foreach ( KKPAY_Event_Slot_Repository::get_all() as $slot ) {
+        foreach ( KKPAY_Event_Slot_Repository::get_all( $event->id ) as $slot ) {
             $slot_map[ $slot->id ] = $slot;
         }
 
@@ -197,7 +205,12 @@ class KKPAY_Event_Reservation_Controller {
             wp_send_json_error( array( 'message' => $data->get_error_message() ) );
         }
 
-        $updated = KKPAY_Event_Settings_Service::set_status( $data['status'] );
+        $event = KKPAY_Event_Settings_Service::get_management_event();
+        if ( ! $event ) {
+            wp_send_json_error( array( 'message' => 'Event not found.' ) );
+        }
+
+        $updated = KKPAY_Event_Settings_Service::set_status( $data['status'], $event->id );
         if ( is_wp_error( $updated ) ) {
             wp_send_json_error( array( 'message' => $updated->get_error_message() ) );
         }
@@ -206,11 +219,11 @@ class KKPAY_Event_Reservation_Controller {
         // （イベントが終わった以上、あとから決済されても受け付けられないため）。
         $closed_holds = 0;
         if ( $data['status'] === KKPAY_Event_Settings_Service::STATUS_ARCHIVED ) {
-            $closed_holds = KKPAY_Event_Hold_Service::hard_close();
+            $closed_holds = KKPAY_Event_Hold_Service::hard_close( $event->id );
         }
 
         wp_send_json_success( array(
-            'status'       => KKPAY_Event_Settings_Service::get_status(),
+            'status'       => $updated->status,
             'closed_holds' => $closed_holds,
         ) );
     }
@@ -226,7 +239,12 @@ class KKPAY_Event_Reservation_Controller {
             wp_send_json_error( array( 'message' => $data->get_error_message() ) );
         }
 
-        $result = KKPAY_Event_Reservation_Service::admin_cancel( $data['reservation_id'], $data['reason'] );
+        $event = KKPAY_Event_Settings_Service::get_management_event();
+        if ( ! $event ) {
+            wp_send_json_error( array( 'message' => 'Event not found.' ) );
+        }
+
+        $result = KKPAY_Event_Reservation_Service::admin_cancel( $data['reservation_id'], $event->id, $data['reason'] );
         if ( is_wp_error( $result ) ) {
             wp_send_json_error( array( 'message' => $result->get_error_message() ) );
         }

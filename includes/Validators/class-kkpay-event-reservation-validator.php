@@ -15,7 +15,7 @@ class KKPAY_Event_Reservation_Validator {
      * @param array $input $_POST
      * @return array|WP_Error
      */
-    public static function validate_create_hold( array $input ) {
+    public static function validate_create_hold( array $input, $event_id ) {
         $name    = sanitize_text_field( $input['name'] ?? '' );
         $email   = sanitize_email( $input['email'] ?? '' );
         $slot_id = intval( $input['slot_id'] ?? 0 );
@@ -31,7 +31,7 @@ class KKPAY_Event_Reservation_Validator {
         $slot = $slot_id > 0 ? KKPAY_Event_Slot_Repository::find( $slot_id ) : null;
         // 残席の可否は competing リクエストとの整合のため Service 側の FOR UPDATE ロック内で
         // 最終判定するが、「存在しない/非activeな枠を選んだ」という明白な入力不備はここで弾く。
-        if ( ! $slot || $slot->status !== 'active' ) {
+        if ( ! $slot || (int) $slot->event_id !== (int) $event_id || $slot->status !== 'active' ) {
             return new WP_Error( 'invalid_slot', 'Please select a valid session.' );
         }
         if ( $guests < 1 || $guests > KKPAY_EVENT_MAX_PEOPLE ) {

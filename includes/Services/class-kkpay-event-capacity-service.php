@@ -23,13 +23,14 @@ class KKPAY_Event_Capacity_Service {
      *                                  （確定処理で「このホールド自身の分を除いた残席」を見るため）。
      * @return object|WP_Error { slot, held, confirmed, remaining }
      */
-    public static function check_for_update( $slot_id, $exclude_hold_id = null ) {
-        $slot = KKPAY_Event_Slot_Repository::find_for_update( $slot_id );
+    public static function check_for_update( $slot_id, $exclude_hold_id = null, $event_id = null ) {
+        $slot = KKPAY_Event_Slot_Repository::find_for_update( $slot_id, $event_id );
         if ( ! $slot ) {
             return new WP_Error( 'invalid_slot', 'The selected session is not available.' );
         }
 
-        $held      = KKPAY_Event_Hold_Repository::sum_active_guests_for_slot( $slot_id, $exclude_hold_id );
+        $now       = ( new DateTimeImmutable( 'now', new DateTimeZone( 'Asia/Tokyo' ) ) )->format( 'Y-m-d H:i:s' );
+        $held      = KKPAY_Event_Hold_Repository::sum_active_guests_for_slot( $slot_id, $now, $exclude_hold_id );
         $confirmed = KKPAY_Event_Reservation_Repository::sum_confirmed_guests_for_slot( $slot_id );
         $remaining = max( 0, (int) $slot->capacity - $held - $confirmed );
 

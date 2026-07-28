@@ -31,7 +31,7 @@ class KKPAY_Event_Hold_Service {
      *
      * @return object|WP_Error ホールド行（event_date/event_time を付与）
      */
-    public static function create_hold( $slot_id, $guests, $name, $email ) {
+    public static function create_hold( $event_id, $slot_id, $guests, $name, $email ) {
         global $wpdb;
 
         $tz      = new DateTimeZone( 'Asia/Tokyo' );
@@ -41,10 +41,17 @@ class KKPAY_Event_Hold_Service {
 
         $wpdb->query( 'START TRANSACTION' );
 
+        // イベント行を先にロックし、受付停止との競合時に停止後の新規ホールドを作らない。
+        $event = KKPAY_Event_Repository::find_for_update( $event_id );
+        if ( ! $event || $event->status !== KKPAY_Event_Settings_Service::STATUS_OPEN ) {
+            $wpdb->query( 'ROLLBACK' );
+            return new WP_Error( 'event_closed', 'This event is no longer accepting reservations.' );
+        }
+
         // 枠行をロックしつつ、現在の残席を都度計算する。同一枠への同時アクセスはここで
         // 直列化されるため、直後の重複ホールドチェックも他プロセスがコミット済みのホールドを
         // 確実に見られる。
-        $capacity_check = KKPAY_Event_Capacity_Service::check_for_update( $slot_id );
+        $capacity_check = KKPAY_Event_Capacity_Service::check_for_update( $slot_id, null, $event->id );
         if ( is_wp_error( $capacity_check ) ) {
             $wpdb->query( 'ROLLBACK' );
             return new WP_Error( 'invalid_slot', 'The selected session is not available.' );
@@ -66,7 +73,7 @@ class KKPAY_Event_Hold_Service {
 
         // 同一メール・同一枠の有効ホールドが既にある場合は新規ホールドを作らせない。
         // 連打/複数タブによる多重ホールドは、8席固定の枠では他客の予約機会を直接圧迫するため。
-        if ( KKPAY_Event_Hold_Repository::find_active_by_email_and_slot( $email, $slot_id ) ) {
+        if ( KKPAY_Event_Hold_Repository::find_active_by_email_and_slot( $email, $slot_id, $now_str ) ) {
             $wpdb->query( 'ROLLBACK' );
             return new WP_Error( 'duplicate_hold', 'You already have a pending reservation for this session. Please complete payment or wait for it to expire before starting a new one.' );
         }
@@ -84,7 +91,7 @@ class KKPAY_Event_Hold_Service {
         }
 
         $hold_token = bin2hex( random_bytes( 32 ) );
-        $amount     = (int) $guests * KKPAY_EVENT_AMOUNT;
+        $amount     = (int) $guests * (int) $event->unit_amount;
 
         $inserted = KKPAY_Event_Hold_Repository::insert( array(
             'hold_token' => $hold_token,
@@ -93,7 +100,7 @@ class KKPAY_Event_Hold_Service {
             'email'      => $email,
             'guests'     => (int) $guests,
             'amount'     => $amount,
-            'currency'   => KKPAY_EVENT_CURRENCY,
+            'currency'   => $event->currency,
             'status'     => 'HELD',
             'expires_at' => $expires->format( 'Y-m-d H:i:s' ),
             'created_at' => $now_str,
@@ -117,6 +124,7 @@ class KKPAY_Event_Hold_Service {
             'customer',
             array(
                 'slot_id'    => (int) $slot_id,
+                'event_id'   => (int) $event->id,
                 'event_date' => $slot->event_date,
                 'event_time' => $slot->event_time,
                 'guests'     => (int) $guests,
@@ -128,11 +136,12 @@ class KKPAY_Event_Hold_Service {
             'id'         => $inserted,
             'hold_token' => $hold_token,
             'slot_id'    => (int) $slot_id,
+            'event_id'   => (int) $event->id,
             'name'       => $name,
             'email'      => $email,
             'guests'     => (int) $guests,
             'amount'     => $amount,
-            'currency'   => KKPAY_EVENT_CURRENCY,
+            'currency'   => $event->currency,
             'status'     => 'HELD',
             'expires_at' => $expires->format( 'Y-m-d H:i:s' ),
             'event_date' => $slot->event_date,
@@ -147,8 +156,8 @@ class KKPAY_Event_Hold_Service {
      *
      * @return array|WP_Error PaymentIntent情報（KKPAY_Event_Payment_Service::create_payment_intent_for_hold()の戻り値）
      */
-    public static function create_hold_and_payment_intent( $slot_id, $guests, $name, $email ) {
-        $hold = self::create_hold( $slot_id, $guests, $name, $email );
+    public static function create_hold_and_payment_intent( $event_id, $slot_id, $guests, $name, $email ) {
+        $hold = self::create_hold( $event_id, $slot_id, $guests, $name, $email );
         if ( is_wp_error( $hold ) ) {
             return $hold;
         }
@@ -172,7 +181,12 @@ class KKPAY_Event_Hold_Service {
             return;
         }
 
-        KKPAY_Event_Hold_Repository::mark_canceled( $locked->id, current_time( 'mysql' ) );
+        $updated = KKPAY_Event_Hold_Repository::mark_canceled( $locked->id, current_time( 'mysql' ) );
+        if ( is_wp_error( $updated ) ) {
+            $wpdb->query( 'ROLLBACK' );
+            error_log( '[KKPAY][Event] Failed to release hold: ' . $updated->get_error_message() );
+            return;
+        }
 
         $wpdb->query( 'COMMIT' );
     }
@@ -186,7 +200,8 @@ class KKPAY_Event_Hold_Service {
      * 管理画面表示のたびにも呼ばれるため、cron なしでも定期的に整理される。
      */
     public static function expire_holds() {
-        $expired = KKPAY_Event_Hold_Repository::find_expired();
+        $now     = ( new DateTimeImmutable( 'now', new DateTimeZone( 'Asia/Tokyo' ) ) )->format( 'Y-m-d H:i:s' );
+        $expired = KKPAY_Event_Hold_Repository::find_expired( $now );
         foreach ( $expired as $hold ) {
             self::expire_or_confirm_hold( $hold, true );
         }
@@ -205,8 +220,8 @@ class KKPAY_Event_Hold_Service {
      *
      * @return int 実際に失効させたホールド件数（決済成功が判明し確定処理に回したものは含まない）
      */
-    public static function hard_close() {
-        $active   = KKPAY_Event_Hold_Repository::find_active_pending();
+    public static function hard_close( $event_id ) {
+        $active   = KKPAY_Event_Hold_Repository::find_active_pending_by_event( $event_id );
         $count    = 0;
         $failures = array();
 
@@ -239,7 +254,7 @@ class KKPAY_Event_Hold_Service {
         // error_log だけでは管理画面から見落とされるため、直近の Hard Close 結果を
         // トランジションに残し、管理画面側で警告表示できるようにする。
         // 失敗が無ければ空配列で上書きし、過去の警告が残り続けないようにする。
-        set_transient( self::HARD_CLOSE_FAILURES_TRANSIENT, $failures, DAY_IN_SECONDS );
+        set_transient( self::hard_close_transient_key( $event_id ), $failures, DAY_IN_SECONDS );
 
         return $count;
     }
@@ -249,9 +264,13 @@ class KKPAY_Event_Hold_Service {
      *
      * @return array<int, array{hold_token: string, payment_intent_id: string, message: string}>
      */
-    public static function get_last_hard_close_failures() {
-        $failures = get_transient( self::HARD_CLOSE_FAILURES_TRANSIENT );
+    public static function get_last_hard_close_failures( $event_id ) {
+        $failures = get_transient( self::hard_close_transient_key( $event_id ) );
         return is_array( $failures ) ? $failures : array();
+    }
+
+    private static function hard_close_transient_key( $event_id ) {
+        return self::HARD_CLOSE_FAILURES_TRANSIENT . '_' . (int) $event_id;
     }
 
     /**
@@ -309,10 +328,10 @@ class KKPAY_Event_Hold_Service {
 
         $wpdb->query( 'START TRANSACTION' );
 
-        // 時刻比較は必ずDB側（NOW()）で行う。PHPの time() で判定すると、PHPとDBのタイムゾーン設定が
-        // 食い違った場合に誤判定するおそれがあるため。
+        // WordPress/DBのタイムゾーン設定差に影響されないよう、JSTで生成した同一の現在時刻をSQLへ渡す。
+        $now    = ( new DateTimeImmutable( 'now', new DateTimeZone( 'Asia/Tokyo' ) ) )->format( 'Y-m-d H:i:s' );
         $locked = $require_past_expiry
-            ? KKPAY_Event_Hold_Repository::find_by_token_for_update_if_past_expiry( $hold_token )
+            ? KKPAY_Event_Hold_Repository::find_by_token_for_update_if_past_expiry( $hold_token, $now )
             : KKPAY_Event_Hold_Repository::find_by_token_for_update( $hold_token );
 
         if ( ! $locked || ! in_array( $locked->status, array( 'HELD', 'PENDING_PAYMENT' ), true ) ) {
@@ -320,8 +339,12 @@ class KKPAY_Event_Hold_Service {
             return null;
         }
 
-        $now = current_time( 'mysql' );
-        KKPAY_Event_Hold_Repository::mark_expired( $locked->id, $now );
+        $updated = KKPAY_Event_Hold_Repository::mark_expired( $locked->id, $now );
+        if ( is_wp_error( $updated ) ) {
+            $wpdb->query( 'ROLLBACK' );
+            error_log( '[KKPAY][Event] Failed to expire hold: ' . $updated->get_error_message() );
+            return null;
+        }
 
         $wpdb->query( 'COMMIT' );
 
