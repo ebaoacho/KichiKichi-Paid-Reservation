@@ -121,6 +121,7 @@ class KKPAY_Event_Reservation_Repository {
         ) );
     }
 
+    /** キャンセル済みを含む監査対象の全予約行を数え、履歴のある枠の削除防止に使用する。 */
     public static function count_by_slot( $slot_id ) {
         global $wpdb;
         return (int) $wpdb->get_var( $wpdb->prepare(

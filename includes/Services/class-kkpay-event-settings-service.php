@@ -61,23 +61,27 @@ class KKPAY_Event_Settings_Service {
     /**
      * 新しいイベントを下書きとして作成する。
      *
-     * @return object|WP_Error
+     * @return array|WP_Error 作成したeventと初期slots
      */
-    public static function create( $title, $request_key = '' ) {
+    public static function create_draft_with_slots( $title, $request_key, array $slots ) {
+        global $wpdb;
+
         $title = sanitize_text_field( $title );
         if ( $title === '' || mb_strlen( $title ) > 200 ) {
             return new WP_Error( 'invalid_event_title', 'イベントタイトルを200文字以内で入力してください。' );
         }
 
-        $migration_key = $request_key !== '' ? 'admin_create:' . $request_key : null;
-        if ( $migration_key ) {
-            $existing = KKPAY_Event_Repository::find_by_migration_key( $migration_key );
-            if ( $existing ) {
-                return $existing;
-            }
+        $migration_key = 'admin_create:' . $request_key;
+        $existing = KKPAY_Event_Repository::find_by_migration_key( $migration_key );
+        if ( $existing ) {
+            return array(
+                'event' => $existing,
+                'slots' => KKPAY_Event_Slot_Repository::get_all( $existing->id ),
+            );
         }
 
-        $now      = self::now_jst();
+        $now = self::now_jst();
+        $wpdb->query( 'START TRANSACTION' );
         $event_id = KKPAY_Event_Repository::insert( array(
             'title'         => $title,
             'migration_key' => $migration_key,
@@ -88,16 +92,38 @@ class KKPAY_Event_Settings_Service {
             'updated_at'    => $now,
         ) );
         if ( is_wp_error( $event_id ) ) {
-            if ( $migration_key ) {
-                $existing = KKPAY_Event_Repository::find_by_migration_key( $migration_key );
-                if ( $existing ) {
-                    return $existing;
-                }
+            $wpdb->query( 'ROLLBACK' );
+            $existing = KKPAY_Event_Repository::find_by_migration_key( $migration_key );
+            if ( $existing ) {
+                return array(
+                    'event' => $existing,
+                    'slots' => KKPAY_Event_Slot_Repository::get_all( $existing->id ),
+                );
             }
             return $event_id;
         }
 
-        return KKPAY_Event_Repository::find( $event_id );
+        foreach ( $slots as $slot_data ) {
+            $inserted = KKPAY_Event_Slot_Repository::insert( array(
+                'event_id'   => $event_id,
+                'event_date' => $slot_data['date'],
+                'event_time' => $slot_data['time'],
+                'capacity'   => $slot_data['capacity'],
+                'status'     => 'active',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ) );
+            if ( is_wp_error( $inserted ) ) {
+                $wpdb->query( 'ROLLBACK' );
+                return $inserted;
+            }
+        }
+
+        $wpdb->query( 'COMMIT' );
+        return array(
+            'event' => KKPAY_Event_Repository::find( $event_id ),
+            'slots' => KKPAY_Event_Slot_Repository::get_all( $event_id ),
+        );
     }
 
     /** @return array|WP_Error */
@@ -202,36 +228,6 @@ class KKPAY_Event_Settings_Service {
             'event' => KKPAY_Event_Repository::find( $event->id ),
             'slots' => KKPAY_Event_Slot_Repository::get_all( $event->id ),
         );
-    }
-
-    /**
-     * 下書きイベントのタイトルを更新する。
-     *
-     * @return object|WP_Error
-     */
-    public static function update_title( $event_id, $title ) {
-        $event = KKPAY_Event_Repository::find( (int) $event_id );
-        if ( ! $event ) {
-            return new WP_Error( 'event_not_found', 'イベントが見つかりません。' );
-        }
-        if ( $event->status !== self::STATUS_DRAFT ) {
-            return new WP_Error( 'event_not_editable', '受付開始後のイベントタイトルは変更できません。' );
-        }
-
-        $title = sanitize_text_field( $title );
-        if ( $title === '' || mb_strlen( $title ) > 200 ) {
-            return new WP_Error( 'invalid_event_title', 'イベントタイトルを200文字以内で入力してください。' );
-        }
-
-        $updated = KKPAY_Event_Repository::update( $event->id, array(
-            'title'      => $title,
-            'updated_at' => self::now_jst(),
-        ) );
-        if ( is_wp_error( $updated ) ) {
-            return $updated;
-        }
-
-        return KKPAY_Event_Repository::find( $event->id );
     }
 
     /**

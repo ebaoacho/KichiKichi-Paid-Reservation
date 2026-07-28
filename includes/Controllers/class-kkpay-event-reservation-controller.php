@@ -266,11 +266,6 @@ class KKPAY_Event_Reservation_Controller {
         if ( is_wp_error( $data ) ) {
             wp_send_json_error( array( 'message' => $data->get_error_message() ) );
         }
-        $event = KKPAY_Event_Settings_Service::create( $data['title'], $data['request_key'] );
-        if ( is_wp_error( $event ) ) {
-            wp_send_json_error( array( 'message' => $event->get_error_message() ) );
-        }
-
         $initial_slots = array();
         foreach ( array( '11:00', '12:30', '14:00' ) as $time ) {
             $initial_slots[] = array(
@@ -280,12 +275,16 @@ class KKPAY_Event_Reservation_Controller {
                 'capacity' => KKPAY_EVENT_MAX_PEOPLE,
             );
         }
-        $saved = KKPAY_Event_Settings_Service::save_draft( $event->id, $data['title'], $initial_slots );
+        $saved = KKPAY_Event_Settings_Service::create_draft_with_slots(
+            $data['title'],
+            $data['request_key'],
+            $initial_slots
+        );
         if ( is_wp_error( $saved ) ) {
             wp_send_json_error( array( 'message' => $saved->get_error_message() ) );
         }
 
-        wp_send_json_success( array( 'event_id' => (int) $event->id ) );
+        wp_send_json_success( array( 'event_id' => (int) $saved['event']->id ) );
     }
 
     public static function ajax_admin_save_event() {
