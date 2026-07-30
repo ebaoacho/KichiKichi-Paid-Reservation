@@ -13,14 +13,7 @@ class KKPAY_Activator {
         self::create_tables();
         self::maybe_migrate_step1();
         self::maybe_migrate_calendar_days();
-        self::maybe_init_event_reservation_status();
         self::schedule_cron();
-        $event_migration = self::maybe_migrate_event_series();
-        if ( is_wp_error( $event_migration ) ) {
-            error_log( '[KKPAY] Event series migration failed during activation: ' . $event_migration->get_error_message() );
-            return;
-        }
-        self::seed_event_slots();
         update_option( 'kkpay_db_version', KKPAY_VERSION );
     }
 
@@ -42,27 +35,13 @@ class KKPAY_Activator {
         self::create_tables();
         self::maybe_migrate_step1( $schema_is_missing );
         self::maybe_migrate_calendar_days( $schema_is_missing );
-        self::maybe_init_event_reservation_status();
         self::schedule_cron();
-        $event_migration = self::maybe_migrate_event_series( $schema_is_missing );
-        if ( is_wp_error( $event_migration ) ) {
-            error_log( '[KKPAY] Event series migration failed during upgrade: ' . $event_migration->get_error_message() );
-            return;
-        }
-        self::seed_event_slots();
         update_option( 'kkpay_db_version', KKPAY_VERSION );
     }
 
     /**
-     * Event Reservation 受付ステータスの初期値を closed に設定する（未設定時のみ）。
-     * 管理者が明示的に Reopen するまで公開ページには申込フォームを表示しない。
+     * 現在のコードが必要とするテーブル・列・索引が揃っているか確認する。
      */
-    private static function maybe_init_event_reservation_status() {
-        if ( get_option( 'kkpay_event_reservation_status', false ) === false ) {
-            update_option( 'kkpay_event_reservation_status', 'closed' );
-        }
-    }
-
     private static function schema_is_missing() {
         global $wpdb;
 
@@ -445,7 +424,7 @@ class KKPAY_Activator {
         $event_slots_table = $wpdb->prefix . 'kkpay_event_slots';
         $sql_event_slots   = "CREATE TABLE {$event_slots_table} (
             id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-            event_id         BIGINT UNSIGNED NULL DEFAULT NULL,
+            event_id         BIGINT UNSIGNED NOT NULL,
             event_date       DATE            NOT NULL,
             event_time       VARCHAR(20)     NOT NULL,
             capacity         TINYINT UNSIGNED NOT NULL DEFAULT 8,
@@ -453,6 +432,7 @@ class KKPAY_Activator {
             created_at       DATETIME        NOT NULL,
             updated_at       DATETIME        NOT NULL,
             PRIMARY KEY (id),
+            UNIQUE KEY event_date_time (event_id, event_date, event_time),
             KEY event_id (event_id)
         ) {$charset_collate};";
 
@@ -568,40 +548,6 @@ class KKPAY_Activator {
         }
     }
 
-    /**
-     * Event Reservation（イベント予約）の枠マスタを初期投入する。
-     * 5日程 × 3時間帯 × 定員8席を event_date_time のユニークキーで冪等に登録する。
-     */
-    private static function seed_event_slots() {
-        global $wpdb;
-
-        $table    = $wpdb->prefix . 'kkpay_event_slots';
-        $event_id = (int) get_option( 'kkpay_legacy_event_id', 0 );
-        $now      = ( new DateTimeImmutable( 'now', new DateTimeZone( 'Asia/Tokyo' ) ) )->format( 'Y-m-d H:i:s' );
-
-        if ( $event_id <= 0 || ! KKPAY_Event_Repository::find( $event_id ) ) {
-            error_log( '[KKPAY] Event slot seed skipped because the legacy event is unavailable.' );
-            return;
-        }
-
-        foreach ( KKPAY_EVENT_SLOT_DATES as $date ) {
-            foreach ( KKPAY_EVENT_SLOT_TIMES as $time ) {
-                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $table is derived from $wpdb->prefix; values are passed via prepare().
-                $wpdb->query( $wpdb->prepare(
-                    "INSERT IGNORE INTO {$table}
-                        (event_id, event_date, event_time, capacity, status, created_at, updated_at)
-                     VALUES (%d, %s, %s, %d, 'active', %s, %s)",
-                    $event_id,
-                    $date,
-                    $time,
-                    KKPAY_EVENT_SLOT_CAPACITY,
-                    $now,
-                    $now
-                ) );
-            }
-        }
-    }
-
     private static function normalize_schema_defaults() {
         global $wpdb;
 
@@ -612,6 +558,61 @@ class KKPAY_Activator {
         $wpdb->query( "ALTER TABLE {$reservations_table} MODIFY reservation_type VARCHAR(30) DEFAULT NULL" );
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $wpdb->query( "ALTER TABLE {$reservations_table} MODIFY stripe_payment_intent_id VARCHAR(255) NULL DEFAULT NULL" );
+
+        self::normalize_event_slot_schema();
+    }
+
+    /**
+     * dbDelta()では収束しないイベント枠のNULL制約と複合ユニークキーを修復する。
+     * 未関連枠は開催回が1件だけの場合に限り、その開催回へ安全に関連付ける。
+     */
+    private static function normalize_event_slot_schema() {
+        global $wpdb;
+
+        $events_table = $wpdb->prefix . 'kkpay_events';
+        $slots_table  = $wpdb->prefix . 'kkpay_event_slots';
+
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is derived from $wpdb->prefix; no user input.
+        $unassigned_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$slots_table} WHERE event_id IS NULL" );
+        if ( $unassigned_count > 0 ) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is derived from $wpdb->prefix; no user input.
+            $event_ids = array_map( 'intval', $wpdb->get_col( "SELECT id FROM {$events_table} ORDER BY id ASC" ) );
+            if ( count( $event_ids ) === 1 ) {
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is fixed; value is passed via prepare().
+                $updated = $wpdb->query( $wpdb->prepare(
+                    "UPDATE {$slots_table} SET event_id = %d WHERE event_id IS NULL",
+                    $event_ids[0]
+                ) );
+                if ( $updated === false ) {
+                    error_log( '[KKPAY] Failed to associate legacy event slots: ' . $wpdb->last_error );
+                }
+            } else {
+                error_log( '[KKPAY] Event slot schema repair requires exactly one event before unassigned slots can be associated.' );
+            }
+        }
+
+        if ( ! self::index_has_columns( $slots_table, 'event_date_time', array( 'event_id', 'event_date', 'event_time' ) ) ) {
+            if ( self::index_exists( $slots_table, 'event_date_time' ) ) {
+                // The DROP and ADD are one ALTER so a duplicate-key failure does not leave the table without the old index.
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed identifiers and table derived from $wpdb->prefix.
+                $index_updated = $wpdb->query( "ALTER TABLE {$slots_table} DROP INDEX event_date_time, ADD UNIQUE KEY event_date_time (event_id, event_date, event_time)" );
+            } else {
+                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed identifiers and table derived from $wpdb->prefix.
+                $index_updated = $wpdb->query( "ALTER TABLE {$slots_table} ADD UNIQUE KEY event_date_time (event_id, event_date, event_time)" );
+            }
+            if ( $index_updated === false ) {
+                error_log( '[KKPAY] Failed to repair the event slot unique index: ' . $wpdb->last_error );
+            }
+        }
+
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is derived from $wpdb->prefix; no user input.
+        $remaining_unassigned = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$slots_table} WHERE event_id IS NULL" );
+        if ( $remaining_unassigned === 0 && self::column_is_nullable( $slots_table, 'event_id' ) ) {
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed column definition and table derived from $wpdb->prefix.
+            if ( $wpdb->query( "ALTER TABLE {$slots_table} MODIFY event_id BIGINT UNSIGNED NOT NULL" ) === false ) {
+                error_log( '[KKPAY] Failed to make event slot event_id required: ' . $wpdb->last_error );
+            }
+        }
     }
 
     private static function migrate_data() {
@@ -694,171 +695,6 @@ class KKPAY_Activator {
 
         self::migrate_calendar_days();
         update_option( 'kkpay_migration_calendar_days_done', '1' );
-    }
-
-    /**
-     * 既存のEvent Reservationデータを単一のイベント開催回へ関連付ける。
-     *
-     * event_id は、既存行を安全にバックフィルするためcreate_tables()では一旦NULL許容で追加する。
-     * 本処理が全行の関連付けと複合ユニークキーへの置換を終えた後にNOT NULLへ収束させる。
-     * 途中で失敗した場合は完了Optionを保存せず、次回のmaybe_upgrade()で再試行する。
-     *
-     * @return true|WP_Error
-     */
-    private static function maybe_migrate_event_series( $force = false ) {
-        global $wpdb;
-
-        if ( ! $force && get_option( 'kkpay_migration_event_series_done' ) ) {
-            $completed_event_id = (int) get_option( 'kkpay_legacy_event_id', 0 );
-            $completed_slots_table = $wpdb->prefix . 'kkpay_event_slots';
-            if (
-                $completed_event_id > 0
-                && KKPAY_Event_Repository::find( $completed_event_id )
-                && ! self::column_is_nullable( $completed_slots_table, 'event_id' )
-                && self::index_has_columns( $completed_slots_table, 'event_date_time', array( 'event_id', 'event_date', 'event_time' ) )
-            ) {
-                return true;
-            }
-        }
-
-        $legacy_title = 'キチキチBIGオムライスイベント';
-        $migration_key = 'legacy-big-omurice-2026-07';
-        $event_id     = (int) get_option( 'kkpay_legacy_event_id', 0 );
-        $event        = $event_id > 0 ? KKPAY_Event_Repository::find( $event_id ) : null;
-
-        if ( ! $event ) {
-            $event = KKPAY_Event_Repository::find_by_migration_key( $migration_key );
-        }
-
-        if ( ! $event ) {
-            $event = KKPAY_Event_Repository::find_by_title( $legacy_title );
-        }
-
-        if ( ! $event ) {
-            $status = get_option( 'kkpay_event_reservation_status', 'closed' );
-            if ( ! in_array( $status, array( 'open', 'closed', 'archived' ), true ) ) {
-                $status = 'closed';
-            }
-
-            $now      = ( new DateTimeImmutable( 'now', new DateTimeZone( 'Asia/Tokyo' ) ) )->format( 'Y-m-d H:i:s' );
-            $event_id = KKPAY_Event_Repository::insert( array(
-                'title'       => $legacy_title,
-                'migration_key' => $migration_key,
-                'unit_amount' => KKPAY_EVENT_AMOUNT,
-                'currency'    => KKPAY_EVENT_CURRENCY,
-                'status'      => $status,
-                'created_at'  => $now,
-                'updated_at'  => $now,
-            ) );
-            if ( is_wp_error( $event_id ) ) {
-                // 同時実行が先に同じ移行キーの行を作成した場合は、その行を再利用する。
-                $event = KKPAY_Event_Repository::find_by_migration_key( $migration_key );
-                if ( ! $event ) {
-                    return $event_id;
-                }
-            } else {
-                $event = KKPAY_Event_Repository::find( $event_id );
-            }
-        }
-
-        if ( ! $event ) {
-            return new WP_Error( 'event_migration_failed', 'Failed to load the legacy event after creation.' );
-        }
-
-        $event_id          = (int) $event->id;
-        $event_slots_table = $wpdb->prefix . 'kkpay_event_slots';
-
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is derived from $wpdb->prefix; values are passed via prepare().
-        $updated = $wpdb->query( $wpdb->prepare(
-            "UPDATE {$event_slots_table} SET event_id = %d WHERE event_id IS NULL",
-            $event_id
-        ) );
-        if ( $updated === false ) {
-            return new WP_Error( 'event_slot_backfill_failed', 'Failed to associate existing event slots: ' . $wpdb->last_error );
-        }
-
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is derived from $wpdb->prefix; no user input.
-        $unassigned = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$event_slots_table} WHERE event_id IS NULL" );
-        if ( $unassigned > 0 ) {
-            return new WP_Error( 'event_slot_backfill_incomplete', 'Some event slots are still missing event_id.' );
-        }
-
-        if ( ! self::index_has_columns( $event_slots_table, 'event_date_time', array( 'event_id', 'event_date', 'event_time' ) ) ) {
-            if ( self::index_exists( $event_slots_table, 'event_date_time' ) ) {
-                // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed index name and table derived from $wpdb->prefix.
-                if ( $wpdb->query( "ALTER TABLE {$event_slots_table} DROP INDEX event_date_time" ) === false ) {
-                    return new WP_Error( 'event_slot_index_drop_failed', 'Failed to remove the legacy event slot index: ' . $wpdb->last_error );
-                }
-            }
-
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed identifiers only.
-            if ( $wpdb->query( "ALTER TABLE {$event_slots_table} ADD UNIQUE KEY event_date_time (event_id, event_date, event_time)" ) === false ) {
-                return new WP_Error( 'event_slot_index_create_failed', 'Failed to create the event-scoped slot index: ' . $wpdb->last_error );
-            }
-        }
-
-        if ( self::column_is_nullable( $event_slots_table, 'event_id' ) ) {
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Fixed column definition and table derived from $wpdb->prefix.
-            if ( $wpdb->query( "ALTER TABLE {$event_slots_table} MODIFY event_id BIGINT UNSIGNED NOT NULL" ) === false ) {
-                return new WP_Error( 'event_slot_not_null_failed', 'Failed to make event_id required: ' . $wpdb->last_error );
-            }
-        }
-
-        $relation_check = self::validate_event_series_relations();
-        if ( is_wp_error( $relation_check ) ) {
-            return $relation_check;
-        }
-
-        update_option( 'kkpay_legacy_event_id', (string) $event_id );
-        update_option( 'kkpay_migration_event_series_done', '1' );
-
-        return true;
-    }
-
-    /**
-     * イベント開催回へ辿れない既存行がないことを移行完了前に確認する。
-     *
-     * @return true|WP_Error
-     */
-    private static function validate_event_series_relations() {
-        global $wpdb;
-
-        $events_table       = $wpdb->prefix . 'kkpay_events';
-        $slots_table        = $wpdb->prefix . 'kkpay_event_slots';
-        $holds_table        = $wpdb->prefix . 'kkpay_event_holds';
-        $reservations_table = $wpdb->prefix . 'kkpay_event_reservations';
-
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- All table names are derived from $wpdb->prefix; no user input.
-        $orphan_slots = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$slots_table} s
-             LEFT JOIN {$events_table} e ON e.id = s.event_id
-             WHERE e.id IS NULL"
-        );
-        if ( $orphan_slots > 0 ) {
-            return new WP_Error( 'event_migration_orphan_slots', 'Event migration found slots without a valid event.' );
-        }
-
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- All table names are derived from $wpdb->prefix; no user input.
-        $orphan_holds = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$holds_table} h
-             LEFT JOIN {$slots_table} s ON s.id = h.slot_id
-             WHERE s.id IS NULL"
-        );
-        if ( $orphan_holds > 0 ) {
-            return new WP_Error( 'event_migration_orphan_holds', 'Event migration found holds without a valid slot.' );
-        }
-
-        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- All table names are derived from $wpdb->prefix; no user input.
-        $orphan_reservations = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$reservations_table} r
-             LEFT JOIN {$slots_table} s ON s.id = r.slot_id
-             WHERE s.id IS NULL"
-        );
-        if ( $orphan_reservations > 0 ) {
-            return new WP_Error( 'event_migration_orphan_reservations', 'Event migration found reservations without a valid slot.' );
-        }
-
-        return true;
     }
 
     private static function schedule_cron() {

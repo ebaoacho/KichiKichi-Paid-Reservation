@@ -187,3 +187,18 @@ if ( is_wp_error( $result ) ) {
 - [ ] テストモードで予約→決済→確認メールの動作を確認した
 - [ ] テストモードでキャンセルしても返金されないことを確認した
 - [ ] Stripe ダッシュボードで Webhook のテスト送信が成功することを確認した
+
+## Event Reservation
+
+イベント予約のPaymentIntent金額は、ブラウザから受け取らず、対象 `kkpay_events.unit_amount`（現在は50 USD）×人数をサーバー側で計算する。PaymentIntent metadataには次を保存する。
+
+- `type=event_reservation`
+- `event_id`, `event_title`
+- `event_slot_id`, `event_date`, `event_time`
+- `hold_token`, `guests`, `name`, `email`
+
+ブラウザ確定と `payment_intent.succeeded` Webhookは同じ確定サービスを使用し、PaymentIntent IDの一意制約と既存予約照会で冪等に処理する。確定前には金額、通貨、ホールド、枠、開催回metadataをDBと照合する。
+
+PR4より前に作成済みだったPaymentIntentとのデプロイ互換性として、`event_id` と `event_title` が両方存在しない場合だけ `hold_token -> slot_id -> event_id` から開催回を復元する。片方だけ欠けるmetadataは不整合として拒否する。
+
+顧客・管理者いずれのイベントキャンセル経路もStripe Refund APIを呼ばない。外部で返金された場合の `charge.refunded` WebhookはDB同期だけを行う。

@@ -185,3 +185,31 @@ calendar ──── (date 参照) ─────────▶ kkpay_reserva
 2. カラムの型変更・削除・インデックスの変更は `dbDelta()` では行えません。手動で ALTER TABLE が必要です。
 3. `KKPAY_VERSION` 定数を上げるとバージョン管理できますが、現状は `dbDelta()` が常に実行される構成です。
 4. 本番環境でのマイグレーションは必ずバックアップを取ってから行ってください。
+
+## Event Reservation（開催回管理）
+
+イベント予約は通常予約・スペシャルプレミアム予約とは別テーブルで管理する。日時はすべて Asia/Tokyo の値として保存・比較する。
+
+### `kkpay_events`
+
+開催回の親テーブル。`title`、固定単価 `unit_amount`（50 USD）、`currency`、`status`（`draft` / `open` / `closed` / `archived`）を保持する。公開受付できる `open` は全体で1件だけとし、サービス層の名前付きロックとトランザクション内の再確認で制御する。`migration_key` は管理画面の二重送信を冪等に処理する内部キーである。
+
+### `kkpay_event_slots`
+
+開催回ごとの日時・定員マスタ。`event_id` は必須で、`UNIQUE (event_id, event_date, event_time)` により同一開催回内の重複枠を防ぐ。異なる開催回では同じ日時を登録できる。
+
+### `kkpay_event_holds`
+
+決済中の5分間の席確保を保持する。開催回は `slot_id -> kkpay_event_slots.event_id` から決まる。残席計算ではJSTで生成した現在時刻と `expires_at` を比較し、`HELD` の有効ホールドだけを加算する。
+
+### `kkpay_event_reservations`
+
+決済確定済み予約。`payment_intent_id` と `reservation_code` は一意。開催回は `slot_id -> kkpay_event_slots.event_id` から決まる。キャンセルは `reservation_status = CANCELED` と日時を記録し、Stripe返金は実行しない。
+
+### `kkpay_event_reservation_events`
+
+ホールド、決済確定、キャンセル、外部返金同期などの監査ログ。予約作成前の事象も記録できるよう `reservation_id` はNULLを許容する。
+
+### 関係
+
+`kkpay_events (1) -> kkpay_event_slots (N) -> kkpay_event_holds / kkpay_event_reservations (N)`。MySQLの外部キー制約は使用していないため、デプロイ時は `doc/24_event_management_operations.md` の孤児データ確認SQLを実行する。
